@@ -8,11 +8,18 @@
   </head>
   <body>
     <main class="app-shell">
-      <section id="accessDenied" class="access-card" hidden>
+      <section id="accessGate" class="access-card">
         <span class="eyebrow">Acesso restrito</span>
-        <h1>Token inválido ou ausente</h1>
-        <p>Abra o formulário usando o parâmetro de segurança na URL.</p>
-        <code>?token=FUNAI2026</code>
+        <h1>Informe seu e-mail</h1>
+        <p>Use o e-mail autorizado para acessar o formulário.</p>
+        <form id="accessForm" class="access-form" novalidate>
+          <label>
+            E-mail do(a) consultor(a)
+            <input id="accessEmail" name="accessEmail" type="email" placeholder="nome@exemplo.com" autocomplete="email" required>
+          </label>
+          <button id="accessSubmitBtn" type="submit">Acessar formulário</button>
+        </form>
+        <div id="accessMessage" class="message" role="status" aria-live="polite"></div>
       </section>
 
       <section id="formApp" class="form-shell" hidden>
@@ -46,6 +53,11 @@
             </div>
 
             <div class="field-grid">
+              <label>
+                E-mail do(a) consultor(a)
+                <input name="consultorEmail" type="email" readonly>
+              </label>
+
               <label>
                 Nome completo do(a) consultor(a)*
                 <input name="consultorNome" type="text" placeholder="Digite seu nome completo" required>

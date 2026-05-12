@@ -74,6 +74,12 @@ textarea {
   background: var(--surface-soft);
 }
 
+.access-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 22px;
+}
+
 .eyebrow {
   display: block;
   color: var(--green);
@@ -153,7 +159,7 @@ textarea {
   transition: width 220ms ease;
 }
 
-form {
+#funaiForm {
   width: min(1235px, calc(100% - 180px));
   margin: 0 auto;
 }
@@ -316,6 +322,11 @@ select:focus,
 textarea:focus {
   border-color: #001b8d;
   box-shadow: none;
+}
+
+input[readonly] {
+  color: #555;
+  background: var(--surface-soft);
 }
 
 .wide {
@@ -598,7 +609,7 @@ button.ghost {
 
 @media (max-width: 1100px) {
   .form-shell,
-  form,
+  #funaiForm,
   .progress-wrap {
     width: min(100% - 28px, 1235px);
   }

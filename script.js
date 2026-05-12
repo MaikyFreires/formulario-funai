@@ -1,7 +1,8 @@
 const POWER_AUTOMATE_URL = "https://defaultd9e53f92849b40d084e12597903730.66.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/6fe542ad93f04cdfbffea31dd594d4d5/triggers/manual/paths/invoke?api-version=1";
-const URL_ACCESS_TOKEN = "FUNAI2026";
+const VERIFY_ACCESS_URL = "";
 const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
 const DRAFT_KEY = "funai-form-draft-v3";
+const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
 const MUNICIPIOS_CSV_URL = "municipios-estados.csv";
 const ETNIA_OPTIONS = [
   "Apurinã",
@@ -28,7 +29,11 @@ const ETNIA_OPTIONS = [
 ];
 
 const formApp = document.querySelector("#formApp");
-const accessDenied = document.querySelector("#accessDenied");
+const accessGate = document.querySelector("#accessGate");
+const accessForm = document.querySelector("#accessForm");
+const accessEmail = document.querySelector("#accessEmail");
+const accessSubmitBtn = document.querySelector("#accessSubmitBtn");
+const accessMessage = document.querySelector("#accessMessage");
 const form = document.querySelector("#funaiForm");
 const steps = Array.from(document.querySelectorAll(".step"));
 const progressBar = document.querySelector("#progressBar");
@@ -61,25 +66,96 @@ let selectedEstados = [];
 let selectedMunicipios = [];
 let municipiosPorEstado = new Map();
 let allEstados = [];
+let formInitialized = false;
 
 init();
 
-async function init() {
-  const params = new URLSearchParams(window.location.search);
-  const token = params.get("token");
+function init() {
+  bindAccessEvents();
 
-  if (token !== URL_ACCESS_TOKEN) {
-    accessDenied.hidden = false;
+  const authorizedEmail = sessionStorage.getItem(AUTHORIZED_EMAIL_KEY);
+  if (authorizedEmail) {
+    showAuthorizedForm(authorizedEmail);
     return;
   }
 
+  accessGate.hidden = false;
+  formApp.hidden = true;
+}
+
+function bindAccessEvents() {
+  accessForm.addEventListener("submit", handleAccessSubmit);
+}
+
+async function handleAccessSubmit(event) {
+  event.preventDefault();
+  clearAccessMessage();
+
+  const email = accessEmail.value.trim().toLowerCase();
+  if (!accessEmail.checkValidity() || !email) {
+    showAccessMessage("Informe um e-mail válido.", "error");
+    accessEmail.classList.add("invalid");
+    return;
+  }
+
+  if (!VERIFY_ACCESS_URL) {
+    showAccessMessage("Configure a constante VERIFY_ACCESS_URL no arquivo script.js.", "error");
+    return;
+  }
+
+  accessEmail.classList.remove("invalid");
+  accessSubmitBtn.disabled = true;
+  accessSubmitBtn.textContent = "Verificando...";
+
+  try {
+    const response = await fetch(VERIFY_ACCESS_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ email })
+    });
+    const result = await response.json();
+
+    if (result.autorizado === true) {
+      sessionStorage.setItem(AUTHORIZED_EMAIL_KEY, email);
+      await showAuthorizedForm(email);
+      return;
+    }
+
+    showAccessMessage("E-mail não autorizado.", "error");
+  } catch (error) {
+    showAccessMessage("Não foi possível verificar o e-mail. Tente novamente.", "error");
+  } finally {
+    accessSubmitBtn.disabled = false;
+    accessSubmitBtn.textContent = "Acessar formulário";
+  }
+}
+
+async function showAuthorizedForm(email) {
+  accessGate.hidden = true;
   formApp.hidden = false;
+  await initializeForm();
+  setAuthorizedEmail(email);
+}
+
+async function initializeForm() {
+  if (formInitialized) return;
+  formInitialized = true;
   populateEtniaOptions();
   await loadMunicipioData();
   bindEvents();
   loadDraft();
   updateConditionals();
   showStep(0);
+}
+
+function setAuthorizedEmail(email) {
+  const field = form.elements.consultorEmail;
+  if (!field) return;
+
+  field.value = email;
+  field.readOnly = true;
 }
 
 function bindEvents() {
@@ -201,6 +277,16 @@ async function handleSubmit(event) {
   event.preventDefault();
   if (!validateCurrentStep()) return;
 
+  const authorizedEmail = sessionStorage.getItem(AUTHORIZED_EMAIL_KEY);
+  if (!authorizedEmail) {
+    formApp.hidden = true;
+    accessGate.hidden = false;
+    showAccessMessage("Informe seu e-mail para acessar o formulário.", "error");
+    return;
+  }
+
+  setAuthorizedEmail(authorizedEmail);
+
   if (!POWER_AUTOMATE_URL) {
     showMessage("Configure a constante POWER_AUTOMATE_URL no arquivo script.js antes de enviar.", "error");
     return;
@@ -215,8 +301,13 @@ async function handleSubmit(event) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(buildPayload())
+      body: JSON.stringify(buildPayload("Enviado"))
     });
+
+    if (response.status === 403) {
+      showMessage("Este e-mail não está autorizado a enviar o formulário.", "error");
+      return;
+    }
 
     if (!response.ok) {
       throw new Error(`Falha no envio: ${response.status}`);
@@ -224,6 +315,7 @@ async function handleSubmit(event) {
 
     localStorage.removeItem(DRAFT_KEY);
     form.reset();
+    setAuthorizedEmail(authorizedEmail);
     selectedEtnias = [];
     selectedEstados = [];
     selectedMunicipios = [];
@@ -243,12 +335,14 @@ async function handleSubmit(event) {
   }
 }
 
-function buildPayload() {
+function buildPayload(statusFormulario = "Enviado") {
   return {
     tokenSecreto: SECRET_TOKEN,
     origem: "github-pages-funai",
     enviadoEm: new Date().toISOString(),
+    statusFormulario,
     consultor: {
+      email: getAuthorizedEmail(),
       nome: getValue("consultorNome"),
       areaEstudo: getValue("areaEstudo")
     },
@@ -316,9 +410,43 @@ function buildPayload() {
   };
 }
 
-function saveDraft() {
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(buildPayload()));
-  showMessage("Rascunho salvo neste navegador.", "success");
+async function saveDraft() {
+  const payload = buildPayload("Rascunho");
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+
+  if (!POWER_AUTOMATE_URL) {
+    showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
+    return;
+  }
+
+  saveDraftBtn.disabled = true;
+  saveDraftBtn.textContent = "Salvando...";
+
+  try {
+    const response = await fetch(POWER_AUTOMATE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.status === 403) {
+      showMessage("Este e-mail não está autorizado.", "error");
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Falha no envio do rascunho: ${response.status}`);
+    }
+
+    showMessage("Rascunho salvo no navegador e enviado para teste.", "success");
+  } catch (error) {
+    showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
+  } finally {
+    saveDraftBtn.disabled = false;
+    saveDraftBtn.textContent = "Salvar rascunho";
+  }
 }
 
 function loadDraft() {
@@ -380,6 +508,7 @@ function restoreValues(values) {
 
 function flattenDraft(draft) {
   return {
+    consultorEmail: draft.consultor?.email,
     consultorNome: draft.consultor?.nome,
     areaEstudo: draft.consultor?.areaEstudo,
     reivindicacaoId: draft.reivindicacao?.id,
@@ -439,6 +568,10 @@ function splitLegacyList(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function getAuthorizedEmail() {
+  return sessionStorage.getItem(AUTHORIZED_EMAIL_KEY) || getValue("consultorEmail");
 }
 
 function getValue(name) {
@@ -761,4 +894,14 @@ function showMessage(text, type) {
 function clearMessage() {
   messageBox.textContent = "";
   messageBox.className = "message";
+}
+
+function showAccessMessage(text, type) {
+  accessMessage.textContent = text;
+  accessMessage.className = `message is-visible ${type}`;
+}
+
+function clearAccessMessage() {
+  accessMessage.textContent = "";
+  accessMessage.className = "message";
 }

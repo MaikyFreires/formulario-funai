@@ -6,20 +6,21 @@ Projeto estático com HTML, CSS e JavaScript puro para coleta de solicitações 
 
 - `index.html`: estrutura do formulário em etapas.
 - `styles.css`: layout responsivo e visual do formulário.
-- `script.js`: validações, condicionais, proteção por token, rascunho e envio para Power Automate.
+- `script.js`: validações, condicionais, verificação de e-mail, rascunho e envio para Power Automate.
 
 ## Configuração
 
 1. Abra `script.js`.
-2. Preencha a constante `POWER_AUTOMATE_URL` com a URL HTTP POST do fluxo do Power Automate.
-3. Ajuste `SECRET_TOKEN`, se quiser trocar o token secreto enviado dentro do payload.
-4. Publique e acesse o formulário com o token na URL:
+2. Preencha a constante `VERIFY_ACCESS_URL` com a URL HTTP POST do fluxo que verifica se o e-mail está autorizado.
+3. Preencha a constante `POWER_AUTOMATE_URL` com a URL HTTP POST do fluxo que recebe o formulário.
+4. Ajuste `SECRET_TOKEN`, se quiser trocar o token secreto enviado dentro do payload.
+5. Publique e acesse a URL gerada pelo GitHub Pages:
 
 ```text
-https://seu-usuario.github.io/seu-repositorio/?token=FUNAI2026
+https://seu-usuario.github.io/seu-repositorio/
 ```
 
-Sem o parâmetro `?token=FUNAI2026`, o formulário fica bloqueado.
+O formulário principal só aparece após a autorização do e-mail pelo Power Automate.
 
 ## Payload
 
@@ -56,5 +57,7 @@ git push -u origin main
 Como é um site estático, você pode abrir `index.html` no navegador. Para testar o bloqueio, use a URL com o parâmetro:
 
 ```text
-index.html?token=FUNAI2026
+http://127.0.0.1:8000/
 ```
+
+Use servidor local quando precisar carregar o arquivo `municipios-estados.csv`.
