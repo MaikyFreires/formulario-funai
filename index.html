@@ -17,18 +17,18 @@
 
       <section id="formApp" class="form-shell" hidden>
         <header class="hero">
-          <div>
-            <span class="eyebrow">FUNAI</span>
-            <h1>Formulário de solicitações e reivindicações</h1>
-            <p>Coleta estruturada de informações extraídas dos processos de reivindicação associados a cada ID.</p>
+          <img class="brand-logo" src="assets/funai-header.png" alt="FUNAI">
+          <div class="hero-divider" aria-hidden="true"></div>
+          <div class="hero-copy">
+            <h1>Formulário - Resumo processos de reivindicação</h1>
+            <p>Os campos abaixo são para serem preenchidos com dados extraídos dos processos de reivindicação associados a cada ID de reivindicação.</p>
           </div>
-          <div class="status-pill" id="stepCounter">Etapa 1 de 6</div>
         </header>
 
         <div class="progress-wrap" aria-label="Progresso do formulário">
           <div class="progress-meta">
             <strong id="progressTitle">Dados do(a) consultor(a)</strong>
-            <span id="progressPercent">17%</span>
+            <span id="stepCounter">Etapa 1 de 6</span>
           </div>
           <div class="progress-track">
             <div class="progress-bar" id="progressBar"></div>
@@ -52,31 +52,26 @@
               </label>
 
               <label>
-                Gênero
-                <select name="genero">
-                  <option value="">Selecione</option>
-                  <option>Feminino</option>
-                  <option>Masculino</option>
-                  <option>Não informar</option>
-                  <option>Outro</option>
-                </select>
-              </label>
-
-              <label>
                 Área de estudo*
                 <select name="areaEstudo" required>
-                  <option value="">Selecione</option>
-                  <option>Amazônia Legal</option>
-                  <option>Nordeste</option>
-                  <option>Centro-Oeste</option>
-                  <option>Sul/Sudeste</option>
-                  <option>Outra</option>
+                  <option value="" selected>Escolha</option>
+                  <option>Acre | Envira | Alto Purus</option>
+                  <option>Alto Solimões 1</option>
+                  <option>Alto Solimões 2</option>
+                  <option>Médio Solimões 1 | Juruá</option>
+                  <option>Médio Solimões 2</option>
+                  <option>Médio Solimões 3</option>
+                  <option>Manaus e Rio Negro</option>
+                  <option>Roraima</option>
+                  <option>Médio e Baixo Purus</option>
+                  <option>Rondônia | Guaporé</option>
+                  <option>Mato Grosso</option>
+                  <option>Araguaia | Xingu | Oiapoque</option>
+                  <option>Madeira (BR-319) | Foz do Madeira</option>
+                  <option>Pará Central | Santarém</option>
+                  <option>AMZ Oriental 1</option>
+                  <option>AMZ Oriental 2</option>
                 </select>
-              </label>
-
-              <label>
-                Região de trabalho
-                <input name="regiaoTrabalho" type="text" placeholder="Informe a região">
               </label>
             </div>
           </section>
@@ -85,120 +80,169 @@
             <div class="section-heading">
               <span>2</span>
               <div>
-                <h2>Reivindicação</h2>
-                <p>Dados de identificação, localização e tipo de demanda.</p>
+                <h2>2. Reivindicação</h2>
               </div>
             </div>
 
-            <div class="field-grid">
-              <label>
-                ID*
-                <input name="reivindicacaoId" type="text" placeholder="Digite o ID" required>
-              </label>
+            <div class="step-sections">
+              <section class="field-section">
+                <h3>Identificação</h3>
+                <div class="field-grid compact">
+                  <label>
+                    ID*
+                    <input name="reivindicacaoId" type="text" placeholder="Digite o ID" required>
+                  </label>
 
-              <label>
-                Nome da reivindicação*
-                <input name="nomeReivindicacao" type="text" placeholder="Digite o nome da reivindicação" required>
-              </label>
-
-              <label>
-                Há outros nomes citados no processo?
-                <select name="outrosNomes" data-conditional="outrosNomesDetalhe">
-                  <option>Não</option>
-                  <option>Sim</option>
-                </select>
-              </label>
-
-              <label class="conditional" id="outrosNomesDetalhe">
-                Outros nomes da reivindicação
-                <input name="outrosNomesTexto" type="text" placeholder="Digite os outros nomes citados">
-              </label>
-
-              <label>
-                Possui processo?*
-                <select name="possuiProcesso" data-conditional="numeroProcessoWrap" required>
-                  <option value="">Selecione</option>
-                  <option>Não</option>
-                  <option>Sim</option>
-                </select>
-              </label>
-
-              <label class="conditional" id="numeroProcessoWrap">
-                Número do processo*
-                <input name="numeroProcesso" type="text" placeholder="Nº do processo">
-              </label>
-
-              <label>
-                Tem roteiro de qualificação ou material semelhante?*
-                <select name="temRoteiro" data-conditional="dataRoteiroWrap" required>
-                  <option value="">Selecione</option>
-                  <option>Não</option>
-                  <option>Sim</option>
-                </select>
-              </label>
-
-              <label class="conditional" id="dataRoteiroWrap">
-                Data do roteiro*
-                <input name="dataRoteiro" type="date">
-              </label>
-
-              <label>
-                Etnia/as
-                <input name="etnias" type="text" placeholder="Digite aqui a etnia">
-              </label>
-
-              <fieldset class="wide">
-                <legend>Tipo da demanda*</legend>
-                <div class="check-grid" data-required-group="tipoDemanda">
-                  <label><input type="checkbox" name="tipoDemanda" value="Identificação"> Identificação</label>
-                  <label><input type="checkbox" name="tipoDemanda" value="Revisão de limites"> Revisão de limites</label>
-                  <label><input type="checkbox" name="tipoDemanda" value="Reserva Indígena"> Reserva Indígena</label>
+                  <label>
+                    Nome da reivindicação*
+                    <input name="nomeReivindicacao" type="text" placeholder="Digite o nome da reivindicação" required>
+                  </label>
                 </div>
-              </fieldset>
+              </section>
 
-              <label class="conditional" id="modalidadeReservaWrap">
-                Modalidade de constituição*
-                <select name="modalidadeConstituicao">
-                  <option value="">Selecione</option>
-                  <option>Reserva Indígena</option>
-                  <option>Terra Dominial</option>
-                  <option>Arrecadação (Aquisição)</option>
-                  <option>Destinação</option>
-                  <option>Doação</option>
-                  <option>Desapropriação</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+              <section class="field-section">
+                <h3>Povos e nomes citados</h3>
+                <div class="field-grid compact">
+                  <div class="multi-autocomplete">
+                    <label for="etniaInput">Etnia/as:</label>
+                    <div class="autocomplete-row">
+                      <input id="etniaInput" type="text" list="etniaOptions" placeholder="Localizar itens">
+                      <button type="button" class="icon-button" id="addEtniaBtn" aria-label="Adicionar etnia">+</button>
+                    </div>
+                    <datalist id="etniaOptions"></datalist>
+                    <div class="chips" id="etniaChips" aria-live="polite"></div>
+                    <label class="conditional" id="outraEtniaWrap">
+                      Outra etnia
+                      <input name="outraEtnia" type="text" placeholder="Digite aqui a etnia">
+                    </label>
+                  </div>
 
-              <label class="conditional" id="justificativaRevisaoWrap">
-                Justificativa para revisão de limites*
-                <textarea name="justificativaRevisao" rows="4" placeholder="Descreva a justificativa"></textarea>
-              </label>
+                  <fieldset>
+                    Há outros nomes da reivindicação citados no processo? (Não obrigatória)
+                    <div class="check-grid">
+                      <label><input type="radio" name="outrosNomes" value="Sim" checked> Sim</label>
+                      <label><input type="radio" name="outrosNomes" value="Não"> Não</label>
+                    </div>
+                  </fieldset>
 
-              <label>
-                Coordenação Regional
-                <input name="coordenacaoRegional" type="text">
-              </label>
+                  <label class="conditional wide-right" id="outrosNomesDetalhe">
+                    <span class="sr-only">Outros nomes da reivindicação</span>
+                    <textarea name="outrosNomesTexto" rows="3" placeholder="Digite o nome da reivindicação"></textarea>
+                  </label>
+                </div>
+              </section>
 
-              <label>
-                Estado
-                <input name="estado" type="text">
-              </label>
+              <section class="field-section">
+                <h3>Processo e qualificação</h3>
+                <div class="field-grid compact">
+                  <fieldset class="roteiro-group">
+                    Tem roteiro de qualificação ou material semelhante? *
+                    <div class="check-grid">
+                      <label><input type="radio" name="temRoteiro" value="Sim" required checked> Sim</label>
+                      <label><input type="radio" name="temRoteiro" value="Não"> Não</label>
+                    </div>
+                    <label class="conditional inline-date" id="dataRoteiroWrap">
+                      Data do roteiro*
+                      <input name="dataRoteiro" type="date">
+                    </label>
+                  </fieldset>
 
-              <label>
-                Município
-                <input name="municipio" type="text">
-              </label>
+                  <div class="process-list" id="processList">
+                    <label class="process-field">
+                      Nº do processo
+                      <input name="numeroProcesso" type="text">
+                    </label>
+                    <div class="process-buttons">
+                      <button type="button" class="icon-button" id="addProcessBtn" aria-label="Adicionar processo">+</button>
+                      <button type="button" class="icon-button danger" id="removeProcessBtn" aria-label="Excluir processo">&#128465;</button>
+                    </div>
+                  </div>
+                </div>
+              </section>
 
-              <label>
-                Tem retomada?
-                <select name="temRetomada">
-                  <option value="">Selecione</option>
-                  <option>Sim</option>
-                  <option>Não</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+              <section class="field-section">
+                <h3>Tipo de demanda</h3>
+                <div class="field-grid compact">
+                  <fieldset class="wide">
+                    <legend>Tipo da demanda *</legend>
+                    <div class="check-grid demand-grid" data-required-group="tipoDemanda">
+                      <label><input type="checkbox" name="tipoDemanda" value="Reserva Indígena"> Reserva Indígena</label>
+                      <label><input type="checkbox" name="tipoDemanda" value="Identificação"> Identificação</label>
+                      <label><input type="checkbox" name="tipoDemanda" value="Revisão de limites"> Revisão de limites</label>
+                    </div>
+                  </fieldset>
+
+                  <label class="conditional" id="modalidadeReservaWrap">
+                    Modalidade de constituição
+                    <select name="modalidadeConstituicao">
+                      <option value="">Selecione</option>
+                      <option>Reserva Indígena</option>
+                      <option>Terra Dominial</option>
+                      <option>Arrecadação (Aquisição)</option>
+                      <option>Destinação</option>
+                      <option>Doação</option>
+                      <option>Desapropriação</option>
+                      <option>Sem informação</option>
+                    </select>
+                  </label>
+
+                  <fieldset class="conditional" id="justificativaRevisaoWrap">
+                    Justificativa para a demanda por revisão
+                    <textarea name="justificativaRevisao" rows="3" placeholder="Detalhe o pedido de revisão (ex: igarapé importante ficou de fora)"></textarea>
+                  </fieldset>
+                </div>
+              </section>
+
+              <section class="field-section">
+                <h3>Localização e retomada</h3>
+                <div class="field-grid compact">
+                  <div class="multi-autocomplete">
+                    <label for="estadoInput">Estado</label>
+                    <div class="autocomplete-row">
+                      <input id="estadoInput" type="text" list="estadoOptions" placeholder="Localizar estados">
+                      <button type="button" class="icon-button" id="addEstadoBtn" aria-label="Adicionar estado">+</button>
+                    </div>
+                    <datalist id="estadoOptions"></datalist>
+                    <div class="chips" id="estadoChips" aria-live="polite"></div>
+                  </div>
+
+                  <div class="multi-autocomplete">
+                    <label for="municipioInput">Município</label>
+                    <div class="autocomplete-row">
+                      <input id="municipioInput" type="text" list="municipioOptions" placeholder="Selecione um estado primeiro">
+                      <button type="button" class="icon-button" id="addMunicipioBtn" aria-label="Adicionar município">+</button>
+                    </div>
+                    <datalist id="municipioOptions"></datalist>
+                    <div class="chips" id="municipioChips" aria-live="polite"></div>
+                  </div>
+
+                  <label>
+                    Coordenação Regional
+                    <select name="coordenacaoRegional">
+                      <option value="">Escolha</option>
+                      <option>Alto Solimões</option>
+                      <option>Centro-Leste do Pará</option>
+                      <option>Guaporé</option>
+                      <option>Juruá</option>
+                      <option>Madeira</option>
+                      <option>Mato Grosso</option>
+                      <option>Rio Negro</option>
+                      <option>Roraima</option>
+                      <option>Outra</option>
+                    </select>
+                  </label>
+
+                  <fieldset>
+                    Tem retomada?
+                    <div class="check-grid">
+                      <label><input type="radio" name="temRetomada" value="Sim"> Sim</label>
+                      <label><input type="radio" name="temRetomada" value="Não"> Não</label>
+                      <label><input type="radio" name="temRetomada" value="Sem informação"> Sem informação</label>
+                    </div>
+                    <input name="detalhesRetomada" type="text" placeholder="Informações relevantes (ex: local,data)">
+                  </fieldset>
+                </div>
+              </section>
             </div>
           </section>
 
@@ -254,15 +298,14 @@
             </div>
 
             <div class="field-grid">
-              <label>
+              <fieldset>
                 Está judicializado?
-                <select name="estaJudicializado" data-conditional="judicializadoDetalhes">
-                  <option value="">Selecione</option>
-                  <option>Não</option>
-                  <option>Sim</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="estaJudicializado" value="Sim"> Sim</label>
+                  <label><input type="radio" name="estaJudicializado" value="Não"> Não</label>
+                  <label><input type="radio" name="estaJudicializado" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
               <div class="conditional wide nested-grid" id="judicializadoDetalhes">
                 <fieldset>
@@ -279,15 +322,14 @@
                   <textarea name="descricaoAcao" rows="3" placeholder="Descreva a ação"></textarea>
                 </label>
 
-                <label>
+                <fieldset>
                   Tem decisão?
-                  <select name="temDecisao" data-conditional="decisaoDetalhes">
-                    <option value="">Selecione</option>
-                    <option>Não</option>
-                    <option>Sim</option>
-                    <option>Sem informação</option>
-                  </select>
-                </label>
+                  <div class="check-grid">
+                    <label><input type="radio" name="temDecisao" value="Sim"> Sim</label>
+                    <label><input type="radio" name="temDecisao" value="Não"> Não</label>
+                    <label><input type="radio" name="temDecisao" value="Sem informação"> Sem informação</label>
+                  </div>
+                </fieldset>
 
                 <div class="conditional nested-grid" id="decisaoDetalhes">
                   <label>
@@ -322,15 +364,14 @@
                 <textarea name="localizacaoDemanda" rows="4" placeholder="Descreva onde se localiza a demanda e as localidades relevantes para os indígenas"></textarea>
               </label>
 
-              <label>
+              <fieldset>
                 Há identificação de coordenadas geográficas?
-                <select name="temCoordenadas" data-conditional="coordenadasWrap">
-                  <option value="">Selecione</option>
-                  <option>Não</option>
-                  <option>Sim</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="temCoordenadas" value="Sim"> Sim</label>
+                  <label><input type="radio" name="temCoordenadas" value="Não"> Não</label>
+                  <label><input type="radio" name="temCoordenadas" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
               <div class="conditional wide nested-grid" id="coordenadasWrap">
                 <label>
@@ -364,35 +405,32 @@
                 <input name="aldeiasComunidades" type="text" placeholder="Digite aqui">
               </label>
 
-              <label>
+              <fieldset>
                 Contexto urbano
-                <select name="contextoUrbano">
-                  <option value="">Selecione</option>
-                  <option>Sim</option>
-                  <option>Não</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="contextoUrbano" value="Sim"> Sim</label>
+                  <label><input type="radio" name="contextoUrbano" value="Não"> Não</label>
+                  <label><input type="radio" name="contextoUrbano" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
-              <label>
+              <fieldset>
                 Faixa de fronteira
-                <select name="faixaFronteira">
-                  <option value="">Selecione</option>
-                  <option>Sim</option>
-                  <option>Não</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="faixaFronteira" value="Sim"> Sim</label>
+                  <label><input type="radio" name="faixaFronteira" value="Não"> Não</label>
+                  <label><input type="radio" name="faixaFronteira" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
-              <label>
+              <fieldset>
                 Sobreposições
-                <select name="sobreposicoes" data-conditional="sobreposicoesWrap">
-                  <option value="">Selecione</option>
-                  <option>Não</option>
-                  <option>Sim</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="sobreposicoes" value="Sim"> Sim</label>
+                  <label><input type="radio" name="sobreposicoes" value="Não"> Não</label>
+                  <label><input type="radio" name="sobreposicoes" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
               <fieldset class="conditional wide" id="sobreposicoesWrap">
                 <legend>Tipos de sobreposição</legend>
@@ -424,15 +462,14 @@
             </div>
 
             <div class="field-grid">
-              <label>
+              <fieldset>
                 Indígenas estão na área reivindicada?
-                <select name="indigenasArea" data-conditional="indigenasAreaWrap">
-                  <option value="">Selecione</option>
-                  <option>Não</option>
-                  <option>Sim</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="indigenasArea" value="Sim"> Sim</label>
+                  <label><input type="radio" name="indigenasArea" value="Não"> Não</label>
+                  <label><input type="radio" name="indigenasArea" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
               <label class="conditional" id="indigenasAreaWrap">
                 Tempo de ocupação e referência do dado
@@ -453,40 +490,37 @@
                 </div>
               </fieldset>
 
-              <label>
+              <fieldset>
                 Há presença de outras comunidades tradicionais na área reivindicada?
-                <select name="comunidadesTradicionais" data-conditional="comunidadesTradicionaisWrap">
-                  <option value="">Selecione</option>
-                  <option>Não</option>
-                  <option>Sim</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="comunidadesTradicionais" value="Sim"> Sim</label>
+                  <label><input type="radio" name="comunidadesTradicionais" value="Não"> Não</label>
+                  <label><input type="radio" name="comunidadesTradicionais" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
               <label class="conditional" id="comunidadesTradicionaisWrap">
                 Povo ou comunidade tradicional
                 <input name="descricaoComunidadeTradicional" type="text" placeholder="Descreva o povo ou comunidade tradicional">
               </label>
 
-              <label>
+              <fieldset>
                 Há conflito interétnico na área reivindicada?
-                <select name="conflitoInteretnico">
-                  <option value="">Selecione</option>
-                  <option>Sim</option>
-                  <option>Não</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="conflitoInteretnico" value="Sim"> Sim</label>
+                  <label><input type="radio" name="conflitoInteretnico" value="Não"> Não</label>
+                  <label><input type="radio" name="conflitoInteretnico" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
 
-              <label>
+              <fieldset>
                 Há ou houve ação de reintegração de posse sobre a comunidade?
-                <select name="reintegracaoPosse">
-                  <option value="">Selecione</option>
-                  <option>Sim</option>
-                  <option>Não</option>
-                  <option>Sem informação</option>
-                </select>
-              </label>
+                <div class="check-grid">
+                  <label><input type="radio" name="reintegracaoPosse" value="Sim"> Sim</label>
+                  <label><input type="radio" name="reintegracaoPosse" value="Não"> Não</label>
+                  <label><input type="radio" name="reintegracaoPosse" value="Sem informação"> Sem informação</label>
+                </div>
+              </fieldset>
             </div>
           </section>
 

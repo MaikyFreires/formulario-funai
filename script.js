@@ -1,7 +1,31 @@
-const POWER_AUTOMATE_URL = "";
+const POWER_AUTOMATE_URL = "https://defaultd9e53f92849b40d084e12597903730.66.environment.api.powerplatform.com:443/powerautomate/automations/direct/workflows/6fe542ad93f04cdfbffea31dd594d4d5/triggers/manual/paths/invoke?api-version=1";
 const URL_ACCESS_TOKEN = "FUNAI2026";
 const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
-const DRAFT_KEY = "funai-form-draft";
+const DRAFT_KEY = "funai-form-draft-v3";
+const MUNICIPIOS_CSV_URL = "municipios-estados.csv";
+const ETNIA_OPTIONS = [
+  "Apurinã",
+  "Ashaninka",
+  "Baniwa",
+  "Baré",
+  "Guajajara",
+  "Guarani",
+  "Huni Kuin",
+  "Kaingang",
+  "Karajá",
+  "Kayapó",
+  "Kokama",
+  "Macuxi",
+  "Munduruku",
+  "Pankararu",
+  "Pataxó",
+  "Potiguara",
+  "Tikuna",
+  "Tukano",
+  "Wapichana",
+  "Yanomami",
+  "Outros"
+];
 
 const formApp = document.querySelector("#formApp");
 const accessDenied = document.querySelector("#accessDenied");
@@ -9,19 +33,38 @@ const form = document.querySelector("#funaiForm");
 const steps = Array.from(document.querySelectorAll(".step"));
 const progressBar = document.querySelector("#progressBar");
 const progressTitle = document.querySelector("#progressTitle");
-const progressPercent = document.querySelector("#progressPercent");
 const stepCounter = document.querySelector("#stepCounter");
 const prevBtn = document.querySelector("#prevBtn");
 const nextBtn = document.querySelector("#nextBtn");
 const submitBtn = document.querySelector("#submitBtn");
 const saveDraftBtn = document.querySelector("#saveDraftBtn");
 const messageBox = document.querySelector("#formMessage");
+const etniaInput = document.querySelector("#etniaInput");
+const etniaOptions = document.querySelector("#etniaOptions");
+const etniaChips = document.querySelector("#etniaChips");
+const addEtniaBtn = document.querySelector("#addEtniaBtn");
+const processList = document.querySelector("#processList");
+const addProcessBtn = document.querySelector("#addProcessBtn");
+const removeProcessBtn = document.querySelector("#removeProcessBtn");
+const estadoInput = document.querySelector("#estadoInput");
+const estadoOptions = document.querySelector("#estadoOptions");
+const estadoChips = document.querySelector("#estadoChips");
+const addEstadoBtn = document.querySelector("#addEstadoBtn");
+const municipioInput = document.querySelector("#municipioInput");
+const municipioOptions = document.querySelector("#municipioOptions");
+const municipioChips = document.querySelector("#municipioChips");
+const addMunicipioBtn = document.querySelector("#addMunicipioBtn");
 
 let currentStep = 0;
+let selectedEtnias = [];
+let selectedEstados = [];
+let selectedMunicipios = [];
+let municipiosPorEstado = new Map();
+let allEstados = [];
 
 init();
 
-function init() {
+async function init() {
   const params = new URLSearchParams(window.location.search);
   const token = params.get("token");
 
@@ -31,6 +74,8 @@ function init() {
   }
 
   formApp.hidden = false;
+  populateEtniaOptions();
+  await loadMunicipioData();
   bindEvents();
   loadDraft();
   updateConditionals();
@@ -41,6 +86,17 @@ function bindEvents() {
   form.addEventListener("input", handleFormChange);
   form.addEventListener("change", handleFormChange);
   form.addEventListener("submit", handleSubmit);
+  addEtniaBtn.addEventListener("click", addSelectedEtnia);
+  etniaInput.addEventListener("keydown", handleEtniaKeydown);
+  etniaChips.addEventListener("click", removeSelectedEtnia);
+  addEstadoBtn.addEventListener("click", addSelectedEstado);
+  estadoInput.addEventListener("keydown", handleEstadoKeydown);
+  estadoChips.addEventListener("click", removeSelectedEstado);
+  addMunicipioBtn.addEventListener("click", addSelectedMunicipio);
+  municipioInput.addEventListener("keydown", handleMunicipioKeydown);
+  municipioChips.addEventListener("click", removeSelectedMunicipio);
+  addProcessBtn.addEventListener("click", () => addProcessField());
+  removeProcessBtn.addEventListener("click", removeProcessField);
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
   saveDraftBtn.addEventListener("click", saveDraft);
@@ -63,7 +119,6 @@ function showStep(index) {
 
   progressBar.style.width = `${progress}%`;
   progressTitle.textContent = title;
-  progressPercent.textContent = `${progress}%`;
   stepCounter.textContent = `Etapa ${currentStep + 1} de ${steps.length}`;
 
   prevBtn.hidden = currentStep === 0;
@@ -84,8 +139,11 @@ function goToPreviousStep() {
 
 function updateConditionals() {
   setConditional("outrosNomesDetalhe", getValue("outrosNomes") === "Sim");
-  setConditional("numeroProcessoWrap", getValue("possuiProcesso") === "Sim", ["numeroProcesso"]);
   setConditional("dataRoteiroWrap", getValue("temRoteiro") === "Sim", ["dataRoteiro"]);
+  setConditional("outraEtniaWrap", selectedEtnias.includes("Outros"));
+  if (getValue("temRoteiro") === "Sim" && !getValue("dataRoteiro")) {
+    form.elements.dataRoteiro.value = getTodayDate();
+  }
   setConditional("judicializadoDetalhes", getValue("estaJudicializado") === "Sim");
   setConditional("decisaoDetalhes", getValue("temDecisao") === "Sim");
   setConditional("coordenadasWrap", getValue("temCoordenadas") === "Sim");
@@ -94,8 +152,8 @@ function updateConditionals() {
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
 
   const demandas = getCheckedValues("tipoDemanda");
-  setConditional("modalidadeReservaWrap", demandas.includes("Reserva Indígena"), ["modalidadeConstituicao"]);
-  setConditional("justificativaRevisaoWrap", demandas.includes("Revisão de limites"), ["justificativaRevisao"]);
+  setConditional("modalidadeReservaWrap", demandas.includes("Reserva Indígena"));
+  setConditional("justificativaRevisaoWrap", demandas.includes("Revisão de limites"));
 }
 
 function setConditional(id, isVisible, requiredNames = []) {
@@ -166,6 +224,14 @@ async function handleSubmit(event) {
 
     localStorage.removeItem(DRAFT_KEY);
     form.reset();
+    selectedEtnias = [];
+    selectedEstados = [];
+    selectedMunicipios = [];
+    renderEtniaChips();
+    renderEstadoChips();
+    renderMunicipioChips();
+    populateEstadoOptions();
+    populateMunicipioOptions();
     updateConditionals();
     showStep(0);
     showMessage("Formulário enviado com sucesso.", "success");
@@ -184,27 +250,28 @@ function buildPayload() {
     enviadoEm: new Date().toISOString(),
     consultor: {
       nome: getValue("consultorNome"),
-      genero: getValue("genero"),
-      areaEstudo: getValue("areaEstudo"),
-      regiaoTrabalho: getValue("regiaoTrabalho")
+      areaEstudo: getValue("areaEstudo")
     },
     reivindicacao: {
       id: getValue("reivindicacaoId"),
       nome: getValue("nomeReivindicacao"),
       outrosNomes: getValue("outrosNomes"),
       outrosNomesTexto: getValue("outrosNomesTexto"),
-      possuiProcesso: getValue("possuiProcesso"),
-      numeroProcesso: getValue("numeroProcesso"),
+      numerosProcesso: getProcessNumbers(),
       temRoteiro: getValue("temRoteiro"),
       dataRoteiro: getValue("dataRoteiro"),
-      etnias: getValue("etnias"),
+      etnias: getSelectedEtnias(),
+      outraEtnia: getValue("outraEtnia"),
       tipoDemanda: getCheckedValues("tipoDemanda"),
       modalidadeConstituicao: getValue("modalidadeConstituicao"),
       justificativaRevisao: getValue("justificativaRevisao"),
+      estado: getSelectedEstados().join(", "),
+      estados: getSelectedEstados(),
+      municipio: getSelectedMunicipios().join(", "),
+      municipios: getSelectedMunicipios(),
       coordenacaoRegional: getValue("coordenacaoRegional"),
-      estado: getValue("estado"),
-      municipio: getValue("municipio"),
-      temRetomada: getValue("temRetomada")
+      temRetomada: getValue("temRetomada"),
+      detalhesRetomada: getValue("detalhesRetomada")
     },
     resumoProcesso: {
       descricao: getValue("descricaoReivindicacao"),
@@ -267,7 +334,30 @@ function loadDraft() {
 }
 
 function restoreValues(values) {
+  if (Array.isArray(values.etnias)) {
+    selectedEtnias = values.etnias.filter(Boolean);
+    renderEtniaChips();
+  }
+
+  if (Array.isArray(values.estados)) {
+    selectedEstados = values.estados.filter(Boolean);
+    renderEstadoChips();
+    populateMunicipioOptions();
+  }
+
+  if (Array.isArray(values.municipios)) {
+    selectedMunicipios = values.municipios.filter(Boolean);
+    renderMunicipioChips();
+  }
+
+  if (Array.isArray(values.numerosProcesso)) {
+    restoreProcessFields(values.numerosProcesso);
+  }
+
   Object.entries(values).forEach(([name, value]) => {
+    if (name === "etnias" || name === "estados" || name === "municipios" || name === "numerosProcesso") return;
+    if (value === undefined) return;
+
     const element = form.elements[name];
     if (!element) return;
 
@@ -276,6 +366,11 @@ function restoreValues(values) {
     fieldList.forEach((field) => {
       if (field.type === "checkbox") {
         field.checked = Array.isArray(value) && value.includes(field.value);
+      } else if (field.type === "radio") {
+        field.checked = field.value === value;
+      } else if (field.tagName === "SELECT") {
+        const hasOption = Array.from(field.options).some((option) => option.value === value || option.textContent === value);
+        field.value = hasOption ? value || "" : "";
       } else {
         field.value = value || "";
       }
@@ -286,25 +381,24 @@ function restoreValues(values) {
 function flattenDraft(draft) {
   return {
     consultorNome: draft.consultor?.nome,
-    genero: draft.consultor?.genero,
     areaEstudo: draft.consultor?.areaEstudo,
-    regiaoTrabalho: draft.consultor?.regiaoTrabalho,
     reivindicacaoId: draft.reivindicacao?.id,
     nomeReivindicacao: draft.reivindicacao?.nome,
     outrosNomes: draft.reivindicacao?.outrosNomes,
     outrosNomesTexto: draft.reivindicacao?.outrosNomesTexto,
-    possuiProcesso: draft.reivindicacao?.possuiProcesso,
-    numeroProcesso: draft.reivindicacao?.numeroProcesso,
+    numerosProcesso: draft.reivindicacao?.numerosProcesso || [draft.reivindicacao?.numeroProcesso].filter(Boolean),
     temRoteiro: draft.reivindicacao?.temRoteiro,
     dataRoteiro: draft.reivindicacao?.dataRoteiro,
     etnias: draft.reivindicacao?.etnias,
+    outraEtnia: draft.reivindicacao?.outraEtnia,
     tipoDemanda: draft.reivindicacao?.tipoDemanda,
     modalidadeConstituicao: draft.reivindicacao?.modalidadeConstituicao,
     justificativaRevisao: draft.reivindicacao?.justificativaRevisao,
+    estados: draft.reivindicacao?.estados || splitLegacyList(draft.reivindicacao?.estado),
+    municipios: draft.reivindicacao?.municipios || splitLegacyList(draft.reivindicacao?.municipio),
     coordenacaoRegional: draft.reivindicacao?.coordenacaoRegional,
-    estado: draft.reivindicacao?.estado,
-    municipio: draft.reivindicacao?.municipio,
     temRetomada: draft.reivindicacao?.temRetomada,
+    detalhesRetomada: draft.reivindicacao?.detalhesRetomada,
     descricaoReivindicacao: draft.resumoProcesso?.descricao,
     dataDocumento: draft.resumoProcesso?.dataDocumento,
     tipoDocumento: draft.resumoProcesso?.tipoDocumento,
@@ -340,6 +434,13 @@ function flattenDraft(draft) {
   };
 }
 
+function splitLegacyList(value) {
+  return String(value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 function getValue(name) {
   const field = form.elements[name];
   if (!field) return "";
@@ -348,6 +449,304 @@ function getValue(name) {
 
 function getCheckedValues(name) {
   return Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map((field) => field.value);
+}
+
+function populateEtniaOptions() {
+  etniaOptions.innerHTML = ETNIA_OPTIONS.map((etnia) => `<option value="${etnia}"></option>`).join("");
+}
+
+async function loadMunicipioData() {
+  try {
+    const response = await fetch(MUNICIPIOS_CSV_URL);
+    if (!response.ok) throw new Error(`Falha ao carregar ${MUNICIPIOS_CSV_URL}`);
+
+    const csvText = await response.text();
+    municipiosPorEstado = parseMunicipiosCsv(csvText);
+    allEstados = Array.from(municipiosPorEstado.keys()).sort(sortPortuguese);
+    populateEstadoOptions();
+    populateMunicipioOptions();
+  } catch (error) {
+    estadoInput.placeholder = "Não foi possível carregar estados";
+    municipioInput.placeholder = "Não foi possível carregar municípios";
+    populateMunicipioOptions();
+  }
+}
+
+function parseMunicipiosCsv(csvText) {
+  const rows = parseDelimitedRows(csvText, ";");
+  const [, ...dataRows] = rows;
+  const grouped = new Map();
+
+  dataRows.forEach((row) => {
+    const municipio = String(row[0] || "").trim();
+    const estado = String(row[1] || "").trim();
+    if (!municipio || !estado) return;
+    if (!grouped.has(estado)) grouped.set(estado, new Set());
+    grouped.get(estado).add(municipio);
+  });
+
+  return new Map(
+    Array.from(grouped.entries()).map(([estado, municipios]) => [
+      estado,
+      Array.from(municipios).sort(sortPortuguese)
+    ])
+  );
+}
+
+function parseDelimitedRows(text, delimiter) {
+  const rows = [];
+  let row = [];
+  let value = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const nextChar = text[index + 1];
+
+    if (char === '"' && nextChar === '"') {
+      value += '"';
+      index += 1;
+    } else if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === delimiter && !inQuotes) {
+      row.push(value);
+      value = "";
+    } else if ((char === "\n" || char === "\r") && !inQuotes) {
+      if (char === "\r" && nextChar === "\n") index += 1;
+      row.push(value);
+      if (row.some((cell) => cell.trim())) rows.push(row);
+      row = [];
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+
+  row.push(value);
+  if (row.some((cell) => cell.trim())) rows.push(row);
+  return rows;
+}
+
+function sortPortuguese(a, b) {
+  return a.localeCompare(b, "pt-BR");
+}
+
+function populateEstadoOptions() {
+  estadoOptions.innerHTML = allEstados
+    .filter((estado) => !selectedEstados.includes(estado))
+    .map((estado) => `<option value="${estado}"></option>`)
+    .join("");
+}
+
+function populateMunicipioOptions() {
+  const municipios = getAvailableMunicipios();
+  municipioOptions.innerHTML = municipios
+    .filter((municipio) => !selectedMunicipios.includes(municipio))
+    .map((municipio) => `<option value="${municipio}"></option>`)
+    .join("");
+
+  const hasEstados = selectedEstados.length > 0;
+  municipioInput.disabled = !hasEstados;
+  addMunicipioBtn.disabled = !hasEstados;
+  municipioInput.placeholder = hasEstados ? "Localizar municípios" : "Selecione um estado primeiro";
+}
+
+function getAvailableMunicipios() {
+  const selectedSet = new Set();
+  selectedEstados.forEach((estado) => {
+    const municipios = municipiosPorEstado.get(estado) || [];
+    municipios.forEach((municipio) => selectedSet.add(municipio));
+  });
+
+  return Array.from(selectedSet).sort(sortPortuguese);
+}
+
+function handleEtniaKeydown(event) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  addSelectedEtnia();
+}
+
+function addSelectedEtnia() {
+  const value = etniaInput.value.trim();
+  if (!value || selectedEtnias.includes(value)) return;
+
+  selectedEtnias.push(value);
+  etniaInput.value = "";
+  renderEtniaChips();
+  updateConditionals();
+}
+
+function removeSelectedEtnia(event) {
+  const button = event.target.closest("button[data-etnia]");
+  if (!button) return;
+
+  selectedEtnias = selectedEtnias.filter((etnia) => etnia !== button.dataset.etnia);
+  renderEtniaChips();
+  updateConditionals();
+}
+
+function renderEtniaChips() {
+  etniaChips.innerHTML = "";
+  selectedEtnias.forEach((etnia) => {
+    const chip = document.createElement("span");
+    const removeButton = document.createElement("button");
+
+    chip.className = "chip";
+    chip.append(document.createTextNode(etnia));
+    removeButton.type = "button";
+    removeButton.dataset.etnia = etnia;
+    removeButton.setAttribute("aria-label", `Remover ${etnia}`);
+    removeButton.textContent = "×";
+    chip.append(removeButton);
+    etniaChips.append(chip);
+  });
+}
+
+function getSelectedEtnias() {
+  return selectedEtnias.filter(Boolean);
+}
+
+function handleEstadoKeydown(event) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  addSelectedEstado();
+}
+
+function addSelectedEstado() {
+  const value = estadoInput.value.trim();
+  if (!value || selectedEstados.includes(value) || !allEstados.includes(value)) return;
+
+  selectedEstados.push(value);
+  estadoInput.value = "";
+  renderEstadoChips();
+  populateEstadoOptions();
+  pruneSelectedMunicipios();
+  populateMunicipioOptions();
+}
+
+function removeSelectedEstado(event) {
+  const button = event.target.closest("button[data-estado]");
+  if (!button) return;
+
+  selectedEstados = selectedEstados.filter((estado) => estado !== button.dataset.estado);
+  renderEstadoChips();
+  populateEstadoOptions();
+  pruneSelectedMunicipios();
+  populateMunicipioOptions();
+}
+
+function renderEstadoChips() {
+  renderChips(estadoChips, selectedEstados, "estado", "Remover estado");
+}
+
+function getSelectedEstados() {
+  return selectedEstados.filter(Boolean);
+}
+
+function handleMunicipioKeydown(event) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  addSelectedMunicipio();
+}
+
+function addSelectedMunicipio() {
+  const value = municipioInput.value.trim();
+  const municipios = getAvailableMunicipios();
+  if (!value || selectedMunicipios.includes(value) || !municipios.includes(value)) return;
+
+  selectedMunicipios.push(value);
+  municipioInput.value = "";
+  renderMunicipioChips();
+  populateMunicipioOptions();
+}
+
+function removeSelectedMunicipio(event) {
+  const button = event.target.closest("button[data-municipio]");
+  if (!button) return;
+
+  selectedMunicipios = selectedMunicipios.filter((municipio) => municipio !== button.dataset.municipio);
+  renderMunicipioChips();
+  populateMunicipioOptions();
+}
+
+function renderMunicipioChips() {
+  renderChips(municipioChips, selectedMunicipios, "municipio", "Remover município");
+}
+
+function getSelectedMunicipios() {
+  return selectedMunicipios.filter(Boolean);
+}
+
+function pruneSelectedMunicipios() {
+  const availableMunicipios = getAvailableMunicipios();
+  selectedMunicipios = selectedMunicipios.filter((municipio) => availableMunicipios.includes(municipio));
+  renderMunicipioChips();
+}
+
+function renderChips(container, values, dataName, ariaPrefix) {
+  container.innerHTML = "";
+  values.forEach((value) => {
+    const chip = document.createElement("span");
+    const removeButton = document.createElement("button");
+
+    chip.className = "chip";
+    chip.append(document.createTextNode(value));
+    removeButton.type = "button";
+    removeButton.dataset[dataName] = value;
+    removeButton.setAttribute("aria-label", `${ariaPrefix} ${value}`);
+    removeButton.textContent = "×";
+    chip.append(removeButton);
+    container.append(chip);
+  });
+}
+
+function addProcessField(value = "") {
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+
+  label.className = "process-field";
+  input.name = "numeroProcesso";
+  input.type = "text";
+  input.value = value;
+  label.append(document.createTextNode("Nº do processo"), input);
+  processList.insertBefore(label, processList.querySelector(".process-buttons"));
+  input.focus();
+}
+
+function removeProcessField() {
+  const fields = Array.from(processList.querySelectorAll(".process-field"));
+  const last = fields[fields.length - 1];
+  if (fields.length > 1) {
+    last.remove();
+    fields[fields.length - 2].querySelector("input").focus();
+    return;
+  }
+
+  last.querySelector("input").value = "";
+  last.querySelector("input").focus();
+}
+
+function restoreProcessFields(numbers) {
+  const values = numbers.filter(Boolean);
+  const existing = Array.from(processList.querySelectorAll(".process-field"));
+  existing.slice(1).forEach((field) => field.remove());
+  existing[0].querySelector("input").value = values[0] || "";
+  values.slice(1).forEach((value) => addProcessField(value));
+}
+
+function getProcessNumbers() {
+  return Array.from(processList.querySelectorAll(".process-field input"))
+    .map((field) => field.value.trim())
+    .filter(Boolean);
+}
+
+function getTodayDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function isFieldVisible(field) {
