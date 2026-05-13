@@ -113,7 +113,11 @@ async function handleAccessSubmit(event) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({
+        consultor: {
+          email
+        }
+      })
     });
     const result = await response.json();
 
@@ -342,8 +346,8 @@ function buildPayload(statusFormulario = "Enviado") {
     enviadoEm: new Date().toISOString(),
     statusFormulario,
     consultor: {
-      email: getAuthorizedEmail(),
       nome: getValue("consultorNome"),
+      email: getAuthorizedEmail(),
       areaEstudo: getValue("areaEstudo")
     },
     reivindicacao: {
