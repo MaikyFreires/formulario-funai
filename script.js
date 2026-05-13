@@ -73,7 +73,7 @@ init();
 function init() {
   bindAccessEvents();
 
-  const authorizedEmail = sessionStorage.getItem(AUTHORIZED_EMAIL_KEY);
+  const authorizedEmail = getStoredAuthorizedEmail();
   if (authorizedEmail) {
     showAuthorizedForm(authorizedEmail);
     return;
@@ -123,7 +123,7 @@ async function handleAccessSubmit(event) {
     console.log(data);
 
     if (data.autorizado === true || data.success === true) {
-      sessionStorage.setItem(AUTHORIZED_EMAIL_KEY, email);
+      storeAuthorizedEmail(email);
       await showAuthorizedForm(email);
       return;
     }
@@ -287,7 +287,7 @@ async function handleSubmit(event) {
   event.preventDefault();
   if (!validateCurrentStep()) return;
 
-  const authorizedEmail = sessionStorage.getItem(AUTHORIZED_EMAIL_KEY);
+  const authorizedEmail = getStoredAuthorizedEmail();
   if (!authorizedEmail) {
     formApp.hidden = true;
     accessGate.hidden = false;
@@ -581,7 +581,16 @@ function splitLegacyList(value) {
 }
 
 function getAuthorizedEmail() {
-  return sessionStorage.getItem(AUTHORIZED_EMAIL_KEY) || getValue("consultorEmail");
+  return getStoredAuthorizedEmail() || getValue("consultorEmail");
+}
+
+function getStoredAuthorizedEmail() {
+  return sessionStorage.getItem(AUTHORIZED_EMAIL_KEY) || localStorage.getItem(AUTHORIZED_EMAIL_KEY) || "";
+}
+
+function storeAuthorizedEmail(email) {
+  sessionStorage.setItem(AUTHORIZED_EMAIL_KEY, email);
+  localStorage.setItem(AUTHORIZED_EMAIL_KEY, email);
 }
 
 function getValue(name) {
