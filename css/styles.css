@@ -212,6 +212,36 @@ textarea {
   background: transparent;
 }
 
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.32);
+}
+
+.confirm-dialog {
+  width: min(460px, 100%);
+  padding: 24px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+
+.confirm-dialog h2 {
+  margin: 0 0 18px;
+  color: var(--green);
+  font-size: 1.35rem;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
 .eyebrow {
   display: block;
   color: var(--green);
@@ -820,6 +850,10 @@ button.ghost {
   .report-list-row {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .confirm-actions {
+    flex-direction: column;
   }
 
   .step {

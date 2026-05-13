@@ -5,6 +5,7 @@ const LOAD_DRAFT_URL = window.APP_CONFIG.LOAD_DRAFT_URL || "";
 const LIST_SENT_URL = window.APP_CONFIG.LIST_SENT_URL || "";
 const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
 const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
+const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
@@ -57,6 +58,7 @@ let prevBtn;
 let nextBtn;
 let submitBtn;
 let saveDraftBtn;
+let homeBtn;
 let messageBox;
 let etniaInput;
 let etniaOptions;
@@ -93,14 +95,12 @@ async function init() {
   bindAccessEvents();
 
   const authorizedEmail = getStoredAuthorizedEmail();
-  if (authorizedEmail) {
+  if (hasActiveSession() && authorizedEmail) {
     showDashboard(authorizedEmail);
     return;
   }
 
-  accessGate.hidden = false;
-  consultorDashboard.hidden = true;
-  formApp.hidden = true;
+  showAccessScreen();
 }
 
 async function loadHtmlPartials() {
@@ -142,6 +142,7 @@ function cacheDomElements() {
   nextBtn = document.querySelector("#nextBtn");
   submitBtn = document.querySelector("#submitBtn");
   saveDraftBtn = document.querySelector("#saveDraftBtn");
+  homeBtn = document.querySelector("#homeBtn");
   messageBox = document.querySelector("#formMessage");
   etniaInput = document.querySelector("#etniaInput");
   etniaOptions = document.querySelector("#etniaOptions");
@@ -205,6 +206,7 @@ async function handleAccessSubmit(event) {
 
     if (data.autorizado === true || data.success === true) {
       storeAuthorizedEmail(email);
+      startAccessSession();
       showDashboard(email);
       return;
     }
@@ -224,11 +226,24 @@ async function handleAccessSubmit(event) {
 }
 
 function showDashboard(email = getAuthorizedEmail()) {
+  if (!hasActiveSession()) {
+    showAccessScreen();
+    return;
+  }
+
   accessGate.hidden = true;
   consultorDashboard.hidden = false;
   formApp.hidden = true;
   dashboardEmail.textContent = email;
   hideReportList();
+}
+
+function showAccessScreen() {
+  accessGate.hidden = false;
+  consultorDashboard.hidden = true;
+  formApp.hidden = true;
+  currentFormularioId = "";
+  sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
 }
 
 // Form lifecycle
@@ -254,10 +269,8 @@ async function startNewReport() {
 
 async function openForm({ reset = false } = {}) {
   const email = getStoredAuthorizedEmail();
-  if (!email) {
-    accessGate.hidden = false;
-    consultorDashboard.hidden = true;
-    formApp.hidden = true;
+  if (!email || !hasActiveSession()) {
+    showAccessScreen();
     return;
   }
 
@@ -310,6 +323,7 @@ function bindEvents() {
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
   saveDraftBtn.addEventListener("click", salvarRascunho);
+  homeBtn.addEventListener("click", confirmReturnHome);
 }
 
 function handleFormChange() {
@@ -331,7 +345,8 @@ function showStep(index) {
   progressTitle.textContent = title;
   stepCounter.textContent = `Etapa ${currentStep + 1} de ${steps.length}`;
 
-  prevBtn.hidden = currentStep === 0;
+  prevBtn.hidden = false;
+  prevBtn.disabled = currentStep === 0;
   nextBtn.hidden = currentStep === steps.length - 1;
   submitBtn.hidden = currentStep !== steps.length - 1;
 
@@ -344,7 +359,42 @@ function goToNextStep() {
 }
 
 function goToPreviousStep() {
+  if (currentStep === 0) return;
   showStep(Math.max(currentStep - 1, 0));
+}
+
+function confirmReturnHome() {
+  showReturnHomeDialog();
+}
+
+function showReturnHomeDialog() {
+  const overlay = document.createElement("div");
+  const dialog = document.createElement("section");
+  const title = document.createElement("h2");
+  const actions = document.createElement("div");
+  const keepEditingBtn = document.createElement("button");
+  const returnHomeBtn = document.createElement("button");
+
+  overlay.className = "confirm-overlay";
+  dialog.className = "confirm-dialog";
+  title.textContent = "Deseja sair do formulário atual?";
+  actions.className = "confirm-actions";
+  keepEditingBtn.type = "button";
+  keepEditingBtn.className = "ghost";
+  keepEditingBtn.textContent = "Continuar editando";
+  returnHomeBtn.type = "button";
+  returnHomeBtn.textContent = "Voltar ao início";
+
+  keepEditingBtn.addEventListener("click", () => overlay.remove());
+  returnHomeBtn.addEventListener("click", () => {
+    overlay.remove();
+    showDashboard(getAuthorizedEmail());
+  });
+
+  actions.append(keepEditingBtn, returnHomeBtn);
+  dialog.append(title, actions);
+  overlay.append(dialog);
+  document.body.append(overlay);
 }
 
 function updateConditionals() {
@@ -412,9 +462,8 @@ async function enviarFormulario(event) {
   if (!validateCurrentStep()) return;
 
   const authorizedEmail = getStoredAuthorizedEmail();
-  if (!authorizedEmail) {
-    formApp.hidden = true;
-    accessGate.hidden = false;
+  if (!authorizedEmail || !hasActiveSession()) {
+    showAccessScreen();
     showAccessMessage("Informe seu e-mail para acessar o formulário.", "error");
     return;
   }
@@ -767,10 +816,10 @@ function renderReportList(relatorios, emptyMessage) {
   reportListMessage.className = "message";
 
   relatorios.forEach((relatorio) => {
-    const formularioId = getReportFormularioId(relatorio);
-    const reivindicacaoId = getReportReivindicacaoId(relatorio);
-    const nome = getReportNomeReivindicacao(relatorio);
-    const atualizadoEm = getReportAtualizadoEm(relatorio);
+    const formularioId = relatorio.FormularioId || relatorio.formularioId;
+    const reivindicacaoId = relatorio.ReivindicacaoId || relatorio.field_2 || relatorio.reivindicacaoId || "Sem ID";
+    const nomeReivindicacao = relatorio.NomeReivindicacao || relatorio.field_3 || relatorio.nomeReivindicacao || "Sem nome";
+    const atualizadoEm = relatorio.Modified || relatorio.AtualizadoEm || relatorio.enviadoEm || relatorio.EnviadoEm || "";
     const status = asText(relatorio.statusFormulario || relatorio.StatusFormulario || "Rascunho");
     const row = document.createElement("div");
     const idButton = document.createElement("button");
@@ -781,11 +830,12 @@ function renderReportList(relatorios, emptyMessage) {
     row.className = "report-list-row";
     idButton.type = "button";
     idButton.className = "report-link";
-    idButton.textContent = reivindicacaoId || "Sem ID";
-    idButton.addEventListener("click", () => abrirRascunho(formularioId || reivindicacaoId));
+    idButton.textContent = reivindicacaoId;
+    idButton.addEventListener("click", () => abrirRascunho(formularioId));
+    idButton.disabled = !formularioId;
 
-    name.textContent = nome || "Sem nome";
-    date.textContent = atualizadoEm || "";
+    name.textContent = nomeReivindicacao;
+    date.textContent = atualizadoEm;
     statusText.textContent = status;
     row.append(idButton, name, date, statusText);
     reportList.append(row);
@@ -805,15 +855,15 @@ function getReportFormularioId(relatorio) {
 }
 
 function getReportReivindicacaoId(relatorio) {
-  return asText(relatorio.reivindicacao?.id || relatorio.reivindicacaoId || relatorio.ReivindicacaoId);
+  return asText(relatorio.reivindicacao?.id || relatorio.ReivindicacaoId || relatorio.field_2 || relatorio.reivindicacaoId);
 }
 
 function getReportNomeReivindicacao(relatorio) {
-  return asText(relatorio.reivindicacao?.nome || relatorio.nomeReivindicacao || relatorio.NomeReivindicacao || relatorio.titulo);
+  return asText(relatorio.reivindicacao?.nome || relatorio.NomeReivindicacao || relatorio.field_3 || relatorio.nomeReivindicacao || relatorio.titulo);
 }
 
 function getReportAtualizadoEm(relatorio) {
-  return asText(relatorio.atualizadoEm || relatorio.AtualizadoEm || relatorio.Modified || relatorio.modificadoEm);
+  return asText(relatorio.Modified || relatorio.AtualizadoEm || relatorio.enviadoEm || relatorio.EnviadoEm || relatorio.atualizadoEm || relatorio.modificadoEm);
 }
 
 function restoreValues(values) {
@@ -935,7 +985,8 @@ function getAuthorizedEmail() {
 }
 
 function getCurrentFormularioId() {
-  if (!currentFormularioId) currentFormularioId = sessionStorage.getItem(ACTIVE_FORM_ID_KEY) || createFormularioId();
+  if (!currentFormularioId) currentFormularioId = sessionStorage.getItem(ACTIVE_FORM_ID_KEY) || "";
+  if (!currentFormularioId) throw new Error("Formulario sem formularioId ativo.");
   sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
   return currentFormularioId;
 }
@@ -973,12 +1024,19 @@ async function readJsonIfAvailable(response) {
 }
 
 function getStoredAuthorizedEmail() {
-  return sessionStorage.getItem(AUTHORIZED_EMAIL_KEY) || localStorage.getItem(AUTHORIZED_EMAIL_KEY) || "";
+  return sessionStorage.getItem(AUTHORIZED_EMAIL_KEY) || "";
 }
 
 function storeAuthorizedEmail(email) {
   sessionStorage.setItem(AUTHORIZED_EMAIL_KEY, email);
-  localStorage.setItem(AUTHORIZED_EMAIL_KEY, email);
+}
+
+function startAccessSession() {
+  sessionStorage.setItem(ACCESS_SESSION_KEY, createFormularioId());
+}
+
+function hasActiveSession() {
+  return Boolean(sessionStorage.getItem(ACCESS_SESSION_KEY));
 }
 
 function getValue(name) {
