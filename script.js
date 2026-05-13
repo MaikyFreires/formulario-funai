@@ -346,76 +346,80 @@ async function handleSubmit(event) {
 }
 
 function buildPayload(statusFormulario = "Enviado") {
+  const etnias = asList(getSelectedEtnias());
+  const estados = asList(getSelectedEstados());
+  const municipios = asList(getSelectedMunicipios());
+
   return {
-    tokenSecreto: SECRET_TOKEN,
+    tokenSecreto: asText(SECRET_TOKEN),
     origem: "github-pages-funai",
     enviadoEm: new Date().toISOString(),
-    statusFormulario,
+    statusFormulario: asText(statusFormulario),
     consultor: {
-      nome: getValue("consultorNome"),
-      email: getAuthorizedEmail(),
-      areaEstudo: getValue("areaEstudo")
+      nome: asText(getValue("consultorNome")),
+      email: asText(getAuthorizedEmail()),
+      areaEstudo: asText(getValue("areaEstudo"))
     },
     reivindicacao: {
-      id: getValue("reivindicacaoId"),
-      nome: getValue("nomeReivindicacao"),
-      outrosNomes: getValue("outrosNomes"),
-      outrosNomesTexto: getValue("outrosNomesTexto"),
-      numerosProcesso: getProcessNumbers(),
-      temRoteiro: getValue("temRoteiro"),
-      dataRoteiro: getValue("dataRoteiro"),
-      etnias: getSelectedEtnias(),
-      outraEtnia: getValue("outraEtnia"),
-      tipoDemanda: getCheckedValues("tipoDemanda"),
-      modalidadeConstituicao: getValue("modalidadeConstituicao"),
-      justificativaRevisao: getValue("justificativaRevisao"),
-      estado: getSelectedEstados().join(", "),
-      estados: getSelectedEstados(),
-      municipio: getSelectedMunicipios().join(", "),
-      municipios: getSelectedMunicipios(),
-      coordenacaoRegional: getValue("coordenacaoRegional"),
-      temRetomada: getValue("temRetomada"),
-      detalhesRetomada: getValue("detalhesRetomada")
+      id: asText(getValue("reivindicacaoId")),
+      nome: asText(getValue("nomeReivindicacao")),
+      outrosNomes: asText(getValue("outrosNomes")),
+      outrosNomesTexto: asText(getValue("outrosNomesTexto")),
+      numerosProcesso: asList(getProcessNumbers()),
+      temRoteiro: asText(getValue("temRoteiro")),
+      dataRoteiro: asText(getValue("dataRoteiro")),
+      etnias,
+      outraEtnia: asText(getValue("outraEtnia")),
+      tipoDemanda: asList(getCheckedValues("tipoDemanda")),
+      modalidadeConstituicao: asText(getValue("modalidadeConstituicao")),
+      justificativaRevisao: asText(getValue("justificativaRevisao")),
+      estado: asText(estados.join(", ")),
+      estados,
+      municipio: asText(municipios.join(", ")),
+      municipios,
+      coordenacaoRegional: asText(getValue("coordenacaoRegional")),
+      temRetomada: asText(getValue("temRetomada")),
+      detalhesRetomada: asText(getValue("detalhesRetomada"))
     },
     resumoProcesso: {
-      descricao: getValue("descricaoReivindicacao"),
-      dataDocumento: getValue("dataDocumento"),
-      tipoDocumento: getValue("tipoDocumento"),
-      paginas: getValue("paginasDocumento"),
-      numeroSei: getValue("numeroSei"),
-      eventosAssuntos: getValue("eventosAssuntos")
+      descricao: asText(getValue("descricaoReivindicacao")),
+      dataDocumento: asText(getValue("dataDocumento")),
+      tipoDocumento: asText(getValue("tipoDocumento")),
+      paginas: asText(getValue("paginasDocumento")),
+      numeroSei: asText(getValue("numeroSei")),
+      eventosAssuntos: asText(getValue("eventosAssuntos"))
     },
     statusProcesso: {
-      estaJudicializado: getValue("estaJudicializado"),
-      acoesJudiciais: getCheckedValues("acoesJudiciais"),
-      descricaoAcao: getValue("descricaoAcao"),
-      temDecisao: getValue("temDecisao"),
-      numeroDecisao: getValue("numeroDecisao"),
-      dataDecisao: getValue("dataDecisao"),
-      sentenca: getValue("sentenca")
+      estaJudicializado: asText(getValue("estaJudicializado")),
+      acoesJudiciais: asList(getCheckedValues("acoesJudiciais")),
+      descricaoAcao: asText(getValue("descricaoAcao")),
+      temDecisao: asText(getValue("temDecisao")),
+      numeroDecisao: asText(getValue("numeroDecisao")),
+      dataDecisao: asText(getValue("dataDecisao")),
+      sentenca: asText(getValue("sentenca"))
     },
     caracterizacaoArea: {
-      localizacaoDemanda: getValue("localizacaoDemanda"),
-      temCoordenadas: getValue("temCoordenadas"),
-      latitude: getValue("latitude"),
-      longitude: getValue("longitude"),
-      comentarioCoordenada: getValue("comentarioCoordenada"),
-      bioma: getCheckedValues("bioma"),
-      aldeiasComunidades: getValue("aldeiasComunidades"),
-      contextoUrbano: getValue("contextoUrbano"),
-      faixaFronteira: getValue("faixaFronteira"),
-      sobreposicoes: getValue("sobreposicoes"),
-      tiposSobreposicao: getCheckedValues("tiposSobreposicao"),
-      detalheSobreposicoes: getValue("detalheSobreposicoes")
+      localizacaoDemanda: asText(getValue("localizacaoDemanda")),
+      temCoordenadas: asText(getValue("temCoordenadas")),
+      latitude: asText(getValue("latitude")),
+      longitude: asText(getValue("longitude")),
+      comentarioCoordenada: asText(getValue("comentarioCoordenada")),
+      bioma: asList(getCheckedValues("bioma")),
+      aldeiasComunidades: asText(getValue("aldeiasComunidades")),
+      contextoUrbano: asText(getValue("contextoUrbano")),
+      faixaFronteira: asText(getValue("faixaFronteira")),
+      sobreposicoes: asText(getValue("sobreposicoes")),
+      tiposSobreposicao: asList(getCheckedValues("tiposSobreposicao")),
+      detalheSobreposicoes: asText(getValue("detalheSobreposicoes"))
     },
     ocupacaoIndigena: {
-      indigenasArea: getValue("indigenasArea"),
-      tempoOcupacao: getValue("tempoOcupacao"),
-      vulnerabilidades: getCheckedValues("vulnerabilidades"),
-      comunidadesTradicionais: getValue("comunidadesTradicionais"),
-      descricaoComunidadeTradicional: getValue("descricaoComunidadeTradicional"),
-      conflitoInteretnico: getValue("conflitoInteretnico"),
-      reintegracaoPosse: getValue("reintegracaoPosse")
+      indigenasArea: asText(getValue("indigenasArea")),
+      tempoOcupacao: asText(getValue("tempoOcupacao")),
+      vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
+      comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
+      descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
+      conflitoInteretnico: asText(getValue("conflitoInteretnico")),
+      reintegracaoPosse: asText(getValue("reintegracaoPosse"))
     }
   };
 }
@@ -423,6 +427,7 @@ function buildPayload(statusFormulario = "Enviado") {
 async function saveDraft() {
   const payload = buildPayload("Rascunho");
   localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+  console.log("payload rascunho", payload);
 
   if (!POWER_AUTOMATE_URL) {
     showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
@@ -582,6 +587,14 @@ function splitLegacyList(value) {
 
 function getAuthorizedEmail() {
   return getStoredAuthorizedEmail() || getValue("consultorEmail");
+}
+
+function asText(value) {
+  return value == null ? "" : String(value);
+}
+
+function asList(value) {
+  return Array.isArray(value) ? value.filter(Boolean) : [];
 }
 
 function getStoredAuthorizedEmail() {
