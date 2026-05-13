@@ -313,30 +313,34 @@ async function handleSubmit(event) {
       },
       body: JSON.stringify(buildPayload("Enviado"))
     });
+    console.log(response.status, response.statusText);
+
+    if (response.ok) {
+      localStorage.removeItem(DRAFT_KEY);
+      form.reset();
+      setAuthorizedEmail(authorizedEmail);
+      selectedEtnias = [];
+      selectedEstados = [];
+      selectedMunicipios = [];
+      renderEtniaChips();
+      renderEstadoChips();
+      renderMunicipioChips();
+      populateEstadoOptions();
+      populateMunicipioOptions();
+      updateConditionals();
+      showStep(0);
+      showMessage("Formulário enviado com sucesso.", "success");
+      return;
+    }
+
+    await readJsonIfAvailable(response);
 
     if (response.status === 403) {
       showMessage("Este e-mail não está autorizado a enviar o formulário.", "error");
       return;
     }
 
-    if (!response.ok) {
-      throw new Error(`Falha no envio: ${response.status}`);
-    }
-
-    localStorage.removeItem(DRAFT_KEY);
-    form.reset();
-    setAuthorizedEmail(authorizedEmail);
-    selectedEtnias = [];
-    selectedEstados = [];
-    selectedMunicipios = [];
-    renderEtniaChips();
-    renderEstadoChips();
-    renderMunicipioChips();
-    populateEstadoOptions();
-    populateMunicipioOptions();
-    updateConditionals();
-    showStep(0);
-    showMessage("Formulário enviado com sucesso.", "success");
+    throw new Error(`Falha no envio: ${response.status}`);
   } catch (error) {
     showMessage("Não foi possível enviar o formulário. Verifique a URL do Power Automate e tente novamente.", "error");
   } finally {
@@ -445,17 +449,21 @@ async function saveDraft() {
       },
       body: JSON.stringify(payload)
     });
+    console.log(response.status, response.statusText);
+
+    if (response.ok) {
+      showMessage("Rascunho salvo no navegador e enviado ao SharePoint.", "success");
+      return;
+    }
+
+    await readJsonIfAvailable(response);
 
     if (response.status === 403) {
       showMessage("Este e-mail não está autorizado.", "error");
       return;
     }
 
-    if (!response.ok) {
-      throw new Error(`Falha no envio do rascunho: ${response.status}`);
-    }
-
-    showMessage("Rascunho salvo no navegador e enviado para teste.", "success");
+    throw new Error(`Falha no envio do rascunho: ${response.status}`);
   } catch (error) {
     showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
   } finally {
@@ -595,6 +603,20 @@ function asText(value) {
 
 function asList(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [];
+}
+
+async function readJsonIfAvailable(response) {
+  const contentType = response.headers.get("Content-Type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) return null;
+
+  const text = await response.text();
+  if (!text.trim()) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    return null;
+  }
 }
 
 function getStoredAuthorizedEmail() {
