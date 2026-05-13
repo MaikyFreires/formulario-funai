@@ -1,4 +1,0 @@
-window.APP_CONFIG = {
-  POWER_AUTOMATE_URL: "",
-  VERIFY_ACCESS_URL: ""
-};

@@ -4,10 +4,12 @@ Aplicacao estatica para preenchimento de formulario em etapas, com foco em colet
 
 ## Estrutura
 
-- `index.html`: estrutura das telas e etapas do formulario.
-- `styles.css`: estilos visuais e responsividade.
-- `script.js`: regras de interface, validacoes, rascunho local e envio.
-- `municipios-estados.csv`: base de municipios e estados usada nos campos de localizacao.
+- `index.html`: ponto de entrada da aplicacao.
+- `html/`: telas HTML carregadas pelo index, incluindo acesso, dashboard e formulario.
+- `css/styles.css`: estilos visuais e responsividade.
+- `js/script.js`: regras de interface, validacoes, rascunho local e envio.
+- `js/config.example.js`: modelo de configuracao local.
+- `data/municipios-estados.csv`: base de municipios e estados usada nos campos de localizacao.
 - `assets/`: imagens e arquivos visuais usados pela interface.
 
 ## Uso

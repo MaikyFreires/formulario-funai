@@ -1,9 +1,13 @@
 const POWER_AUTOMATE_URL = window.APP_CONFIG.POWER_AUTOMATE_URL;
 const VERIFY_ACCESS_URL = window.APP_CONFIG.VERIFY_ACCESS_URL;
+const LIST_DRAFTS_URL = window.APP_CONFIG.LIST_DRAFTS_URL;
+const LOAD_DRAFT_URL = window.APP_CONFIG.LOAD_DRAFT_URL || "";
+const LIST_SENT_URL = window.APP_CONFIG.LIST_SENT_URL || "";
 const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
-const DRAFT_KEY = "funai-form-draft-v3";
 const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
-const MUNICIPIOS_CSV_URL = "municipios-estados.csv";
+const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
+const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
+const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 const ETNIA_OPTIONS = [
   "Apurinã",
   "Ashaninka",
@@ -28,37 +32,47 @@ const ETNIA_OPTIONS = [
   "Outros"
 ];
 
-const formApp = document.querySelector("#formApp");
-const accessGate = document.querySelector("#accessGate");
-const accessForm = document.querySelector("#accessForm");
-const accessEmail = document.querySelector("#accessEmail");
-const accessSubmitBtn = document.querySelector("#accessSubmitBtn");
-const accessMessage = document.querySelector("#accessMessage");
-const form = document.querySelector("#funaiForm");
-const steps = Array.from(document.querySelectorAll(".step"));
-const progressBar = document.querySelector("#progressBar");
-const progressTitle = document.querySelector("#progressTitle");
-const stepCounter = document.querySelector("#stepCounter");
-const prevBtn = document.querySelector("#prevBtn");
-const nextBtn = document.querySelector("#nextBtn");
-const submitBtn = document.querySelector("#submitBtn");
-const saveDraftBtn = document.querySelector("#saveDraftBtn");
-const messageBox = document.querySelector("#formMessage");
-const etniaInput = document.querySelector("#etniaInput");
-const etniaOptions = document.querySelector("#etniaOptions");
-const etniaChips = document.querySelector("#etniaChips");
-const addEtniaBtn = document.querySelector("#addEtniaBtn");
-const processList = document.querySelector("#processList");
-const addProcessBtn = document.querySelector("#addProcessBtn");
-const removeProcessBtn = document.querySelector("#removeProcessBtn");
-const estadoInput = document.querySelector("#estadoInput");
-const estadoOptions = document.querySelector("#estadoOptions");
-const estadoChips = document.querySelector("#estadoChips");
-const addEstadoBtn = document.querySelector("#addEstadoBtn");
-const municipioInput = document.querySelector("#municipioInput");
-const municipioOptions = document.querySelector("#municipioOptions");
-const municipioChips = document.querySelector("#municipioChips");
-const addMunicipioBtn = document.querySelector("#addMunicipioBtn");
+let formApp;
+let accessGate;
+let accessForm;
+let accessEmail;
+let accessSubmitBtn;
+let accessMessage;
+let consultorDashboard;
+let dashboardEmail;
+let newReportBtn;
+let draftReportsBtn;
+let sentReportsBtn;
+let reportListPanel;
+let reportListTitle;
+let reportListMessage;
+let reportList;
+let closeReportListBtn;
+let form;
+let steps = [];
+let progressBar;
+let progressTitle;
+let stepCounter;
+let prevBtn;
+let nextBtn;
+let submitBtn;
+let saveDraftBtn;
+let messageBox;
+let etniaInput;
+let etniaOptions;
+let etniaChips;
+let addEtniaBtn;
+let processList;
+let addProcessBtn;
+let removeProcessBtn;
+let estadoInput;
+let estadoOptions;
+let estadoChips;
+let addEstadoBtn;
+let municipioInput;
+let municipioOptions;
+let municipioChips;
+let addMunicipioBtn;
 
 let currentStep = 0;
 let selectedEtnias = [];
@@ -67,24 +81,91 @@ let selectedMunicipios = [];
 let municipiosPorEstado = new Map();
 let allEstados = [];
 let formInitialized = false;
+let currentFormularioId = "";
+let cachedReports = [];
 
 init();
 
-function init() {
+// Bootstrap
+async function init() {
+  await loadHtmlPartials();
+  cacheDomElements();
   bindAccessEvents();
 
   const authorizedEmail = getStoredAuthorizedEmail();
   if (authorizedEmail) {
-    showAuthorizedForm(authorizedEmail);
+    showDashboard(authorizedEmail);
     return;
   }
 
   accessGate.hidden = false;
+  consultorDashboard.hidden = true;
   formApp.hidden = true;
+}
+
+async function loadHtmlPartials() {
+  const appRoot = document.querySelector("#appRoot");
+  const partials = await Promise.all(
+    HTML_PARTIALS.map(async (path) => {
+      const response = await fetch(path);
+      if (!response.ok) throw new Error(`Nao foi possivel carregar ${path}`);
+      return response.text();
+    })
+  );
+
+  appRoot.innerHTML = partials.join("\n");
+}
+
+function cacheDomElements() {
+  formApp = document.querySelector("#formApp");
+  accessGate = document.querySelector("#accessGate");
+  accessForm = document.querySelector("#accessForm");
+  accessEmail = document.querySelector("#accessEmail");
+  accessSubmitBtn = document.querySelector("#accessSubmitBtn");
+  accessMessage = document.querySelector("#accessMessage");
+  consultorDashboard = document.querySelector("#consultorDashboard");
+  dashboardEmail = document.querySelector("#dashboardEmail");
+  newReportBtn = document.querySelector("#newReportBtn");
+  draftReportsBtn = document.querySelector("#draftReportsBtn");
+  sentReportsBtn = document.querySelector("#sentReportsBtn");
+  reportListPanel = document.querySelector("#reportListPanel");
+  reportListTitle = document.querySelector("#reportListTitle");
+  reportListMessage = document.querySelector("#reportListMessage");
+  reportList = document.querySelector("#reportList");
+  closeReportListBtn = document.querySelector("#closeReportListBtn");
+  form = document.querySelector("#funaiForm");
+  steps = Array.from(document.querySelectorAll(".step"));
+  progressBar = document.querySelector("#progressBar");
+  progressTitle = document.querySelector("#progressTitle");
+  stepCounter = document.querySelector("#stepCounter");
+  prevBtn = document.querySelector("#prevBtn");
+  nextBtn = document.querySelector("#nextBtn");
+  submitBtn = document.querySelector("#submitBtn");
+  saveDraftBtn = document.querySelector("#saveDraftBtn");
+  messageBox = document.querySelector("#formMessage");
+  etniaInput = document.querySelector("#etniaInput");
+  etniaOptions = document.querySelector("#etniaOptions");
+  etniaChips = document.querySelector("#etniaChips");
+  addEtniaBtn = document.querySelector("#addEtniaBtn");
+  processList = document.querySelector("#processList");
+  addProcessBtn = document.querySelector("#addProcessBtn");
+  removeProcessBtn = document.querySelector("#removeProcessBtn");
+  estadoInput = document.querySelector("#estadoInput");
+  estadoOptions = document.querySelector("#estadoOptions");
+  estadoChips = document.querySelector("#estadoChips");
+  addEstadoBtn = document.querySelector("#addEstadoBtn");
+  municipioInput = document.querySelector("#municipioInput");
+  municipioOptions = document.querySelector("#municipioOptions");
+  municipioChips = document.querySelector("#municipioChips");
+  addMunicipioBtn = document.querySelector("#addMunicipioBtn");
 }
 
 function bindAccessEvents() {
   accessForm.addEventListener("submit", handleAccessSubmit);
+  newReportBtn.addEventListener("click", novoRelatorio);
+  draftReportsBtn.addEventListener("click", () => listarRascunhos());
+  sentReportsBtn.addEventListener("click", () => listarEnviados());
+  closeReportListBtn.addEventListener("click", hideReportList);
 }
 
 async function handleAccessSubmit(event) {
@@ -99,7 +180,7 @@ async function handleAccessSubmit(event) {
   }
 
   if (!VERIFY_ACCESS_URL) {
-    showAccessMessage("Configure VERIFY_ACCESS_URL no arquivo config.js.", "error");
+    showAccessMessage("Configure VERIFY_ACCESS_URL no arquivo js/config.js.", "error");
     return;
   }
 
@@ -124,7 +205,7 @@ async function handleAccessSubmit(event) {
 
     if (data.autorizado === true || data.success === true) {
       storeAuthorizedEmail(email);
-      await showAuthorizedForm(email);
+      showDashboard(email);
       return;
     }
 
@@ -142,22 +223,65 @@ async function handleAccessSubmit(event) {
   }
 }
 
-async function showAuthorizedForm(email) {
+function showDashboard(email = getAuthorizedEmail()) {
   accessGate.hidden = true;
-  formApp.hidden = false;
-  await initializeForm();
-  setAuthorizedEmail(email);
+  consultorDashboard.hidden = false;
+  formApp.hidden = true;
+  dashboardEmail.textContent = email;
+  hideReportList();
 }
 
+// Form lifecycle
 async function initializeForm() {
   if (formInitialized) return;
   formInitialized = true;
   populateEtniaOptions();
   await loadMunicipioData();
   bindEvents();
-  loadDraft();
   updateConditionals();
   showStep(0);
+}
+
+async function novoRelatorio() {
+  currentFormularioId = createFormularioId();
+  sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+  await openForm({ reset: true });
+}
+
+async function startNewReport() {
+  return novoRelatorio();
+}
+
+async function openForm({ reset = false } = {}) {
+  const email = getStoredAuthorizedEmail();
+  if (!email) {
+    accessGate.hidden = false;
+    consultorDashboard.hidden = true;
+    formApp.hidden = true;
+    return;
+  }
+
+  await initializeForm();
+  if (reset) limparFormulario();
+  setAuthorizedEmail(email);
+  accessGate.hidden = true;
+  consultorDashboard.hidden = true;
+  formApp.hidden = false;
+  showStep(0);
+}
+
+function limparFormulario() {
+  form.reset();
+  selectedEtnias = [];
+  selectedEstados = [];
+  selectedMunicipios = [];
+  renderEtniaChips();
+  renderEstadoChips();
+  renderMunicipioChips();
+  populateEstadoOptions();
+  populateMunicipioOptions();
+  clearMessage();
+  updateConditionals();
 }
 
 function setAuthorizedEmail(email) {
@@ -171,7 +295,7 @@ function setAuthorizedEmail(email) {
 function bindEvents() {
   form.addEventListener("input", handleFormChange);
   form.addEventListener("change", handleFormChange);
-  form.addEventListener("submit", handleSubmit);
+  form.addEventListener("submit", enviarFormulario);
   addEtniaBtn.addEventListener("click", addSelectedEtnia);
   etniaInput.addEventListener("keydown", handleEtniaKeydown);
   etniaChips.addEventListener("click", removeSelectedEtnia);
@@ -185,7 +309,7 @@ function bindEvents() {
   removeProcessBtn.addEventListener("click", removeProcessField);
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
-  saveDraftBtn.addEventListener("click", saveDraft);
+  saveDraftBtn.addEventListener("click", salvarRascunho);
 }
 
 function handleFormChange() {
@@ -283,7 +407,7 @@ function validateCurrentStep() {
   return true;
 }
 
-async function handleSubmit(event) {
+async function enviarFormulario(event) {
   event.preventDefault();
   if (!validateCurrentStep()) return;
 
@@ -298,7 +422,7 @@ async function handleSubmit(event) {
   setAuthorizedEmail(authorizedEmail);
 
   if (!POWER_AUTOMATE_URL) {
-    showMessage("Configure POWER_AUTOMATE_URL no arquivo config.js antes de enviar.", "error");
+    showMessage("Configure POWER_AUTOMATE_URL no arquivo js/config.js antes de enviar.", "error");
     return;
   }
 
@@ -316,20 +440,9 @@ async function handleSubmit(event) {
     console.log(response.status, response.statusText);
 
     if (response.ok) {
-      localStorage.removeItem(DRAFT_KEY);
-      form.reset();
-      setAuthorizedEmail(authorizedEmail);
-      selectedEtnias = [];
-      selectedEstados = [];
-      selectedMunicipios = [];
-      renderEtniaChips();
-      renderEstadoChips();
-      renderMunicipioChips();
-      populateEstadoOptions();
-      populateMunicipioOptions();
-      updateConditionals();
-      showStep(0);
       showMessage("Formulário enviado com sucesso.", "success");
+      sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
+      showDashboard(authorizedEmail);
       return;
     }
 
@@ -349,15 +462,20 @@ async function handleSubmit(event) {
   }
 }
 
+async function handleSubmit(event) {
+  return enviarFormulario(event);
+}
+
 function buildPayload(statusFormulario = "Enviado") {
   const etnias = asList(getSelectedEtnias());
   const estados = asList(getSelectedEstados());
   const municipios = asList(getSelectedMunicipios());
-
-  return {
+  const now = new Date().toISOString();
+  const payload = {
+    formularioId: asText(getCurrentFormularioId()),
     tokenSecreto: asText(SECRET_TOKEN),
     origem: "github-pages-funai",
-    enviadoEm: new Date().toISOString(),
+    atualizadoEm: now,
     statusFormulario: asText(statusFormulario),
     consultor: {
       nome: asText(getValue("consultorNome")),
@@ -426,11 +544,13 @@ function buildPayload(statusFormulario = "Enviado") {
       reintegracaoPosse: asText(getValue("reintegracaoPosse"))
     }
   };
+
+  if (statusFormulario === "Enviado") payload.enviadoEm = now;
+  return payload;
 }
 
-async function saveDraft() {
+async function salvarRascunho() {
   const payload = buildPayload("Rascunho");
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
   console.log("payload rascunho", payload);
 
   if (!POWER_AUTOMATE_URL) {
@@ -472,37 +592,254 @@ async function saveDraft() {
   }
 }
 
-function loadDraft() {
-  const rawDraft = localStorage.getItem(DRAFT_KEY);
-  if (!rawDraft) return;
+async function saveDraft() {
+  return salvarRascunho();
+}
+
+// Dashboard lists
+async function listarRascunhos(email = getAuthorizedEmail()) {
+  await listarRelatorios({
+    title: "Meus rascunhos",
+    url: LIST_DRAFTS_URL,
+    emptyMessage: "Nenhum rascunho encontrado.",
+    email
+  });
+}
+
+async function listarEnviados() {
+  await listarRelatorios({
+    title: "Relatorios enviados",
+    url: LIST_SENT_URL,
+    emptyMessage: "Nenhum relatorio enviado encontrado."
+  });
+}
+
+async function listarRelatorios({ title, url, emptyMessage, email = getAuthorizedEmail() }) {
+  showReportList(title, "Carregando...");
+
+  if (!url) {
+    showReportListMessage("Configure a URL correspondente no arquivo js/config.js.", "error");
+    return;
+  }
 
   try {
-    const draft = JSON.parse(rawDraft);
-    restoreValues(flattenDraft(draft));
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        consultor: {
+          email
+        }
+      })
+    });
+    console.log(response.status, response.statusText);
+
+    if (!response.ok) throw new Error(`Falha ao listar relatorios: ${response.status}`);
+
+    const data = await readJsonIfAvailable(response);
+    const relatorios = normalizarListaRelatorios(data);
+    renderReportList(relatorios, emptyMessage);
   } catch (error) {
-    localStorage.removeItem(DRAFT_KEY);
+    showReportListMessage("Nao foi possivel carregar a lista.", "error");
   }
 }
 
+async function abrirRascunho(formularioId) {
+  const resumo = getCachedReport(formularioId);
+  if (!resumo) {
+    showReportListMessage("Rascunho nao encontrado nesta lista.", "error");
+    return;
+  }
+
+  const id = getReportFormularioId(resumo) || asText(formularioId);
+  if (!LOAD_DRAFT_URL) {
+    showReportListMessage("Configure LOAD_DRAFT_URL no arquivo js/config.js.", "error");
+    return;
+  }
+
+  try {
+    showReportListMessage("Carregando rascunho...", "success");
+    const response = await fetch(LOAD_DRAFT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        formularioId: id,
+        consultor: {
+          email: getAuthorizedEmail()
+        }
+      })
+    });
+    console.log(response.status, response.statusText);
+
+    if (!response.ok) throw new Error(`Falha ao carregar rascunho: ${response.status}`);
+
+    const data = await readJsonIfAvailable(response);
+    const rascunho = normalizarRascunhoCarregado(data, resumo);
+
+    currentFormularioId = getReportFormularioId(rascunho) || id;
+    sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+    await openForm({ reset: true });
+    preencherFormulario(rascunho);
+    updateConditionals();
+    showStep(0);
+  } catch (error) {
+    showReportListMessage("Nao foi possivel abrir o rascunho.", "error");
+  }
+}
+
+function normalizarRascunhoCarregado(data, fallback) {
+  if (data?.relatorio) return data.relatorio;
+  if (data?.rascunho) return data.rascunho;
+  if (data?.item) return data.item;
+  if (data?.value && !Array.isArray(data.value)) return data.value;
+  return data || fallback;
+}
+
+async function carregarRelatorio(id) {
+  return abrirRascunho(id);
+}
+
+function preencherFormulario(dados) {
+  const formularioId = getReportFormularioId(dados);
+  if (formularioId) {
+    currentFormularioId = formularioId;
+    sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+  }
+
+  restoreValues(flattenDraft(dados));
+  setAuthorizedEmail(getAuthorizedEmail());
+}
+
+/* antigo fluxo local mantido como alias de compatibilidade */
+async function carregarRelatorioLocal(formularioId) {
+  const relatorio = getCachedReport(formularioId);
+  if (!relatorio) return;
+
+  currentFormularioId = getReportFormularioId(relatorio) || asText(formularioId);
+  sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+  await openForm({ reset: true });
+  preencherFormulario(relatorio);
+  updateConditionals();
+  showStep(0);
+}
+
+function showReportList(title, message = "") {
+  reportListPanel.hidden = false;
+  reportListTitle.textContent = title;
+  reportList.innerHTML = "";
+  if (message) showReportListMessage(message, "success");
+}
+
+function hideReportList() {
+  reportListPanel.hidden = true;
+  reportList.innerHTML = "";
+  reportListMessage.textContent = "";
+  reportListMessage.className = "message";
+}
+
+function showReportListMessage(text, type) {
+  reportListMessage.textContent = text;
+  reportListMessage.className = `message is-visible ${type}`;
+}
+
+function normalizarListaRelatorios(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.relatorios)) return data.relatorios;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.value)) return data.value;
+  return [];
+}
+
+function renderReportList(relatorios, emptyMessage) {
+  cachedReports = relatorios;
+  reportList.innerHTML = "";
+
+  if (!relatorios.length) {
+    showReportListMessage(emptyMessage, "success");
+    return;
+  }
+
+  reportListMessage.textContent = "";
+  reportListMessage.className = "message";
+
+  relatorios.forEach((relatorio) => {
+    const formularioId = getReportFormularioId(relatorio);
+    const reivindicacaoId = getReportReivindicacaoId(relatorio);
+    const nome = getReportNomeReivindicacao(relatorio);
+    const atualizadoEm = getReportAtualizadoEm(relatorio);
+    const status = asText(relatorio.statusFormulario || relatorio.StatusFormulario || "Rascunho");
+    const row = document.createElement("div");
+    const idButton = document.createElement("button");
+    const name = document.createElement("span");
+    const date = document.createElement("span");
+    const statusText = document.createElement("span");
+
+    row.className = "report-list-row";
+    idButton.type = "button";
+    idButton.className = "report-link";
+    idButton.textContent = reivindicacaoId || "Sem ID";
+    idButton.addEventListener("click", () => abrirRascunho(formularioId || reivindicacaoId));
+
+    name.textContent = nome || "Sem nome";
+    date.textContent = atualizadoEm || "";
+    statusText.textContent = status;
+    row.append(idButton, name, date, statusText);
+    reportList.append(row);
+  });
+}
+
+function getCachedReport(id) {
+  return cachedReports.find((relatorio) => {
+    const formId = getReportFormularioId(relatorio);
+    const reivindicacaoId = getReportReivindicacaoId(relatorio);
+    return formId === asText(id) || reivindicacaoId === asText(id);
+  });
+}
+
+function getReportFormularioId(relatorio) {
+  return asText(relatorio.formularioId || relatorio.FormularioId || relatorio.id || relatorio.ID);
+}
+
+function getReportReivindicacaoId(relatorio) {
+  return asText(relatorio.reivindicacao?.id || relatorio.reivindicacaoId || relatorio.ReivindicacaoId);
+}
+
+function getReportNomeReivindicacao(relatorio) {
+  return asText(relatorio.reivindicacao?.nome || relatorio.nomeReivindicacao || relatorio.NomeReivindicacao || relatorio.titulo);
+}
+
+function getReportAtualizadoEm(relatorio) {
+  return asText(relatorio.atualizadoEm || relatorio.AtualizadoEm || relatorio.Modified || relatorio.modificadoEm);
+}
+
 function restoreValues(values) {
-  if (Array.isArray(values.etnias)) {
-    selectedEtnias = values.etnias.filter(Boolean);
+  const etnias = asListOrSplit(values.etnias);
+  const estados = asListOrSplit(values.estados);
+  const municipios = asListOrSplit(values.municipios);
+  const numerosProcesso = asListOrSplit(values.numerosProcesso);
+
+  if (etnias.length) {
+    selectedEtnias = etnias;
     renderEtniaChips();
   }
 
-  if (Array.isArray(values.estados)) {
-    selectedEstados = values.estados.filter(Boolean);
+  if (estados.length) {
+    selectedEstados = estados;
     renderEstadoChips();
     populateMunicipioOptions();
   }
 
-  if (Array.isArray(values.municipios)) {
-    selectedMunicipios = values.municipios.filter(Boolean);
+  if (municipios.length) {
+    selectedMunicipios = municipios;
     renderMunicipioChips();
   }
 
-  if (Array.isArray(values.numerosProcesso)) {
-    restoreProcessFields(values.numerosProcesso);
+  if (numerosProcesso.length) {
+    restoreProcessFields(numerosProcesso);
   }
 
   Object.entries(values).forEach(([name, value]) => {
@@ -516,7 +853,7 @@ function restoreValues(values) {
 
     fieldList.forEach((field) => {
       if (field.type === "checkbox") {
-        field.checked = Array.isArray(value) && value.includes(field.value);
+        field.checked = asListOrSplit(value).includes(field.value);
       } else if (field.type === "radio") {
         field.checked = field.value === value;
       } else if (field.tagName === "SELECT") {
@@ -531,26 +868,26 @@ function restoreValues(values) {
 
 function flattenDraft(draft) {
   return {
-    consultorEmail: draft.consultor?.email,
-    consultorNome: draft.consultor?.nome,
-    areaEstudo: draft.consultor?.areaEstudo,
-    reivindicacaoId: draft.reivindicacao?.id,
-    nomeReivindicacao: draft.reivindicacao?.nome,
-    outrosNomes: draft.reivindicacao?.outrosNomes,
-    outrosNomesTexto: draft.reivindicacao?.outrosNomesTexto,
-    numerosProcesso: draft.reivindicacao?.numerosProcesso || [draft.reivindicacao?.numeroProcesso].filter(Boolean),
-    temRoteiro: draft.reivindicacao?.temRoteiro,
-    dataRoteiro: draft.reivindicacao?.dataRoteiro,
-    etnias: draft.reivindicacao?.etnias,
-    outraEtnia: draft.reivindicacao?.outraEtnia,
-    tipoDemanda: draft.reivindicacao?.tipoDemanda,
-    modalidadeConstituicao: draft.reivindicacao?.modalidadeConstituicao,
-    justificativaRevisao: draft.reivindicacao?.justificativaRevisao,
-    estados: draft.reivindicacao?.estados || splitLegacyList(draft.reivindicacao?.estado),
-    municipios: draft.reivindicacao?.municipios || splitLegacyList(draft.reivindicacao?.municipio),
-    coordenacaoRegional: draft.reivindicacao?.coordenacaoRegional,
-    temRetomada: draft.reivindicacao?.temRetomada,
-    detalhesRetomada: draft.reivindicacao?.detalhesRetomada,
+    consultorEmail: draft.consultor?.email || draft.consultorEmail,
+    consultorNome: draft.consultor?.nome || draft.consultorNome,
+    areaEstudo: draft.consultor?.areaEstudo || draft.areaEstudo,
+    reivindicacaoId: draft.reivindicacao?.id || draft.reivindicacaoId || draft.ReivindicacaoId,
+    nomeReivindicacao: draft.reivindicacao?.nome || draft.nomeReivindicacao || draft.NomeReivindicacao,
+    outrosNomes: draft.reivindicacao?.outrosNomes || draft.outrosNomes,
+    outrosNomesTexto: draft.reivindicacao?.outrosNomesTexto || draft.outrosNomesTexto,
+    numerosProcesso: draft.reivindicacao?.numerosProcesso || draft.numerosProcesso || splitLegacyList(draft.reivindicacao?.numeroProcesso || draft.numeroProcesso),
+    temRoteiro: draft.reivindicacao?.temRoteiro || draft.temRoteiro,
+    dataRoteiro: draft.reivindicacao?.dataRoteiro || draft.dataRoteiro,
+    etnias: draft.reivindicacao?.etnias || draft.etnias,
+    outraEtnia: draft.reivindicacao?.outraEtnia || draft.outraEtnia,
+    tipoDemanda: draft.reivindicacao?.tipoDemanda || draft.tipoDemanda,
+    modalidadeConstituicao: draft.reivindicacao?.modalidadeConstituicao || draft.modalidadeConstituicao,
+    justificativaRevisao: draft.reivindicacao?.justificativaRevisao || draft.justificativaRevisao,
+    estados: draft.reivindicacao?.estados || draft.estados || splitLegacyList(draft.reivindicacao?.estado || draft.estado),
+    municipios: draft.reivindicacao?.municipios || draft.municipios || splitLegacyList(draft.reivindicacao?.municipio || draft.municipio),
+    coordenacaoRegional: draft.reivindicacao?.coordenacaoRegional || draft.coordenacaoRegional,
+    temRetomada: draft.reivindicacao?.temRetomada || draft.temRetomada,
+    detalhesRetomada: draft.reivindicacao?.detalhesRetomada || draft.detalhesRetomada,
     descricaoReivindicacao: draft.resumoProcesso?.descricao,
     dataDocumento: draft.resumoProcesso?.dataDocumento,
     tipoDocumento: draft.resumoProcesso?.tipoDocumento,
@@ -597,12 +934,28 @@ function getAuthorizedEmail() {
   return getStoredAuthorizedEmail() || getValue("consultorEmail");
 }
 
+function getCurrentFormularioId() {
+  if (!currentFormularioId) currentFormularioId = sessionStorage.getItem(ACTIVE_FORM_ID_KEY) || createFormularioId();
+  sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+  return currentFormularioId;
+}
+
+function createFormularioId() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return `form-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 function asText(value) {
   return value == null ? "" : String(value);
 }
 
 function asList(value) {
   return Array.isArray(value) ? value.filter(Boolean) : [];
+}
+
+function asListOrSplit(value) {
+  if (Array.isArray(value)) return value.filter(Boolean);
+  return splitLegacyList(value);
 }
 
 async function readJsonIfAvailable(response) {
