@@ -119,15 +119,21 @@ async function handleAccessSubmit(event) {
         }
       })
     });
-    const result = await response.json();
+    const data = await response.json();
+    console.log(data);
 
-    if (result.autorizado === true) {
+    if (data.autorizado === true || data.success === true) {
       sessionStorage.setItem(AUTHORIZED_EMAIL_KEY, email);
       await showAuthorizedForm(email);
       return;
     }
 
-    showAccessMessage("E-mail não autorizado.", "error");
+    if (data.autorizado === false) {
+      showAccessMessage("E-mail não autorizado.", "error");
+      return;
+    }
+
+    showAccessMessage("Não foi possível confirmar a autorização do e-mail.", "error");
   } catch (error) {
     showAccessMessage("Não foi possível verificar o e-mail. Tente novamente.", "error");
   } finally {
