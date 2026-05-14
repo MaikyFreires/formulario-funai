@@ -295,7 +295,7 @@ textarea {
 }
 
 .progress-wrap {
-  width: min(1235px, calc(100% - 180px));
+  width: min(1420px, calc(100% - 72px));
   margin: 30px auto 14px;
 }
 
@@ -322,14 +322,14 @@ textarea {
 }
 
 #funaiForm {
-  width: min(1235px, calc(100% - 180px));
+  width: min(1420px, calc(100% - 72px));
   margin: 0 auto;
 }
 
 .step {
   display: none;
   min-height: 430px;
-  padding: 18px 28px 38px;
+  padding: 28px 36px 44px;
   border: 1px solid var(--line);
   border-radius: 5px;
   background: var(--surface);
@@ -339,6 +339,49 @@ textarea {
 
 .step[data-step="2"] {
   min-height: 710px;
+}
+
+.step[data-step="6"] {
+  min-height: 680px;
+}
+
+.step[data-step="6"] .section-heading {
+  margin-bottom: 34px;
+}
+
+.step[data-step="6"] .field-grid {
+  column-gap: 82px;
+  row-gap: 34px;
+}
+
+.step[data-step="6"] fieldset,
+.step[data-step="6"] label {
+  gap: 14px;
+}
+
+.step[data-step="6"] fieldset.wide {
+  padding: 4px 0 10px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.step[data-step="6"] fieldset.wide legend {
+  padding: 0 0 18px;
+}
+
+.step[data-step="6"] fieldset.wide .check-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  gap: 22px 30px;
+}
+
+.step[data-step="6"] .check-grid {
+  gap: 20px 32px;
+}
+
+.step[data-step="6"] #indigenasAreaWrap,
+.step[data-step="6"] #comunidadesTradicionaisWrap {
+  align-self: end;
 }
 
 .step.is-active {
@@ -853,10 +896,6 @@ section.coordinate-table-section.is-visible {
 
 .overlap-item.has-detail:has(input[type="checkbox"]:checked) .overlap-detail {
   display: block;
-}
-
-.overlap-options > input[name="detalheSobreposicoes"] {
-  margin-top: 4px;
 }
 
 .inline-date {

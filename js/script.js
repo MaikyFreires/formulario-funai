@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260514-2";
+const APP_VERSION = "20260514-4";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 let formApp;
 let accessGate;
@@ -775,8 +775,7 @@ function buildPayload(statusFormulario = "Enviado") {
       detalheProjetoAssentamentoAgroextrativista: asText(getValue("detalheProjetoAssentamentoAgroextrativista")),
       detalheProjetoDesenvolvimentoSustentavel: asText(getValue("detalheProjetoDesenvolvimentoSustentavel")),
       detalheProjetoAssentamentoFlorestal: asText(getValue("detalheProjetoAssentamentoFlorestal")),
-      detalheOutrasSobreposicoes: asText(getValue("detalheOutrasSobreposicoes")),
-      detalheSobreposicoes: asText(getValue("detalheSobreposicoes"))
+      detalheOutrasSobreposicoes: asText(getValue("detalheOutrasSobreposicoes"))
     },
     ocupacaoIndigena: {
       indigenasArea: asText(getValue("indigenasArea")),
@@ -1193,7 +1192,6 @@ function flattenDraft(draft) {
     detalheProjetoDesenvolvimentoSustentavel: draft.caracterizacaoArea?.detalheProjetoDesenvolvimentoSustentavel,
     detalheProjetoAssentamentoFlorestal: draft.caracterizacaoArea?.detalheProjetoAssentamentoFlorestal,
     detalheOutrasSobreposicoes: draft.caracterizacaoArea?.detalheOutrasSobreposicoes,
-    detalheSobreposicoes: draft.caracterizacaoArea?.detalheSobreposicoes,
     indigenasArea: draft.ocupacaoIndigena?.indigenasArea,
     tempoOcupacao: draft.ocupacaoIndigena?.tempoOcupacao,
     vulnerabilidades: draft.ocupacaoIndigena?.vulnerabilidades,
