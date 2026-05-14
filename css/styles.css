@@ -569,23 +569,30 @@ input[readonly] {
 
 .document-table-section {
   display: grid;
-  gap: 12px;
+  gap: 28px;
 }
 
 .table-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: minmax(230px, 0.32fr) minmax(360px, 0.68fr);
+  gap: 40px;
+  align-items: start;
 }
 
 .table-heading h3 {
   margin: 0;
-  color: var(--green);
-  font-size: 1.05rem;
+  color: #111;
+  font-size: 1.15rem;
   line-height: 1.25;
   font-weight: 800;
-  text-transform: uppercase;
+}
+
+.table-heading p {
+  margin: 0;
+  color: #8a8a8a;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  font-weight: 500;
 }
 
 .table-scroll {
@@ -594,31 +601,80 @@ input[readonly] {
 
 .document-table {
   width: 100%;
-  min-width: 960px;
-  border-collapse: collapse;
+  min-width: 1040px;
+  border-collapse: separate;
+  border-spacing: 12px 10px;
 }
 
 .document-table th {
-  padding: 0 10px 10px;
+  padding: 0 4px 4px;
   color: #222;
-  font-size: 1rem;
-  text-align: left;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
 }
 
 .document-table td {
-  padding: 8px 10px;
+  padding: 0;
   vertical-align: top;
 }
 
 .document-table td:last-child,
 .document-table th:last-child {
-  width: 76px;
+  width: 112px;
   text-align: center;
 }
 
 .document-table input,
 .document-table textarea {
-  min-height: 42px;
+  min-height: 49px;
+}
+
+.document-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.document-actions .icon-button {
+  min-width: 34px;
+  min-height: 49px;
+  color: var(--blue);
+  font-size: 2.15rem;
+}
+
+.document-actions .add-documento-row-btn {
+  color: var(--green-2);
+  font-size: 2.25rem;
+}
+
+.status-process-grid {
+  row-gap: 34px;
+}
+
+.status-details {
+  display: none;
+  gap: 30px;
+}
+
+.status-details.is-visible {
+  display: grid;
+}
+
+.status-short-field {
+  width: min(360px, 100%);
+}
+
+.decision-grid {
+  display: none;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(210px, 1fr) minmax(180px, 0.85fr);
+  gap: 22px;
+  width: min(650px, 100%);
+}
+
+.decision-grid.is-visible {
+  display: grid;
 }
 
 .inline-date {

@@ -305,7 +305,6 @@ function bindEvents() {
   municipioChips.addEventListener("click", removeSelectedMunicipio);
   addProcessBtn.addEventListener("click", () => addProcessField());
   removeProcessBtn.addEventListener("click", removeProcessField);
-  addDocumentoBtn.addEventListener("click", () => addDocumentoRow());
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
@@ -1074,7 +1073,7 @@ function restoreValues(values) {
   if (!documentos.length) restoreLegacyDocumentoRow(values);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "estados", "municipios", "numerosProcesso", "documentos", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "eventosAssuntos"].includes(name)) return;
+    if (["etnias", "estados", "municipios", "numerosProcesso", "documentos", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1530,21 +1529,30 @@ function renderChips(container, values, dataName, ariaPrefix) {
 }
 
 function handleDocumentoTableClick(event) {
-  const button = event.target.closest(".remove-documento-btn");
-  if (!button) return;
-  removeDocumentoRow(button.closest(".document-row"));
+  const removeButton = event.target.closest(".remove-documento-btn");
+  if (removeButton) {
+    removeDocumentoRow(removeButton.closest(".document-row"));
+    return;
+  }
+
+  const addButton = event.target.closest(".add-documento-row-btn");
+  if (addButton) addDocumentoRow();
 }
 
 function addDocumentoRow(documento = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "document-row";
   row.innerHTML = `
-    <td><input name="dataDocumento" type="date" aria-label="Data do documento"></td>
+    <td><input name="dataDocumento" type="date" aria-label="Data"></td>
     <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
     <td><input name="paginasDocumento" type="number" min="0" placeholder="Qtd." aria-label="Páginas"></td>
+    <td><input name="eventosAssuntos" type="text" placeholder="Digite o evento" aria-label="Eventos"></td>
     <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
-    <td><textarea name="eventosAssuntos" rows="2" placeholder="Digite os eventos ou assuntos" aria-label="Eventos/assuntos relevantes"></textarea></td>
-    <td><button type="button" class="icon-button danger remove-documento-btn" aria-label="Remover documento">&#128465;</button></td>
+    <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
+    <td class="document-actions">
+      <button type="button" class="icon-button remove-documento-btn" aria-label="Remover documento">×</button>
+      <button type="button" class="icon-button add-documento-row-btn" aria-label="Adicionar documento">+</button>
+    </td>
   `;
   documentosTableBody.append(row);
   setDocumentoRowValues(row, documento);
@@ -1586,6 +1594,7 @@ function restoreLegacyDocumentoRow(values) {
     tipoDocumento: values.tipoDocumento,
     paginas: values.paginasDocumento,
     numeroSei: values.numeroSei,
+    numeroProcesso: values.numeroProcessoDocumento,
     eventosAssuntos: values.eventosAssuntos
   };
 
@@ -1600,6 +1609,7 @@ function setDocumentoRowValues(row, documento) {
   row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
   row.querySelector("[name='paginasDocumento']").value = asText(documento.paginas);
   row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
+  row.querySelector("[name='numeroProcessoDocumento']").value = asText(documento.numeroProcesso);
   row.querySelector("[name='eventosAssuntos']").value = asText(documento.eventosAssuntos);
 }
 
@@ -1610,6 +1620,7 @@ function getDocumentosProcesso() {
       tipoDocumento: asText(row.querySelector("[name='tipoDocumento']")?.value),
       paginas: asText(row.querySelector("[name='paginasDocumento']")?.value),
       numeroSei: asText(row.querySelector("[name='numeroSei']")?.value),
+      numeroProcesso: asText(row.querySelector("[name='numeroProcessoDocumento']")?.value),
       eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value)
     }))
     .filter((documento) => Object.values(documento).some(Boolean));

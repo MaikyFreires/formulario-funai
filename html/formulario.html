@@ -287,29 +287,34 @@
 
               <section class="wide document-table-section" aria-labelledby="documentosTitle">
                 <div class="table-heading">
-                  <h3 id="documentosTitle">Documentos do processo</h3>
-                  <button type="button" class="icon-button" id="addDocumentoBtn" aria-label="Adicionar documento">+</button>
+                  <h3 id="documentosTitle">Linha do tempo: documentos mais importantes</h3>
+                  <p>Sistematização dos documentos. Identifique os principais documentos do processo e suas informações. Certifique-se que os documentos citados no resumo (acima) estejam incluídos nessa tabela.</p>
                 </div>
                 <div class="table-scroll">
                   <table class="document-table">
                     <thead>
                       <tr>
-                        <th>Data do documento</th>
+                        <th>Data</th>
                         <th>Tipo de documento</th>
                         <th>Páginas</th>
+                        <th>Eventos</th>
                         <th>Nº SEI</th>
-                        <th>Eventos/assuntos relevantes</th>
+                        <th>Nº do processo</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
                     <tbody id="documentosTableBody">
                       <tr class="document-row">
-                        <td><input name="dataDocumento" type="date" aria-label="Data do documento"></td>
+                        <td><input name="dataDocumento" type="date" aria-label="Data"></td>
                         <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
                         <td><input name="paginasDocumento" type="number" min="0" placeholder="Qtd." aria-label="Páginas"></td>
+                        <td><input name="eventosAssuntos" type="text" placeholder="Digite o evento" aria-label="Eventos"></td>
                         <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
-                        <td><textarea name="eventosAssuntos" rows="2" placeholder="Digite os eventos ou assuntos" aria-label="Eventos/assuntos relevantes"></textarea></td>
-                        <td><button type="button" class="icon-button danger remove-documento-btn" aria-label="Remover documento">&#128465;</button></td>
+                        <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
+                        <td class="document-actions">
+                          <button type="button" class="icon-button remove-documento-btn" aria-label="Remover documento">×</button>
+                          <button type="button" class="icon-button add-documento-row-btn" id="addDocumentoBtn" aria-label="Adicionar documento">+</button>
+                        </td>
                       </tr>
                     </tbody>
                   </table>
@@ -322,13 +327,12 @@
             <div class="section-heading">
               <span>4</span>
               <div>
-                <h2>Status do processo</h2>
-                <p>Informe judicialização, ações e decisões conhecidas.</p>
+                <h2>4. Status do processo</h2>
               </div>
             </div>
 
-            <div class="field-grid">
-              <fieldset>
+            <div class="field-grid status-process-grid">
+              <fieldset class="wide">
                 Está judicializado?
                 <div class="check-grid">
                   <label><input type="radio" name="estaJudicializado" value="Sim"> Sim</label>
@@ -337,8 +341,8 @@
                 </div>
               </fieldset>
 
-              <div class="conditional wide nested-grid" id="judicializadoDetalhes">
-                <fieldset>
+              <div class="conditional wide status-details" id="judicializadoDetalhes">
+                <fieldset class="wide">
                   <legend>Qual a ação?</legend>
                   <div class="check-grid">
                     <label><input type="checkbox" name="acoesJudiciais" value="Ação Civil Pública"> Ação Civil Pública</label>
@@ -347,12 +351,12 @@
                   </div>
                 </fieldset>
 
-                <label>
-                  Descreva a ação
-                  <textarea name="descricaoAcao" rows="3" placeholder="Descreva a ação"></textarea>
+                <label class="status-short-field">
+                  <span class="sr-only">Descreva a ação</span>
+                  <input name="descricaoAcao" type="text" placeholder="Descreva a ação">
                 </label>
 
-                <fieldset>
+                <fieldset class="wide">
                   Tem decisão?
                   <div class="check-grid">
                     <label><input type="radio" name="temDecisao" value="Sim"> Sim</label>
@@ -361,18 +365,18 @@
                   </div>
                 </fieldset>
 
-                <div class="conditional nested-grid" id="decisaoDetalhes">
+                <div class="conditional decision-grid" id="decisaoDetalhes">
                   <label>
-                    Número
+                    <span class="sr-only">Número</span>
                     <input name="numeroDecisao" type="text" placeholder="Número">
                   </label>
                   <label>
-                    Data da decisão
+                    <span class="sr-only">Data da decisão</span>
                     <input name="dataDecisao" type="date">
                   </label>
-                  <label class="wide">
-                    Sentença
-                    <textarea name="sentenca" rows="3" placeholder="Sentença"></textarea>
+                  <label>
+                    <span class="sr-only">Sentença</span>
+                    <input name="sentenca" type="text" placeholder="Sentença">
                   </label>
                 </div>
               </div>
