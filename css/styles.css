@@ -589,7 +589,8 @@ input[readonly] {
 }
 
 .compact-heading {
-  grid-template-columns: minmax(220px, 0.28fr) minmax(360px, 0.72fr);
+  grid-template-columns: 1fr;
+  gap: 8px;
 }
 
 .table-heading h3 {
@@ -621,9 +622,10 @@ input[readonly] {
 
 .coordinate-table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 0;
   border-collapse: separate;
-  border-spacing: 12px 10px;
+  border-spacing: 8px 10px;
+  table-layout: fixed;
 }
 
 .document-table th {
@@ -660,7 +662,7 @@ input[readonly] {
 
 .coordinate-table td:last-child,
 .coordinate-table th:last-child {
-  width: 112px;
+  width: 96px;
   text-align: center;
 }
 
@@ -672,6 +674,7 @@ input[readonly] {
 .coordinate-table input,
 .coordinate-table select {
   min-height: 49px;
+  padding-inline: 8px;
 }
 
 .coordinate-table-section.field-error .coordinate-table {
