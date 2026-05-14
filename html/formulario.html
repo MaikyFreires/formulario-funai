@@ -488,8 +488,8 @@
                 </div>
               </fieldset>
 
-              <fieldset>
-                Sobreposições
+              <fieldset class="wide overlap-question">
+                <legend>Sobreposições:</legend>
                 <div class="check-grid">
                   <label><input type="radio" name="sobreposicoes" value="Sim"> Sim</label>
                   <label><input type="radio" name="sobreposicoes" value="Não"> Não</label>
@@ -497,20 +497,63 @@
                 </div>
               </fieldset>
 
-              <fieldset class="conditional wide" id="sobreposicoesWrap">
-                <legend>Tipos de sobreposição</legend>
-                <div class="check-grid">
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Unidade de Conservação Federal"> Unidade de Conservação Federal</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Unidade de Conservação Estadual"> Unidade de Conservação Estadual</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Unidade de Conservação Municipal"> Unidade de Conservação Municipal</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Território Quilombola"> Território Quilombola</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Gleba Pública Federal"> Gleba Pública Federal</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Gleba Pública Estadual"> Gleba Pública Estadual</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Projeto de Assentamento (PA)"> Projeto de Assentamento (PA)</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Projeto de Assentamento Agroextrativista (PAE)"> Projeto de Assentamento Agroextrativista (PAE)</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Projeto de Desenvolvimento Sustentável (PDS)"> Projeto de Desenvolvimento Sustentável (PDS)</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Projeto de Assentamento Florestal (PAF)"> Projeto de Assentamento Florestal (PAF)</label>
-                  <label><input type="checkbox" name="tiposSobreposicao" value="Outros"> Outros</label>
+              <fieldset class="conditional wide overlap-options" id="sobreposicoesWrap">
+                <div class="overlap-grid">
+                  <div class="overlap-column">
+                    <label class="overlap-item has-detail">
+                      <input type="checkbox" name="tiposSobreposicao" value="Unidade de Conservação Federal">
+                      <span>Unidade de Conservação Federal</span>
+                      <input class="overlap-detail" name="detalheUcFederal" type="text" placeholder="Digite aqui">
+                    </label>
+                    <label class="overlap-item has-detail">
+                      <input type="checkbox" name="tiposSobreposicao" value="Unidade de Conservação Estadual">
+                      <span>Unidade de Conservação Estadual</span>
+                      <input class="overlap-detail" name="detalheUcEstadual" type="text" placeholder="Digite aqui">
+                    </label>
+                    <label class="overlap-item has-detail">
+                      <input type="checkbox" name="tiposSobreposicao" value="Unidade de Conservação Municipal">
+                      <span>Unidade de Conservação Municipal</span>
+                      <input class="overlap-detail" name="detalheUcMunicipal" type="text" placeholder="Digite aqui">
+                    </label>
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Projeto de Assentamento (PA)">
+                      <span>Projeto de Assentamento (PA)</span>
+                    </label>
+                  </div>
+
+                  <div class="overlap-column">
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Gleba Pública Federal">
+                      <span>Gleba Pública Federal</span>
+                    </label>
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Gleba Pública Estadual">
+                      <span>Gleba Pública Estadual</span>
+                    </label>
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Território Quilombola">
+                      <span>Território Quilombola</span>
+                    </label>
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Projeto de Assentamento Agroextrativista (PAE)">
+                      <span>Projeto de Assentamento Agroextrativista (PAE)</span>
+                    </label>
+                  </div>
+
+                  <div class="overlap-column">
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Projeto de Desenvolvimento Sustentável (PDS)">
+                      <span>Projeto de Desenvolvimento Sustentável (PDS)</span>
+                    </label>
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Projeto de Assentamento Florestal (PAF)">
+                      <span>Projeto de Assentamento Florestal (PAF)</span>
+                    </label>
+                    <label class="overlap-item">
+                      <input type="checkbox" name="tiposSobreposicao" value="Outros">
+                      <span>Outros</span>
+                    </label>
+                  </div>
                 </div>
                 <input name="detalheSobreposicoes" type="text" placeholder="Detalhe as sobreposições, se necessário">
               </fieldset>

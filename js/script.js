@@ -760,6 +760,9 @@ function buildPayload(statusFormulario = "Enviado") {
       faixaFronteira: asText(getValue("faixaFronteira")),
       sobreposicoes: asText(getValue("sobreposicoes")),
       tiposSobreposicao: asList(getCheckedValues("tiposSobreposicao")),
+      detalheUcFederal: asText(getValue("detalheUcFederal")),
+      detalheUcEstadual: asText(getValue("detalheUcEstadual")),
+      detalheUcMunicipal: asText(getValue("detalheUcMunicipal")),
       detalheSobreposicoes: asText(getValue("detalheSobreposicoes"))
     },
     ocupacaoIndigena: {
@@ -1166,6 +1169,9 @@ function flattenDraft(draft) {
     faixaFronteira: draft.caracterizacaoArea?.faixaFronteira,
     sobreposicoes: draft.caracterizacaoArea?.sobreposicoes,
     tiposSobreposicao: draft.caracterizacaoArea?.tiposSobreposicao,
+    detalheUcFederal: draft.caracterizacaoArea?.detalheUcFederal,
+    detalheUcEstadual: draft.caracterizacaoArea?.detalheUcEstadual,
+    detalheUcMunicipal: draft.caracterizacaoArea?.detalheUcMunicipal,
     detalheSobreposicoes: draft.caracterizacaoArea?.detalheSobreposicoes,
     indigenasArea: draft.ocupacaoIndigena?.indigenasArea,
     tempoOcupacao: draft.ocupacaoIndigena?.tempoOcupacao,
