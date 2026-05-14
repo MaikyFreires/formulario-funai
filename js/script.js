@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260514-6";
+const APP_VERSION = "20260514-9";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 let formApp;
 let accessGate;
@@ -37,6 +37,7 @@ let prevBtn;
 let nextBtn;
 let submitBtn;
 let saveDraftBtn;
+let savePdfBtn;
 let homeBtn;
 let messageBox;
 let etniaInput;
@@ -129,6 +130,7 @@ function cacheDomElements() {
   nextBtn = document.querySelector("#nextBtn");
   submitBtn = document.querySelector("#submitBtn");
   saveDraftBtn = document.querySelector("#saveDraftBtn");
+  savePdfBtn = document.querySelector("#savePdfBtn");
   homeBtn = document.querySelector("#homeBtn");
   messageBox = document.querySelector("#formMessage");
   etniaInput = document.querySelector("#etniaInput");
@@ -319,6 +321,7 @@ function bindEvents() {
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
   saveDraftBtn.addEventListener("click", salvarRascunho);
+  savePdfBtn.addEventListener("click", salvarPdf);
   homeBtn.addEventListener("click", confirmReturnHome);
 }
 
@@ -404,14 +407,18 @@ function updateConditionals() {
   setConditional("decisaoDetalhes", getValue("temDecisao") === "Sim");
   setConditional("coordenadasWrap", getValue("temCoordenadas") === "Sim");
   setConditional("sobreposicoesWrap", getValue("sobreposicoes") === "Sim");
+  setConditional("aldeiasComunidadesWrap", getValue("citaAldeiasComunidades") === "Sim");
   setConditional("indigenasAreaWrap", getValue("indigenasArea") === "Sim");
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
+  setConditional("conflitoInteretnicoWrap", getValue("conflitoInteretnico") === "Sim");
+  setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
   setConditional("descricaoAcaoWrap", getCheckedValues("acoesJudiciais").includes("Outros"));
 
   const demandas = getCheckedValues("tipoDemanda");
   setConditional("modalidadeReservaWrap", hasDemand(demandas, "Reserva Indígena"));
   setConditional("justificativaRevisaoWrap", hasDemand(demandas, "Revisão de limites"));
+  setConditional("justificativaRevisaoTextoWrap", hasDemand(demandas, "Revisão de limites") && getValue("temJustificativaRevisao") === "Sim");
 }
 
 function setConditional(id, isVisible, requiredNames = []) {
@@ -443,7 +450,7 @@ function validateRequiredFields(isDraftSave = false) {
   const errors = [];
   const demandas = getCheckedValues("tipoDemanda");
   const requiredRules = [
-    { fieldId: "consultorNome", label: "Nome completo do(a) consultor(a)", isValid: () => hasValue("consultorNome") },
+    { fieldId: "consultorNome", label: "Nome completo do/a consultor/a", isValid: () => hasValue("consultorNome") },
     { fieldId: "areaEstudo", label: "Área de estudo", isValid: () => hasValue("areaEstudo") },
     { fieldId: "reivindicacaoId", label: "ID", isValid: () => hasValue("reivindicacaoId") },
     { fieldId: "nomeReivindicacao", label: "Nome da reivindicação", isValid: () => hasValue("nomeReivindicacao") },
@@ -454,7 +461,8 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "outraEtnia", label: "Outra etnia", isValid: () => !selectedEtnias.includes("Outros") || hasValue("outraEtnia") },
     { fieldId: "tipoDemanda", label: "Tipo da demanda", isValid: () => demandas.length > 0 },
     { fieldId: "modalidadeConstituicao", label: "Modalidade de Constituição", isValid: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao") },
-    { fieldId: "justificativaRevisao", label: "Justificativa da Revisão", isValid: () => !hasDemand(demandas, "Revisão de limites") || hasValue("justificativaRevisao") },
+    { fieldId: "temJustificativaRevisao", label: "Há justificativa para a demanda por revisão de limites", isValid: () => !hasDemand(demandas, "Revisão de limites") || hasChecked("temJustificativaRevisao") },
+    { fieldId: "justificativaRevisao", label: "Justificativa da Revisão", isValid: () => getValue("temJustificativaRevisao") !== "Sim" || hasValue("justificativaRevisao") },
     { fieldId: "estados", label: "Estado", isValid: () => selectedEstados.length > 0 },
     { fieldId: "municipios", label: "Município", isValid: () => selectedMunicipios.length > 0 },
     { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
@@ -589,7 +597,8 @@ function isRequiredFieldResolved(fieldId) {
     outraEtnia: () => !selectedEtnias.includes("Outros") || hasValue("outraEtnia"),
     tipoDemanda: () => demandas.length > 0,
     modalidadeConstituicao: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao"),
-    justificativaRevisao: () => !hasDemand(demandas, "Revisão de limites") || hasValue("justificativaRevisao"),
+    temJustificativaRevisao: () => !hasDemand(demandas, "Revisão de limites") || hasChecked("temJustificativaRevisao"),
+    justificativaRevisao: () => getValue("temJustificativaRevisao") !== "Sim" || hasValue("justificativaRevisao"),
     estados: () => selectedEstados.length > 0,
     municipios: () => selectedMunicipios.length > 0,
     coordenacaoRegional: () => hasValue("coordenacaoRegional"),
@@ -723,6 +732,7 @@ function buildPayload(statusFormulario = "Enviado") {
       outraEtnia: asText(getValue("outraEtnia")),
       tipoDemanda: asList(getCheckedValues("tipoDemanda")),
       modalidadeConstituicao: asText(getValue("modalidadeConstituicao")),
+      temJustificativaRevisao: asText(getValue("temJustificativaRevisao")),
       justificativaRevisao: asText(getValue("justificativaRevisao")),
       estado: asText(estados.join(", ")),
       estados,
@@ -760,9 +770,12 @@ function buildPayload(statusFormulario = "Enviado") {
       longitudeDirecao: asText(primeiraCoordenada.longitudeDirecao),
       comentarioCoordenada: asText(primeiraCoordenada.comentarioCoordenada),
       bioma: asList(getCheckedValues("bioma")),
+      citaAldeiasComunidades: asText(getValue("citaAldeiasComunidades")),
       aldeiasComunidades: asText(getValue("aldeiasComunidades")),
       contextoUrbano: asText(getValue("contextoUrbano")),
       faixaFronteira: asText(getValue("faixaFronteira")),
+      temRetomada: asText(getValue("temRetomada")),
+      detalhesRetomada: asText(getValue("detalhesRetomada")),
       sobreposicoes: asText(getValue("sobreposicoes")),
       tiposSobreposicao: asList(getCheckedValues("tiposSobreposicao")),
       detalheUcFederal: asText(getValue("detalheUcFederal")),
@@ -780,11 +793,19 @@ function buildPayload(statusFormulario = "Enviado") {
     ocupacaoIndigena: {
       indigenasArea: asText(getValue("indigenasArea")),
       tempoOcupacao: asText(getValue("tempoOcupacao")),
+      dataReferenciaOcupacao: asText(getValue("dataReferenciaOcupacao")),
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
+      dataReferenciaVulnerabilidade: asText(getValue("dataReferenciaVulnerabilidade")),
       comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
       descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
+      dataReferenciaComunidadeTradicional: asText(getValue("dataReferenciaComunidadeTradicional")),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
-      reintegracaoPosse: asText(getValue("reintegracaoPosse"))
+      motivoConflitoInteretnico: asText(getValue("motivoConflitoInteretnico")),
+      etniaConflitoInteretnico: asText(getValue("etniaConflitoInteretnico")),
+      dataReferenciaConflitoInteretnico: asText(getValue("dataReferenciaConflitoInteretnico")),
+      reintegracaoPosse: asText(getValue("reintegracaoPosse")),
+      descricaoReintegracaoPosse: asText(getValue("descricaoReintegracaoPosse")),
+      informacoesAdicionais: asText(getValue("informacoesAdicionais"))
     }
   };
 
@@ -834,8 +855,13 @@ async function salvarRascunho() {
     showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
   } finally {
     saveDraftBtn.disabled = false;
-    saveDraftBtn.textContent = "Salvar rascunho";
+    saveDraftBtn.textContent = "Salvar Rascunho";
   }
+}
+
+function salvarPdf() {
+  updateConditionals();
+  window.print();
 }
 
 async function saveDraft() {
@@ -1147,12 +1173,13 @@ function flattenDraft(draft) {
     outraEtnia: pickField(draft, directValue(() => draft.reivindicacao?.outraEtnia), "OutraEtnia", "field_10", "outraEtnia"),
     tipoDemanda: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.tipoDemanda), "TipoDemanda", "field_11", "tipoDemanda")),
     modalidadeConstituicao: pickField(draft, directValue(() => draft.reivindicacao?.modalidadeConstituicao), "ModalidadeConstituicao", "field_12", "modalidadeConstituicao"),
+    temJustificativaRevisao: pickField(draft, directValue(() => draft.reivindicacao?.temJustificativaRevisao), "TemJustificativaRevisao", "temJustificativaRevisao"),
     justificativaRevisao: pickField(draft, directValue(() => draft.reivindicacao?.justificativaRevisao), "JustificativaRevisao", "field_13", "justificativaRevisao"),
     estados: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.estados), "Estados", "field_14", "estados", directValue(() => draft.reivindicacao?.estado), "estado")),
     municipios: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.municipios), "Municipios", "field_15", "municipios", directValue(() => draft.reivindicacao?.municipio), "municipio")),
     coordenacaoRegional: pickField(draft, directValue(() => draft.reivindicacao?.coordenacaoRegional), "CoordenacaoRegional", "field_16", "coordenacaoRegional"),
-    temRetomada: pickField(draft, directValue(() => draft.reivindicacao?.temRetomada), "TemRetomada", "field_17", "temRetomada"),
-    detalhesRetomada: pickField(draft, directValue(() => draft.reivindicacao?.detalhesRetomada), "DetalhesRetomada", "field_18", "detalhesRetomada"),
+    temRetomada: pickField(draft, directValue(() => draft.caracterizacaoArea?.temRetomada), directValue(() => draft.reivindicacao?.temRetomada), "TemRetomada", "field_17", "temRetomada"),
+    detalhesRetomada: pickField(draft, directValue(() => draft.caracterizacaoArea?.detalhesRetomada), directValue(() => draft.reivindicacao?.detalhesRetomada), "DetalhesRetomada", "field_18", "detalhesRetomada"),
     descricaoReivindicacao: draft.resumoProcesso?.descricao,
     documentos: normalizeDocumentos(draft.resumoProcesso?.documentos || draft.Documentos || draft.documentos),
     dataDocumento: draft.resumoProcesso?.dataDocumento,
@@ -1176,6 +1203,7 @@ function flattenDraft(draft) {
     longitudeDirecao: draft.caracterizacaoArea?.longitudeDirecao,
     comentarioCoordenada: draft.caracterizacaoArea?.comentarioCoordenada,
     bioma: draft.caracterizacaoArea?.bioma,
+    citaAldeiasComunidades: draft.caracterizacaoArea?.citaAldeiasComunidades,
     aldeiasComunidades: draft.caracterizacaoArea?.aldeiasComunidades,
     contextoUrbano: draft.caracterizacaoArea?.contextoUrbano,
     faixaFronteira: draft.caracterizacaoArea?.faixaFronteira,
@@ -1194,11 +1222,19 @@ function flattenDraft(draft) {
     detalheOutrasSobreposicoes: draft.caracterizacaoArea?.detalheOutrasSobreposicoes,
     indigenasArea: draft.ocupacaoIndigena?.indigenasArea,
     tempoOcupacao: draft.ocupacaoIndigena?.tempoOcupacao,
+    dataReferenciaOcupacao: draft.ocupacaoIndigena?.dataReferenciaOcupacao,
     vulnerabilidades: draft.ocupacaoIndigena?.vulnerabilidades,
+    dataReferenciaVulnerabilidade: draft.ocupacaoIndigena?.dataReferenciaVulnerabilidade,
     comunidadesTradicionais: draft.ocupacaoIndigena?.comunidadesTradicionais,
     descricaoComunidadeTradicional: draft.ocupacaoIndigena?.descricaoComunidadeTradicional,
+    dataReferenciaComunidadeTradicional: draft.ocupacaoIndigena?.dataReferenciaComunidadeTradicional,
     conflitoInteretnico: draft.ocupacaoIndigena?.conflitoInteretnico,
-    reintegracaoPosse: draft.ocupacaoIndigena?.reintegracaoPosse
+    motivoConflitoInteretnico: draft.ocupacaoIndigena?.motivoConflitoInteretnico,
+    etniaConflitoInteretnico: draft.ocupacaoIndigena?.etniaConflitoInteretnico,
+    dataReferenciaConflitoInteretnico: draft.ocupacaoIndigena?.dataReferenciaConflitoInteretnico,
+    reintegracaoPosse: draft.ocupacaoIndigena?.reintegracaoPosse,
+    descricaoReintegracaoPosse: draft.ocupacaoIndigena?.descricaoReintegracaoPosse,
+    informacoesAdicionais: draft.ocupacaoIndigena?.informacoesAdicionais
   };
 }
 

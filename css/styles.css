@@ -380,8 +380,92 @@ textarea {
 }
 
 .step[data-step="6"] #indigenasAreaWrap,
-.step[data-step="6"] #comunidadesTradicionaisWrap {
+.step[data-step="6"] #comunidadesTradicionaisWrap,
+.step[data-step="6"] #conflitoInteretnicoWrap {
   align-self: end;
+}
+
+.occupation-list {
+  display: grid;
+  gap: 26px;
+}
+
+.occupation-item {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 12px;
+  padding: 0 0 24px;
+  border-bottom: 1px solid var(--line);
+}
+
+.occupation-item:last-child {
+  border-bottom: 0;
+}
+
+.occupation-number {
+  padding-top: 2px;
+  color: #222;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.occupation-subnumber {
+  align-self: center;
+  color: #222;
+  font-weight: 800;
+}
+
+.occupation-content {
+  display: grid;
+  gap: 16px;
+}
+
+.occupation-content fieldset {
+  gap: 14px;
+}
+
+.occupation-subgrid {
+  display: none;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 16px 24px;
+  padding-left: 24px;
+  border-left: 3px solid var(--line);
+}
+
+.occupation-subgrid.has-subnumber {
+  grid-template-columns: auto repeat(2, minmax(220px, 1fr));
+}
+
+.occupation-subgrid.is-visible {
+  display: grid;
+}
+
+.vulnerability-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 18px 28px;
+}
+
+.field-help {
+  width: fit-content;
+  max-width: 760px;
+  color: #555;
+  font-size: 0.98rem;
+  font-weight: 600;
+}
+
+.field-help summary {
+  cursor: pointer;
+  color: var(--green);
+  font-weight: 800;
+}
+
+.field-help p {
+  margin: 8px 0 0;
+}
+
+.reference-field {
+  width: min(520px, 100%);
 }
 
 .step.is-active {
@@ -943,6 +1027,15 @@ section.coordinate-table-section.is-visible {
   max-width: 680px;
 }
 
+.area-question-group {
+  display: grid;
+  gap: 18px;
+}
+
+.area-question-group .conditional.is-visible {
+  display: flex;
+}
+
 .inline-date {
   max-width: 370px;
   margin-top: 8px;
@@ -1273,7 +1366,13 @@ button.ghost {
   }
 
   .area-details-grid,
-  .bioma-block .check-grid {
+  .bioma-block .check-grid,
+  .occupation-subgrid,
+  .vulnerability-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .occupation-item {
     grid-template-columns: 1fr;
   }
 
@@ -1296,5 +1395,32 @@ button.ghost {
 
   .section-heading h2 {
     font-size: 1.45rem;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .access-gate,
+  .dashboard-shell,
+  .progress-wrap,
+  .form-actions,
+  .message {
+    display: none !important;
+  }
+
+  .form-shell,
+  #funaiForm,
+  .step {
+    width: 100%;
+    max-width: none;
+    box-shadow: none;
+  }
+
+  .step {
+    display: block !important;
+    page-break-inside: avoid;
   }
 }

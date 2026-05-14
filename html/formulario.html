@@ -10,7 +10,7 @@
 
         <div class="progress-wrap" aria-label="Progresso do formulário">
           <div class="progress-meta">
-            <strong id="progressTitle">Dados do(a) consultor(a)</strong>
+            <strong id="progressTitle">DADOS DO/A CONSULTOR/A</strong>
             <span id="stepCounter">Etapa 1 de 6</span>
           </div>
           <div class="progress-track">
@@ -19,23 +19,23 @@
         </div>
 
         <form id="funaiForm" novalidate>
-          <section class="step is-active" data-step="1" data-title="Dados do(a) consultor(a)">
+          <section class="step is-active" data-step="1" data-title="DADOS DO/A CONSULTOR/A">
             <div class="section-heading">
               <span>1</span>
               <div>
-                <h2>Dados do(a) consultor(a)</h2>
+                <h2>DADOS DO/A CONSULTOR/A</h2>
                 <p>Identifique quem está preenchendo o levantamento.</p>
               </div>
             </div>
 
             <div class="field-grid">
               <label>
-                E-mail do(a) consultor(a)
+                E-mail do/a consultor/a
                 <input name="consultorEmail" type="email" readonly>
               </label>
 
               <label>
-                Nome completo do(a) consultor(a)*
+                Nome completo do/a consultor/a*
                 <input name="consultorNome" type="text" placeholder="Digite seu nome completo" required>
               </label>
 
@@ -106,16 +106,17 @@
                   </div>
 
                   <fieldset>
-                    Há outros nomes da reivindicação citados no processo? (Não obrigatória)
+                    Há outros nomes da reivindicação citados no processo?
                     <div class="check-grid">
                       <label><input type="radio" name="outrosNomes" value="Sim"> Sim</label>
                       <label><input type="radio" name="outrosNomes" value="Não"> Não</label>
+                      <label><input type="radio" name="outrosNomes" value="Sem informação"> Sem informação</label>
                     </div>
                   </fieldset>
 
                   <label class="conditional wide-right" id="outrosNomesDetalhe">
                     <span class="sr-only">Outros nomes da reivindicação</span>
-                    <textarea name="outrosNomesTexto" rows="3" placeholder="Digite o nome da reivindicação"></textarea>
+                    <textarea name="outrosNomesTexto" rows="3" placeholder="Descreva"></textarea>
                   </label>
                 </div>
               </section>
@@ -164,8 +165,6 @@
                     Modalidade de constituição
                     <select name="modalidadeConstituicao">
                       <option value="">Selecione</option>
-                      <option>Reserva Indígena</option>
-                      <option>Terra Dominial</option>
                       <option>Arrecadação (Aquisição)</option>
                       <option>Destinação</option>
                       <option>Doação</option>
@@ -175,14 +174,22 @@
                   </label>
 
                   <fieldset class="conditional" id="justificativaRevisaoWrap">
-                    Justificativa para a demanda por revisão
-                    <textarea name="justificativaRevisao" rows="3" placeholder="Detalhe o pedido de revisão (ex: igarapé importante ficou de fora)"></textarea>
+                    Há justificativa para a demanda por revisão de limites?
+                    <div class="check-grid">
+                      <label><input type="radio" name="temJustificativaRevisao" value="Sim"> Sim</label>
+                      <label><input type="radio" name="temJustificativaRevisao" value="Não"> Não</label>
+                      <label><input type="radio" name="temJustificativaRevisao" value="Sem informação"> Sem informação</label>
+                    </div>
+                    <label class="conditional" id="justificativaRevisaoTextoWrap">
+                      <span class="sr-only">Justificativa para revisão de limites</span>
+                      <textarea name="justificativaRevisao" rows="3" placeholder="Detalhe a motivação do pedido de revisão de limites"></textarea>
+                    </label>
                   </fieldset>
                 </div>
               </section>
 
               <section class="field-section">
-                <h3>Localização e retomada</h3>
+                <h3>Localização</h3>
                 <div class="field-grid compact">
                   <div class="multi-autocomplete">
                     <label for="estadoInput">Estado</label>
@@ -254,18 +261,6 @@
                     </select>
                   </label>
 
-                  <fieldset>
-                    Tem retomada?
-                    <div class="check-grid">
-                      <label><input type="radio" name="temRetomada" value="Sim"> Sim</label>
-                      <label><input type="radio" name="temRetomada" value="Não"> Não</label>
-                      <label><input type="radio" name="temRetomada" value="Sem informação"> Sem informação</label>
-                    </div>
-                    <label class="conditional" id="detalhesRetomadaWrap">
-                      <span class="sr-only">Detalhes da retomada</span>
-                      <input name="detalhesRetomada" type="text" placeholder="Informações relevantes (ex: local,data)">
-                    </label>
-                  </fieldset>
                 </div>
               </section>
             </div>
@@ -346,7 +341,6 @@
                   <legend>Qual a ação?</legend>
                   <div class="check-grid">
                     <label><input type="checkbox" name="acoesJudiciais" value="Ação Civil Pública"> Ação Civil Pública</label>
-                    <label><input type="checkbox" name="acoesJudiciais" value="Reintegração de posse"> Reintegração de posse</label>
                     <label><input type="checkbox" name="acoesJudiciais" value="Outros"> Outros</label>
                   </div>
                 </fieldset>
@@ -466,10 +460,20 @@
               </fieldset>
 
               <section class="wide area-details-grid">
-                <label class="area-card">
-                  Cita aldeias/comunidades? Quais?
-                  <input name="aldeiasComunidades" type="text" placeholder="Digite aqui">
-                </label>
+                <div class="area-card area-question-group">
+                  <fieldset>
+                    Cita aldeias/comunidades?
+                    <div class="check-grid">
+                      <label><input type="radio" name="citaAldeiasComunidades" value="Sim"> Sim</label>
+                      <label><input type="radio" name="citaAldeiasComunidades" value="Não"> Não</label>
+                      <label><input type="radio" name="citaAldeiasComunidades" value="Sem informação"> Sem informação</label>
+                    </div>
+                  </fieldset>
+                  <label class="conditional" id="aldeiasComunidadesWrap">
+                    Quais?
+                    <input name="aldeiasComunidades" type="text" placeholder="Digite aqui">
+                  </label>
+                </div>
 
                 <fieldset class="area-card">
                   Contexto urbano
@@ -487,6 +491,19 @@
                     <label><input type="radio" name="faixaFronteira" value="Não"> Não</label>
                     <label><input type="radio" name="faixaFronteira" value="Sem informação"> Sem informação</label>
                   </div>
+                </fieldset>
+
+                <fieldset class="area-card area-question-group">
+                  Há dados que informam que houve ação de retomada do território?
+                  <div class="check-grid">
+                    <label><input type="radio" name="temRetomada" value="Sim"> Sim</label>
+                    <label><input type="radio" name="temRetomada" value="Não"> Não</label>
+                    <label><input type="radio" name="temRetomada" value="Sem informação"> Sem informação</label>
+                  </div>
+                  <label class="conditional" id="detalhesRetomadaWrap">
+                    <span class="sr-only">Detalhes da retomada</span>
+                    <input name="detalhesRetomada" type="text" placeholder="Informações relevantes (ex: local, data)">
+                  </label>
                 </fieldset>
               </section>
 
@@ -578,66 +595,142 @@
               </div>
             </div>
 
-            <div class="field-grid">
-              <fieldset>
-                Indígenas estão na área reivindicada?
-                <div class="check-grid">
-                  <label><input type="radio" name="indigenasArea" value="Sim"> Sim</label>
-                  <label><input type="radio" name="indigenasArea" value="Não"> Não</label>
-                  <label><input type="radio" name="indigenasArea" value="Sem informação"> Sem informação</label>
+            <div class="occupation-list">
+              <section class="occupation-item">
+                <span class="occupation-number">25.</span>
+                <div class="occupation-content">
+                  <fieldset>
+                    Indígenas estão na área reivindicada?
+                    <div class="check-grid">
+                      <label><input type="radio" name="indigenasArea" value="Sim"> Sim</label>
+                      <label><input type="radio" name="indigenasArea" value="Não"> Não</label>
+                      <label><input type="radio" name="indigenasArea" value="Sem informação"> Sem informação</label>
+                    </div>
+                  </fieldset>
+
+                  <div class="conditional occupation-subgrid" id="indigenasAreaWrap">
+                    <label>
+                      Tempo de ocupação
+                      <input name="tempoOcupacao" type="text" placeholder="Informe o tempo de ocupação">
+                    </label>
+                    <label>
+                      De quando é o dado?
+                      <input name="dataReferenciaOcupacao" type="text" placeholder="Informe a referência do dado">
+                    </label>
+                  </div>
                 </div>
-              </fieldset>
+              </section>
 
-              <label class="conditional" id="indigenasAreaWrap">
-                Tempo de ocupação e referência do dado
-                <input name="tempoOcupacao" type="text" placeholder="Informe aqui o tempo e de quando é o dado">
-              </label>
-
-              <fieldset class="wide">
-                <legend>Critério de vulnerabilidade</legend>
-                <div class="check-grid">
-                  <label><input type="checkbox" name="vulnerabilidades" value="Garimpo"> Garimpo</label>
-                  <label><input type="checkbox" name="vulnerabilidades" value="Empreendimento de grande porte"> Empreendimento de grande porte</label>
-                  <label><input type="checkbox" name="vulnerabilidades" value="Conflito deflagrado"> Conflito deflagrado</label>
-                  <label><input type="checkbox" name="vulnerabilidades" value="Conflito latente"> Conflito latente</label>
-                  <label><input type="checkbox" name="vulnerabilidades" value="Danos ambientais"> Danos ambientais</label>
-                  <label><input type="checkbox" name="vulnerabilidades" value="Inacessibilidade a políticas públicas"> Inacessibilidade a políticas públicas</label>
-                  <label><input type="checkbox" name="vulnerabilidades" value="Risco habitacional"> Risco habitacional</label>
-                  <label><input type="checkbox" name="vulnerabilidades" value="Outros"> Outros</label>
+              <section class="occupation-item">
+                <span class="occupation-number">26.</span>
+                <div class="occupation-content">
+                  <fieldset>
+                    <legend>Critério de vulnerabilidade</legend>
+                    <div class="check-grid vulnerability-grid">
+                      <label><input type="checkbox" name="vulnerabilidades" value="Garimpo"> Garimpo</label>
+                      <label><input type="checkbox" name="vulnerabilidades" value="Empreendimento de grande porte"> Empreendimento de grande porte</label>
+                      <label><input type="checkbox" name="vulnerabilidades" value="Conflito deflagrado"> Conflito deflagrado</label>
+                      <label><input type="checkbox" name="vulnerabilidades" value="Conflito latente"> Conflito latente</label>
+                      <label><input type="checkbox" name="vulnerabilidades" value="Danos ambientais"> Danos ambientais</label>
+                      <label><input type="checkbox" name="vulnerabilidades" value="Inacessibilidade a políticas públicas"> Inacessibilidade a políticas públicas</label>
+                      <label><input type="checkbox" name="vulnerabilidades" value="Risco habitacional"> Risco habitacional</label>
+                      <label><input type="checkbox" name="vulnerabilidades" value="Outros"> Outros</label>
+                    </div>
+                  </fieldset>
+                  <details class="field-help">
+                    <summary>Glossário de conflitos</summary>
+                    <p>Use conflito deflagrado para conflito em curso ou explícito. Use conflito latente quando houver tensão, ameaça ou disputa indicada no processo.</p>
+                  </details>
+                  <label class="reference-field">
+                    De quando é o dado?
+                    <input name="dataReferenciaVulnerabilidade" type="text" placeholder="Informe a referência do dado">
+                  </label>
                 </div>
-              </fieldset>
+              </section>
 
-              <fieldset>
-                Há presença de outras comunidades tradicionais na área reivindicada?
-                <div class="check-grid">
-                  <label><input type="radio" name="comunidadesTradicionais" value="Sim"> Sim</label>
-                  <label><input type="radio" name="comunidadesTradicionais" value="Não"> Não</label>
-                  <label><input type="radio" name="comunidadesTradicionais" value="Sem informação"> Sem informação</label>
+              <section class="occupation-item">
+                <span class="occupation-number">27.</span>
+                <div class="occupation-content">
+                  <fieldset>
+                    Há presença de outras comunidades tradicionais na área reivindicada?
+                    <div class="check-grid">
+                      <label><input type="radio" name="comunidadesTradicionais" value="Sim"> Sim</label>
+                      <label><input type="radio" name="comunidadesTradicionais" value="Não"> Não</label>
+                      <label><input type="radio" name="comunidadesTradicionais" value="Sem informação"> Sem informação</label>
+                    </div>
+                  </fieldset>
+
+                  <div class="conditional occupation-subgrid has-subnumber" id="comunidadesTradicionaisWrap">
+                    <span class="occupation-subnumber">28.</span>
+                    <label>
+                      Povo ou comunidade tradicional
+                      <input name="descricaoComunidadeTradicional" type="text" placeholder="Descreva o povo ou comunidade tradicional">
+                    </label>
+                    <label>
+                      De quando é o dado?
+                      <input name="dataReferenciaComunidadeTradicional" type="text" placeholder="Informe a referência do dado">
+                    </label>
+                  </div>
                 </div>
-              </fieldset>
+              </section>
 
-              <label class="conditional" id="comunidadesTradicionaisWrap">
-                Povo ou comunidade tradicional
-                <input name="descricaoComunidadeTradicional" type="text" placeholder="Descreva o povo ou comunidade tradicional">
-              </label>
+              <section class="occupation-item">
+                <span class="occupation-number">29.</span>
+                <div class="occupation-content">
+                  <fieldset>
+                    Há conflito interétnico na área reivindicada?
+                    <div class="check-grid">
+                      <label><input type="radio" name="conflitoInteretnico" value="Sim"> Sim</label>
+                      <label><input type="radio" name="conflitoInteretnico" value="Não"> Não</label>
+                      <label><input type="radio" name="conflitoInteretnico" value="Sem informação"> Sem informação</label>
+                    </div>
+                  </fieldset>
 
-              <fieldset>
-                Há conflito interétnico na área reivindicada?
-                <div class="check-grid">
-                  <label><input type="radio" name="conflitoInteretnico" value="Sim"> Sim</label>
-                  <label><input type="radio" name="conflitoInteretnico" value="Não"> Não</label>
-                  <label><input type="radio" name="conflitoInteretnico" value="Sem informação"> Sem informação</label>
+                  <div class="conditional occupation-subgrid" id="conflitoInteretnicoWrap">
+                    <label>
+                      Descreva
+                      <input name="motivoConflitoInteretnico" type="text" placeholder="Descreva">
+                    </label>
+                    <label>
+                      Etnia relacionada
+                      <input name="etniaConflitoInteretnico" type="text" list="etniaOptions" placeholder="Localizar etnia">
+                    </label>
+                    <label>
+                      De quando é o dado?
+                      <input name="dataReferenciaConflitoInteretnico" type="text" placeholder="Informe a referência do dado">
+                    </label>
+                  </div>
                 </div>
-              </fieldset>
+              </section>
 
-              <fieldset>
-                Há ou houve ação de reintegração de posse sobre a comunidade?
-                <div class="check-grid">
-                  <label><input type="radio" name="reintegracaoPosse" value="Sim"> Sim</label>
-                  <label><input type="radio" name="reintegracaoPosse" value="Não"> Não</label>
-                  <label><input type="radio" name="reintegracaoPosse" value="Sem informação"> Sem informação</label>
+              <section class="occupation-item">
+                <span class="occupation-number">30.</span>
+                <div class="occupation-content">
+                  <fieldset>
+                    Há ou houve ação de reintegração de posse sobre a comunidade?
+                    <div class="check-grid">
+                      <label><input type="radio" name="reintegracaoPosse" value="Sim"> Sim</label>
+                      <label><input type="radio" name="reintegracaoPosse" value="Não"> Não</label>
+                      <label><input type="radio" name="reintegracaoPosse" value="Sem informação"> Sem informação</label>
+                    </div>
+                  </fieldset>
+
+                  <label class="conditional" id="reintegracaoPosseWrap">
+                    Descreva
+                    <textarea name="descricaoReintegracaoPosse" rows="3" placeholder="Descreva"></textarea>
+                  </label>
                 </div>
-              </fieldset>
+              </section>
+
+              <section class="occupation-item">
+                <span class="occupation-number">31.</span>
+                <div class="occupation-content">
+                  <label>
+                    Informações adicionais
+                    <textarea name="informacoesAdicionais" rows="4" placeholder="Descreva"></textarea>
+                  </label>
+                </div>
+              </section>
             </div>
           </section>
 
@@ -646,7 +739,8 @@
           <footer class="form-actions">
             <div class="nav-actions">
               <button type="button" class="secondary" id="homeBtn">Início</button>
-              <button type="button" class="secondary" id="saveDraftBtn">Salvar rascunho</button>
+              <button type="button" class="secondary" id="saveDraftBtn">Salvar Rascunho</button>
+              <button type="button" class="secondary" id="savePdfBtn">Salvar em PDF</button>
             </div>
             <div class="nav-actions">
               <button type="button" class="ghost" id="prevBtn">Voltar</button>
