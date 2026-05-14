@@ -392,27 +392,13 @@ textarea {
 
 .occupation-item {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
   padding: 0 0 24px;
   border-bottom: 1px solid var(--line);
 }
 
 .occupation-item:last-child {
   border-bottom: 0;
-}
-
-.occupation-number {
-  padding-top: 2px;
-  color: #222;
-  font-size: 1.1rem;
-  font-weight: 800;
-}
-
-.occupation-subnumber {
-  align-self: center;
-  color: #222;
-  font-weight: 800;
 }
 
 .occupation-content {
@@ -430,10 +416,6 @@ textarea {
   gap: 16px 24px;
   padding-left: 24px;
   border-left: 3px solid var(--line);
-}
-
-.occupation-subgrid.has-subnumber {
-  grid-template-columns: auto repeat(2, minmax(220px, 1fr));
 }
 
 .occupation-subgrid.is-visible {
