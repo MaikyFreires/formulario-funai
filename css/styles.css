@@ -581,6 +581,12 @@ input[readonly] {
   display: grid;
 }
 
+section.coordinate-table-section.is-visible {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
 .table-heading {
   display: grid;
   grid-template-columns: minmax(230px, 0.32fr) minmax(360px, 0.68fr);
@@ -591,6 +597,7 @@ input[readonly] {
 .compact-heading {
   grid-template-columns: 1fr;
   gap: 8px;
+  max-width: 760px;
 }
 
 .table-heading h3 {
@@ -626,6 +633,25 @@ input[readonly] {
   border-collapse: separate;
   border-spacing: 8px 10px;
   table-layout: fixed;
+}
+
+.coordinate-table th:nth-child(1),
+.coordinate-table td:nth-child(1),
+.coordinate-table th:nth-child(3),
+.coordinate-table td:nth-child(3) {
+  width: 18%;
+}
+
+.coordinate-table th:nth-child(2),
+.coordinate-table td:nth-child(2),
+.coordinate-table th:nth-child(4),
+.coordinate-table td:nth-child(4) {
+  width: 12%;
+}
+
+.coordinate-table th:nth-child(5),
+.coordinate-table td:nth-child(5) {
+  width: 28%;
 }
 
 .document-table th {
