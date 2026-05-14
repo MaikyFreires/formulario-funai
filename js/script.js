@@ -55,6 +55,7 @@ let municipioInput;
 let municipioOptions;
 let municipioChips;
 let addMunicipioBtn;
+let coordenadasTableBody;
 
 let currentStep = 0;
 let selectedEtnias = [];
@@ -142,6 +143,7 @@ function cacheDomElements() {
   municipioOptions = document.querySelector("#municipioOptions");
   municipioChips = document.querySelector("#municipioChips");
   addMunicipioBtn = document.querySelector("#addMunicipioBtn");
+  coordenadasTableBody = document.querySelector("#coordenadasTableBody");
 }
 
 function bindAccessEvents() {
@@ -272,6 +274,7 @@ function limparFormulario() {
   selectedEstados = [];
   selectedMunicipios = [];
   resetDocumentoRows();
+  resetCoordenadaRows();
   renderEtniaChips();
   renderEstadoChips();
   renderMunicipioChips();
@@ -306,6 +309,8 @@ function bindEvents() {
   addProcessBtn.addEventListener("click", () => addProcessField());
   removeProcessBtn.addEventListener("click", removeProcessField);
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
+  coordenadasTableBody.addEventListener("click", handleCoordenadaTableClick);
+  coordenadasTableBody.addEventListener("input", handleCoordenadaTableInput);
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
   saveDraftBtn.addEventListener("click", salvarRascunho);
@@ -397,6 +402,7 @@ function updateConditionals() {
   setConditional("indigenasAreaWrap", getValue("indigenasArea") === "Sim");
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
+  setConditional("descricaoAcaoWrap", getCheckedValues("acoesJudiciais").includes("Outros"));
 
   const demandas = getCheckedValues("tipoDemanda");
   setConditional("modalidadeReservaWrap", hasDemand(demandas, "Reserva Indígena"));
@@ -449,7 +455,8 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
     { fieldId: "temRetomada", label: "Tem retomada", isValid: () => hasChecked("temRetomada") },
     { fieldId: "detalhesRetomada", label: "Detalhes da retomada", isValid: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada") },
-    { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") }
+    { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") },
+    { fieldId: "coordenadas", label: "Coordenadas geográficas", isValid: () => areCoordenadasValid() }
   ];
 
   requiredRules.forEach((rule) => {
@@ -538,6 +545,10 @@ function getFieldErrorTarget(fieldId) {
     etnias: () => ({ container: etniaInput.closest(".multi-autocomplete"), control: etniaInput }),
     estados: () => ({ container: estadoInput.closest(".multi-autocomplete"), control: estadoInput }),
     municipios: () => ({ container: municipioInput.closest(".multi-autocomplete"), control: municipioInput }),
+    coordenadas: () => {
+      const section = document.querySelector("#coordenadasWrap");
+      return { container: section, control: section?.querySelector(".coordinate-table") };
+    },
     tipoDemanda: () => {
       const group = form.querySelector("[data-required-group='tipoDemanda']");
       return { container: group?.closest("fieldset") || group, control: group };
@@ -579,7 +590,8 @@ function isRequiredFieldResolved(fieldId) {
     coordenacaoRegional: () => hasValue("coordenacaoRegional"),
     temRetomada: () => hasChecked("temRetomada"),
     detalhesRetomada: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada"),
-    descricaoReivindicacao: () => hasValue("descricaoReivindicacao")
+    descricaoReivindicacao: () => hasValue("descricaoReivindicacao"),
+    coordenadas: () => areCoordenadasValid()
   };
 
   return resolved[fieldId]?.() ?? true;
@@ -680,6 +692,8 @@ function buildPayload(statusFormulario = "Enviado") {
   const municipios = asList(getSelectedMunicipios());
   const documentos = asList(getDocumentosProcesso());
   const primeiroDocumento = documentos[0] || {};
+  const coordenadas = asList(getCoordenadasGeograficas());
+  const primeiraCoordenada = coordenadas[0] || {};
   const now = new Date().toISOString();
   const payload = {
     formularioId: asText(getCurrentFormularioId()),
@@ -734,9 +748,12 @@ function buildPayload(statusFormulario = "Enviado") {
     caracterizacaoArea: {
       localizacaoDemanda: asText(getValue("localizacaoDemanda")),
       temCoordenadas: asText(getValue("temCoordenadas")),
-      latitude: asText(getValue("latitude")),
-      longitude: asText(getValue("longitude")),
-      comentarioCoordenada: asText(getValue("comentarioCoordenada")),
+      coordenadas,
+      latitude: asText(primeiraCoordenada.latitude),
+      latitudeDirecao: asText(primeiraCoordenada.latitudeDirecao),
+      longitude: asText(primeiraCoordenada.longitude),
+      longitudeDirecao: asText(primeiraCoordenada.longitudeDirecao),
+      comentarioCoordenada: asText(primeiraCoordenada.comentarioCoordenada),
       bioma: asList(getCheckedValues("bioma")),
       aldeiasComunidades: asText(getValue("aldeiasComunidades")),
       contextoUrbano: asText(getValue("contextoUrbano")),
@@ -1071,9 +1088,12 @@ function restoreValues(values) {
   const documentos = asList(values.documentos);
   restoreDocumentoRows(documentos);
   if (!documentos.length) restoreLegacyDocumentoRow(values);
+  const coordenadas = asList(values.coordenadas);
+  restoreCoordenadaRows(coordenadas);
+  if (!coordenadas.length) restoreLegacyCoordenadaRow(values);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "estados", "municipios", "numerosProcesso", "documentos", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos"].includes(name)) return;
+    if (["etnias", "estados", "municipios", "numerosProcesso", "documentos", "coordenadas", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "comentarioCoordenada"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1134,8 +1154,11 @@ function flattenDraft(draft) {
     sentenca: draft.statusProcesso?.sentenca,
     localizacaoDemanda: draft.caracterizacaoArea?.localizacaoDemanda,
     temCoordenadas: draft.caracterizacaoArea?.temCoordenadas,
+    coordenadas: normalizeCoordenadas(draft.caracterizacaoArea?.coordenadas || draft.Coordenadas || draft.coordenadas),
     latitude: draft.caracterizacaoArea?.latitude,
+    latitudeDirecao: draft.caracterizacaoArea?.latitudeDirecao,
     longitude: draft.caracterizacaoArea?.longitude,
+    longitudeDirecao: draft.caracterizacaoArea?.longitudeDirecao,
     comentarioCoordenada: draft.caracterizacaoArea?.comentarioCoordenada,
     bioma: draft.caracterizacaoArea?.bioma,
     aldeiasComunidades: draft.caracterizacaoArea?.aldeiasComunidades,
@@ -1638,6 +1661,157 @@ function normalizeDocumentos(value) {
     }
   }
   return [];
+}
+
+function handleCoordenadaTableClick(event) {
+  const removeButton = event.target.closest(".remove-coordenada-btn");
+  if (removeButton) {
+    removeCoordenadaRow(removeButton.closest(".coordinate-row"));
+    return;
+  }
+
+  const addButton = event.target.closest(".add-coordenada-row-btn");
+  if (addButton) addCoordenadaRow();
+}
+
+function handleCoordenadaTableInput(event) {
+  const input = event.target.closest("[data-gms]");
+  if (!input) return;
+  input.value = formatGms(input.value, input.dataset.gms);
+}
+
+function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
+  const row = document.createElement("tr");
+  row.className = "coordinate-row";
+  row.innerHTML = `
+    <td><input name="latitude" type="text" inputmode="numeric" data-gms="latitude" placeholder="00°00'00&quot;" aria-label="Latitude"></td>
+    <td>
+      <select name="latitudeDirecao" aria-label="Direção da latitude">
+        <option value="">Escolha</option>
+        <option>Norte</option>
+        <option>Sul</option>
+      </select>
+    </td>
+    <td><input name="longitude" type="text" inputmode="numeric" data-gms="longitude" placeholder="000°00'00&quot;" aria-label="Longitude"></td>
+    <td>
+      <select name="longitudeDirecao" aria-label="Direção da longitude">
+        <option value="">Escolha</option>
+        <option>Leste</option>
+        <option>Oeste</option>
+      </select>
+    </td>
+    <td><input name="comentarioCoordenada" type="text" placeholder="Comentário da coordenada" aria-label="Comentário da coordenada"></td>
+    <td class="coordinate-actions">
+      <button type="button" class="icon-button remove-coordenada-btn" aria-label="Remover coordenada">×</button>
+      <button type="button" class="icon-button add-coordenada-row-btn" aria-label="Adicionar coordenada">+</button>
+    </td>
+  `;
+  coordenadasTableBody.append(row);
+  setCoordenadaRowValues(row, coordenada);
+  if (shouldFocus) row.querySelector("input, select")?.focus();
+}
+
+function removeCoordenadaRow(row) {
+  if (!row) return;
+  const rows = Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"));
+  if (rows.length > 1) {
+    row.remove();
+    return;
+  }
+
+  setCoordenadaRowValues(row, {});
+}
+
+function resetCoordenadaRows() {
+  const rows = Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"));
+  if (!rows.length) return;
+  rows.slice(1).forEach((row) => row.remove());
+  setCoordenadaRowValues(rows[0], {});
+}
+
+function restoreCoordenadaRows(coordenadas = []) {
+  const values = asList(coordenadas);
+  resetCoordenadaRows();
+  if (!values.length) return;
+
+  const [first, ...rest] = values;
+  setCoordenadaRowValues(coordenadasTableBody.querySelector(".coordinate-row"), first);
+  rest.forEach((coordenada) => addCoordenadaRow(coordenada, false));
+}
+
+function restoreLegacyCoordenadaRow(values) {
+  const coordenada = {
+    latitude: values.latitude,
+    latitudeDirecao: values.latitudeDirecao,
+    longitude: values.longitude,
+    longitudeDirecao: values.longitudeDirecao,
+    comentarioCoordenada: values.comentarioCoordenada
+  };
+
+  if (Object.values(coordenada).some(Boolean)) {
+    setCoordenadaRowValues(coordenadasTableBody.querySelector(".coordinate-row"), coordenada);
+  }
+}
+
+function setCoordenadaRowValues(row, coordenada) {
+  if (!row) return;
+  row.querySelector("[name='latitude']").value = asText(coordenada.latitude);
+  row.querySelector("[name='latitudeDirecao']").value = asText(coordenada.latitudeDirecao);
+  row.querySelector("[name='longitude']").value = asText(coordenada.longitude);
+  row.querySelector("[name='longitudeDirecao']").value = asText(coordenada.longitudeDirecao);
+  row.querySelector("[name='comentarioCoordenada']").value = asText(coordenada.comentarioCoordenada);
+}
+
+function getCoordenadasGeograficas() {
+  return Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"))
+    .map((row) => ({
+      latitude: asText(row.querySelector("[name='latitude']")?.value),
+      latitudeDirecao: asText(row.querySelector("[name='latitudeDirecao']")?.value),
+      longitude: asText(row.querySelector("[name='longitude']")?.value),
+      longitudeDirecao: asText(row.querySelector("[name='longitudeDirecao']")?.value),
+      comentarioCoordenada: asText(row.querySelector("[name='comentarioCoordenada']")?.value)
+    }))
+    .filter((coordenada) => Object.values(coordenada).some(Boolean));
+}
+
+function areCoordenadasValid() {
+  if (getValue("temCoordenadas") !== "Sim") return true;
+  const coordenadas = getCoordenadasGeograficas();
+  return coordenadas.some((coordenada) =>
+    coordenada.latitude &&
+    coordenada.latitudeDirecao &&
+    coordenada.longitude &&
+    coordenada.longitudeDirecao
+  );
+}
+
+function normalizeCoordenadas(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+  return [];
+}
+
+function formatGms(value, type) {
+  const digits = String(value || "").replace(/\D/g, "");
+  const degreeSize = type === "longitude" ? 3 : 2;
+  const maxLength = degreeSize + 4;
+  const padded = digits.slice(0, maxLength);
+  const degrees = padded.slice(0, degreeSize);
+  const minutes = padded.slice(degreeSize, degreeSize + 2);
+  const seconds = padded.slice(degreeSize + 2, degreeSize + 4);
+
+  if (!degrees) return "";
+  if (!minutes) return `${degrees}°`;
+  if (!seconds) return `${degrees}°${minutes}'`;
+  return `${degrees}°${minutes}'${seconds}"`;
 }
 
 function addProcessField(value = "") {

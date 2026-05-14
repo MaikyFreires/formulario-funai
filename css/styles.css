@@ -572,11 +572,24 @@ input[readonly] {
   gap: 28px;
 }
 
+.coordinate-table-section {
+  display: none;
+  gap: 22px;
+}
+
+.coordinate-table-section.is-visible {
+  display: grid;
+}
+
 .table-heading {
   display: grid;
   grid-template-columns: minmax(230px, 0.32fr) minmax(360px, 0.68fr);
   gap: 40px;
   align-items: start;
+}
+
+.compact-heading {
+  grid-template-columns: minmax(220px, 0.28fr) minmax(360px, 0.72fr);
 }
 
 .table-heading h3 {
@@ -606,7 +619,22 @@ input[readonly] {
   border-spacing: 12px 10px;
 }
 
+.coordinate-table {
+  width: 100%;
+  min-width: 1080px;
+  border-collapse: separate;
+  border-spacing: 12px 10px;
+}
+
 .document-table th {
+  padding: 0 4px 4px;
+  color: #222;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.coordinate-table th {
   padding: 0 4px 4px;
   color: #222;
   font-size: 0.82rem;
@@ -619,8 +647,19 @@ input[readonly] {
   vertical-align: top;
 }
 
+.coordinate-table td {
+  padding: 0;
+  vertical-align: top;
+}
+
 .document-table td:last-child,
 .document-table th:last-child {
+  width: 112px;
+  text-align: center;
+}
+
+.coordinate-table td:last-child,
+.coordinate-table th:last-child {
   width: 112px;
   text-align: center;
 }
@@ -630,7 +669,24 @@ input[readonly] {
   min-height: 49px;
 }
 
+.coordinate-table input,
+.coordinate-table select {
+  min-height: 49px;
+}
+
+.coordinate-table-section.field-error .coordinate-table {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
+
 .document-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.coordinate-actions {
   display: flex;
   justify-content: center;
   gap: 20px;
@@ -644,7 +700,19 @@ input[readonly] {
   font-size: 2.15rem;
 }
 
+.coordinate-actions .icon-button {
+  min-width: 34px;
+  min-height: 49px;
+  color: var(--blue);
+  font-size: 2.15rem;
+}
+
 .document-actions .add-documento-row-btn {
+  color: var(--green-2);
+  font-size: 2.25rem;
+}
+
+.coordinate-actions .add-coordenada-row-btn {
   color: var(--green-2);
   font-size: 2.25rem;
 }

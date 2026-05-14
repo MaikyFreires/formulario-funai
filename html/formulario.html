@@ -351,7 +351,7 @@
                   </div>
                 </fieldset>
 
-                <label class="status-short-field">
+                <label class="conditional status-short-field" id="descricaoAcaoWrap">
                   <span class="sr-only">Descreva a ação</span>
                   <input name="descricaoAcao" type="text" placeholder="Descreva a ação">
                 </label>
@@ -407,20 +407,51 @@
                 </div>
               </fieldset>
 
-              <div class="conditional wide nested-grid" id="coordenadasWrap">
-                <label>
-                  Latitude
-                  <input name="latitude" type="text" placeholder="Latitude">
-                </label>
-                <label>
-                  Longitude
-                  <input name="longitude" type="text" placeholder="Longitude">
-                </label>
-                <label class="wide">
-                  Comentário da coordenada
-                  <input name="comentarioCoordenada" type="text" placeholder="Comentário da coordenada">
-                </label>
-              </div>
+              <section class="conditional wide coordinate-table-section" id="coordenadasWrap" aria-labelledby="coordenadasTitle">
+                <div class="table-heading compact-heading">
+                  <h3 id="coordenadasTitle">Coordenadas geográficas</h3>
+                  <p>Informe latitude e longitude no formato GMS e selecione a orientação correspondente.</p>
+                </div>
+                <div class="table-scroll">
+                  <table class="coordinate-table">
+                    <thead>
+                      <tr>
+                        <th>Latitude</th>
+                        <th>N/S</th>
+                        <th>Longitude</th>
+                        <th>L/O</th>
+                        <th>Comentário da coordenada</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="coordenadasTableBody">
+                      <tr class="coordinate-row">
+                        <td><input name="latitude" type="text" inputmode="numeric" data-gms="latitude" placeholder="00°00'00&quot;" aria-label="Latitude"></td>
+                        <td>
+                          <select name="latitudeDirecao" aria-label="Direção da latitude">
+                            <option value="">Escolha</option>
+                            <option>Norte</option>
+                            <option>Sul</option>
+                          </select>
+                        </td>
+                        <td><input name="longitude" type="text" inputmode="numeric" data-gms="longitude" placeholder="000°00'00&quot;" aria-label="Longitude"></td>
+                        <td>
+                          <select name="longitudeDirecao" aria-label="Direção da longitude">
+                            <option value="">Escolha</option>
+                            <option>Leste</option>
+                            <option>Oeste</option>
+                          </select>
+                        </td>
+                        <td><input name="comentarioCoordenada" type="text" placeholder="Comentário da coordenada" aria-label="Comentário da coordenada"></td>
+                        <td class="coordinate-actions">
+                          <button type="button" class="icon-button remove-coordenada-btn" aria-label="Remover coordenada">×</button>
+                          <button type="button" class="icon-button add-coordenada-row-btn" aria-label="Adicionar coordenada">+</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
 
               <fieldset class="wide">
                 <legend>Bioma</legend>
