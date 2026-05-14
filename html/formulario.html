@@ -108,7 +108,7 @@
                   <fieldset>
                     Há outros nomes da reivindicação citados no processo? (Não obrigatória)
                     <div class="check-grid">
-                      <label><input type="radio" name="outrosNomes" value="Sim" checked> Sim</label>
+                      <label><input type="radio" name="outrosNomes" value="Sim"> Sim</label>
                       <label><input type="radio" name="outrosNomes" value="Não"> Não</label>
                     </div>
                   </fieldset>
@@ -126,7 +126,7 @@
                   <fieldset class="roteiro-group">
                     Tem roteiro de qualificação ou material semelhante? *
                     <div class="check-grid">
-                      <label><input type="radio" name="temRoteiro" value="Sim" required checked> Sim</label>
+                      <label><input type="radio" name="temRoteiro" value="Sim" required> Sim</label>
                       <label><input type="radio" name="temRoteiro" value="Não"> Não</label>
                     </div>
                     <label class="conditional inline-date" id="dataRoteiroWrap">
@@ -208,15 +208,49 @@
                     Coordenação Regional
                     <select name="coordenacaoRegional">
                       <option value="">Escolha</option>
-                      <option>Alto Solimões</option>
-                      <option>Centro-Leste do Pará</option>
-                      <option>Guaporé</option>
-                      <option>Juruá</option>
-                      <option>Madeira</option>
-                      <option>Mato Grosso</option>
-                      <option>Rio Negro</option>
-                      <option>Roraima</option>
-                      <option>Outra</option>
+                      <option>CR Alto Purus</option>
+                      <option>CR Alto Solimões</option>
+                      <option>CR Amapá e Norte do Pará</option>
+                      <option>CR Araguaia</option>
+                      <option>CR Baixo Sapopema</option>
+                      <option>CR Baixo Tocantins</option>
+                      <option>CR Cacoal</option>
+                      <option>CR Campo Grande</option>
+                      <option>CR Centro Leste do Pará</option>
+                      <option>CR Cuiabá</option>
+                      <option>CR Dourados</option>
+                      <option>CR Guajará-Mirim</option>
+                      <option>CR Guarapuava</option>
+                      <option>CR Interior Sul</option>
+                      <option>CR Ji-Paraná</option>
+                      <option>CR João Pessoa</option>
+                      <option>CR Juruá</option>
+                      <option>CR Kayapó Sul</option>
+                      <option>CR Litoral Sudeste</option>
+                      <option>CR Litoral Sul</option>
+                      <option>CR Madeira</option>
+                      <option>CR Manaus</option>
+                      <option>CR Maranhão</option>
+                      <option>CR Médio Juruá</option>
+                      <option>CR Médio Purus</option>
+                      <option>CR Médio Solimões</option>
+                      <option>CR Minas Gerais e Espírito Santo</option>
+                      <option>CR Nordeste I</option>
+                      <option>CR Nordeste II</option>
+                      <option>CR Noroeste do Mato Grosso</option>
+                      <option>CR Norte de Mato Grosso</option>
+                      <option>CR Passo Fundo</option>
+                      <option>CR Pernambuco</option>
+                      <option>CR Ponta Porã</option>
+                      <option>CR Ribeira Cascalheira</option>
+                      <option>CR Rio Negro</option>
+                      <option>CR Roraima I</option>
+                      <option>CR Roraima II</option>
+                      <option>CR Sul da Bahia</option>
+                      <option>CR Tapajós</option>
+                      <option>CR Vale do Javari</option>
+                      <option>CR Xavante</option>
+                      <option>CR Xingu</option>
                     </select>
                   </label>
 
@@ -227,7 +261,10 @@
                       <label><input type="radio" name="temRetomada" value="Não"> Não</label>
                       <label><input type="radio" name="temRetomada" value="Sem informação"> Sem informação</label>
                     </div>
-                    <input name="detalhesRetomada" type="text" placeholder="Informações relevantes (ex: local,data)">
+                    <label class="conditional" id="detalhesRetomadaWrap">
+                      <span class="sr-only">Detalhes da retomada</span>
+                      <input name="detalhesRetomada" type="text" placeholder="Informações relevantes (ex: local,data)">
+                    </label>
                   </fieldset>
                 </div>
               </section>
@@ -238,41 +275,46 @@
             <div class="section-heading">
               <span>3</span>
               <div>
-                <h2>Resumo do processo</h2>
-                <p>Descreva o histórico, a ocupação e os principais documentos.</p>
+                <h2>3. Resumo do processo</h2>
               </div>
             </div>
 
             <div class="field-grid">
               <label class="wide">
-                Descrição da reivindicação*
-                <textarea name="descricaoReivindicacao" rows="7" placeholder="Citar principais documentos, histórico da ocupação e situação fundiária." required></textarea>
+                Descrição da reivindicação. Citar principais documentos e fazer um breve resumo deles - com foco sobre histórico da ocupação e a situação fundiária.*
+                <textarea name="descricaoReivindicacao" rows="10" placeholder="Aqui o foco é descritivo, sem limites de caracteres." required></textarea>
               </label>
 
-              <label>
-                Data do documento
-                <input name="dataDocumento" type="date">
-              </label>
-
-              <label>
-                Tipo de documento
-                <input name="tipoDocumento" type="text" placeholder="Tipo de documento">
-              </label>
-
-              <label>
-                Páginas
-                <input name="paginasDocumento" type="number" min="0" placeholder="Quantidade de páginas">
-              </label>
-
-              <label>
-                Nº SEI
-                <input name="numeroSei" type="text" placeholder="Nº SEI">
-              </label>
-
-              <label class="wide">
-                Eventos/assuntos relevantes
-                <textarea name="eventosAssuntos" rows="4" placeholder="Digite os eventos ou assuntos"></textarea>
-              </label>
+              <section class="wide document-table-section" aria-labelledby="documentosTitle">
+                <div class="table-heading">
+                  <h3 id="documentosTitle">Documentos do processo</h3>
+                  <button type="button" class="icon-button" id="addDocumentoBtn" aria-label="Adicionar documento">+</button>
+                </div>
+                <div class="table-scroll">
+                  <table class="document-table">
+                    <thead>
+                      <tr>
+                        <th>Data do documento</th>
+                        <th>Tipo de documento</th>
+                        <th>Páginas</th>
+                        <th>Nº SEI</th>
+                        <th>Eventos/assuntos relevantes</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="documentosTableBody">
+                      <tr class="document-row">
+                        <td><input name="dataDocumento" type="date" aria-label="Data do documento"></td>
+                        <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
+                        <td><input name="paginasDocumento" type="number" min="0" placeholder="Qtd." aria-label="Páginas"></td>
+                        <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
+                        <td><textarea name="eventosAssuntos" rows="2" placeholder="Digite os eventos ou assuntos" aria-label="Eventos/assuntos relevantes"></textarea></td>
+                        <td><button type="button" class="icon-button danger remove-documento-btn" aria-label="Remover documento">&#128465;</button></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             </div>
           </section>
 

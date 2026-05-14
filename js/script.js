@@ -9,31 +9,8 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
+const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
-const ETNIA_OPTIONS = [
-  "Apurinã",
-  "Ashaninka",
-  "Baniwa",
-  "Baré",
-  "Guajajara",
-  "Guarani",
-  "Huni Kuin",
-  "Kaingang",
-  "Karajá",
-  "Kayapó",
-  "Kokama",
-  "Macuxi",
-  "Munduruku",
-  "Pankararu",
-  "Pataxó",
-  "Potiguara",
-  "Tikuna",
-  "Tukano",
-  "Wapichana",
-  "Yanomami",
-  "Outros"
-];
-
 let formApp;
 let accessGate;
 let accessForm;
@@ -68,6 +45,8 @@ let addEtniaBtn;
 let processList;
 let addProcessBtn;
 let removeProcessBtn;
+let documentosTableBody;
+let addDocumentoBtn;
 let estadoInput;
 let estadoOptions;
 let estadoChips;
@@ -83,6 +62,7 @@ let selectedEstados = [];
 let selectedMunicipios = [];
 let municipiosPorEstado = new Map();
 let allEstados = [];
+let allEtnias = [];
 let formInitialized = false;
 let currentFormularioId = "";
 let cachedReports = [];
@@ -152,6 +132,8 @@ function cacheDomElements() {
   processList = document.querySelector("#processList");
   addProcessBtn = document.querySelector("#addProcessBtn");
   removeProcessBtn = document.querySelector("#removeProcessBtn");
+  documentosTableBody = document.querySelector("#documentosTableBody");
+  addDocumentoBtn = document.querySelector("#addDocumentoBtn");
   estadoInput = document.querySelector("#estadoInput");
   estadoOptions = document.querySelector("#estadoOptions");
   estadoChips = document.querySelector("#estadoChips");
@@ -251,7 +233,7 @@ function showAccessScreen() {
 async function initializeForm() {
   if (formInitialized) return;
   formInitialized = true;
-  populateEtniaOptions();
+  await loadEtniaData();
   await loadMunicipioData();
   bindEvents();
   updateConditionals();
@@ -289,6 +271,7 @@ function limparFormulario() {
   selectedEtnias = [];
   selectedEstados = [];
   selectedMunicipios = [];
+  resetDocumentoRows();
   renderEtniaChips();
   renderEstadoChips();
   renderMunicipioChips();
@@ -322,6 +305,8 @@ function bindEvents() {
   municipioChips.addEventListener("click", removeSelectedMunicipio);
   addProcessBtn.addEventListener("click", () => addProcessField());
   removeProcessBtn.addEventListener("click", removeProcessField);
+  addDocumentoBtn.addEventListener("click", () => addDocumentoRow());
+  documentosTableBody.addEventListener("click", handleDocumentoTableClick);
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
   saveDraftBtn.addEventListener("click", salvarRascunho);
@@ -412,6 +397,7 @@ function updateConditionals() {
   setConditional("sobreposicoesWrap", getValue("sobreposicoes") === "Sim");
   setConditional("indigenasAreaWrap", getValue("indigenasArea") === "Sim");
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
+  setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
 
   const demandas = getCheckedValues("tipoDemanda");
   setConditional("modalidadeReservaWrap", hasDemand(demandas, "Reserva Indígena"));
@@ -455,6 +441,7 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "temRoteiro", label: "Tem roteiro", isValid: () => hasChecked("temRoteiro") },
     { fieldId: "dataRoteiro", label: "Data do roteiro", isValid: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro") },
     { fieldId: "etnias", label: "Etnia", isValid: () => selectedEtnias.length > 0 },
+    { fieldId: "outraEtnia", label: "Outra etnia", isValid: () => !selectedEtnias.includes("Outros") || hasValue("outraEtnia") },
     { fieldId: "tipoDemanda", label: "Tipo da demanda", isValid: () => demandas.length > 0 },
     { fieldId: "modalidadeConstituicao", label: "Modalidade de Constituição", isValid: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao") },
     { fieldId: "justificativaRevisao", label: "Justificativa da Revisão", isValid: () => !hasDemand(demandas, "Revisão de limites") || hasValue("justificativaRevisao") },
@@ -584,6 +571,7 @@ function isRequiredFieldResolved(fieldId) {
     temRoteiro: () => hasChecked("temRoteiro"),
     dataRoteiro: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro"),
     etnias: () => selectedEtnias.length > 0,
+    outraEtnia: () => !selectedEtnias.includes("Outros") || hasValue("outraEtnia"),
     tipoDemanda: () => demandas.length > 0,
     modalidadeConstituicao: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao"),
     justificativaRevisao: () => !hasDemand(demandas, "Revisão de limites") || hasValue("justificativaRevisao"),
@@ -691,6 +679,8 @@ function buildPayload(statusFormulario = "Enviado") {
   const etnias = asList(getSelectedEtnias());
   const estados = asList(getSelectedEstados());
   const municipios = asList(getSelectedMunicipios());
+  const documentos = asList(getDocumentosProcesso());
+  const primeiroDocumento = documentos[0] || {};
   const now = new Date().toISOString();
   const payload = {
     formularioId: asText(getCurrentFormularioId()),
@@ -726,11 +716,12 @@ function buildPayload(statusFormulario = "Enviado") {
     },
     resumoProcesso: {
       descricao: asText(getValue("descricaoReivindicacao")),
-      dataDocumento: asText(getValue("dataDocumento")),
-      tipoDocumento: asText(getValue("tipoDocumento")),
-      paginas: asText(getValue("paginasDocumento")),
-      numeroSei: asText(getValue("numeroSei")),
-      eventosAssuntos: asText(getValue("eventosAssuntos"))
+      documentos,
+      dataDocumento: asText(primeiroDocumento.dataDocumento),
+      tipoDocumento: asText(primeiroDocumento.tipoDocumento),
+      paginas: asText(primeiroDocumento.paginas),
+      numeroSei: asText(primeiroDocumento.numeroSei),
+      eventosAssuntos: asText(primeiroDocumento.eventosAssuntos)
     },
     statusProcesso: {
       estaJudicializado: asText(getValue("estaJudicializado")),
@@ -1078,8 +1069,12 @@ function restoreValues(values) {
     restoreProcessFields(numerosProcesso);
   }
 
+  const documentos = asList(values.documentos);
+  restoreDocumentoRows(documentos);
+  if (!documentos.length) restoreLegacyDocumentoRow(values);
+
   Object.entries(values).forEach(([name, value]) => {
-    if (name === "etnias" || name === "estados" || name === "municipios" || name === "numerosProcesso") return;
+    if (["etnias", "estados", "municipios", "numerosProcesso", "documentos", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "eventosAssuntos"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1125,6 +1120,7 @@ function flattenDraft(draft) {
     temRetomada: pickField(draft, directValue(() => draft.reivindicacao?.temRetomada), "TemRetomada", "field_17", "temRetomada"),
     detalhesRetomada: pickField(draft, directValue(() => draft.reivindicacao?.detalhesRetomada), "DetalhesRetomada", "field_18", "detalhesRetomada"),
     descricaoReivindicacao: draft.resumoProcesso?.descricao,
+    documentos: normalizeDocumentos(draft.resumoProcesso?.documentos || draft.Documentos || draft.documentos),
     dataDocumento: draft.resumoProcesso?.dataDocumento,
     tipoDocumento: draft.resumoProcesso?.tipoDocumento,
     paginasDocumento: draft.resumoProcesso?.paginas,
@@ -1252,7 +1248,31 @@ function getCheckedValues(name) {
 }
 
 function populateEtniaOptions() {
-  etniaOptions.innerHTML = ETNIA_OPTIONS.map((etnia) => `<option value="${etnia}"></option>`).join("");
+  etniaOptions.innerHTML = allEtnias
+    .filter((etnia) => !selectedEtnias.includes(etnia))
+    .map((etnia) => `<option value="${etnia}"></option>`)
+    .join("");
+}
+
+async function loadEtniaData() {
+  try {
+    const response = await fetch(ETNIAS_CSV_URL);
+    if (!response.ok) throw new Error(`Falha ao carregar ${ETNIAS_CSV_URL}`);
+
+    const csvText = await response.text();
+    allEtnias = parseEtniasCsv(csvText);
+    populateEtniaOptions();
+  } catch (error) {
+    allEtnias = ["Outros"];
+    etniaInput.placeholder = "Não foi possível carregar etnias";
+    populateEtniaOptions();
+  }
+}
+
+function parseEtniasCsv(csvText) {
+  const [, ...dataRows] = parseDelimitedRows(csvText, ",");
+  const etnias = dataRows.map((row) => String(row[0] || "").trim()).filter(Boolean);
+  return Array.from(new Set(etnias));
 }
 
 async function loadMunicipioData() {
@@ -1369,11 +1389,12 @@ function handleEtniaKeydown(event) {
 
 function addSelectedEtnia() {
   const value = etniaInput.value.trim();
-  if (!value || selectedEtnias.includes(value)) return;
+  if (!value || selectedEtnias.includes(value) || !allEtnias.includes(value)) return;
 
   selectedEtnias.push(value);
   etniaInput.value = "";
   renderEtniaChips();
+  populateEtniaOptions();
   updateConditionals();
   clearResolvedValidationErrors();
 }
@@ -1384,6 +1405,7 @@ function removeSelectedEtnia(event) {
 
   selectedEtnias = selectedEtnias.filter((etnia) => etnia !== button.dataset.etnia);
   renderEtniaChips();
+  populateEtniaOptions();
   updateConditionals();
   clearResolvedValidationErrors();
 }
@@ -1505,6 +1527,106 @@ function renderChips(container, values, dataName, ariaPrefix) {
     chip.append(removeButton);
     container.append(chip);
   });
+}
+
+function handleDocumentoTableClick(event) {
+  const button = event.target.closest(".remove-documento-btn");
+  if (!button) return;
+  removeDocumentoRow(button.closest(".document-row"));
+}
+
+function addDocumentoRow(documento = {}, shouldFocus = true) {
+  const row = document.createElement("tr");
+  row.className = "document-row";
+  row.innerHTML = `
+    <td><input name="dataDocumento" type="date" aria-label="Data do documento"></td>
+    <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
+    <td><input name="paginasDocumento" type="number" min="0" placeholder="Qtd." aria-label="Páginas"></td>
+    <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
+    <td><textarea name="eventosAssuntos" rows="2" placeholder="Digite os eventos ou assuntos" aria-label="Eventos/assuntos relevantes"></textarea></td>
+    <td><button type="button" class="icon-button danger remove-documento-btn" aria-label="Remover documento">&#128465;</button></td>
+  `;
+  documentosTableBody.append(row);
+  setDocumentoRowValues(row, documento);
+  if (shouldFocus) row.querySelector("input, textarea")?.focus();
+}
+
+function removeDocumentoRow(row) {
+  if (!row) return;
+  const rows = Array.from(documentosTableBody.querySelectorAll(".document-row"));
+  if (rows.length > 1) {
+    row.remove();
+    return;
+  }
+
+  setDocumentoRowValues(row, {});
+}
+
+function resetDocumentoRows() {
+  const rows = Array.from(documentosTableBody.querySelectorAll(".document-row"));
+  if (!rows.length) return;
+  rows.slice(1).forEach((row) => row.remove());
+  setDocumentoRowValues(rows[0], {});
+}
+
+function restoreDocumentoRows(documentos = []) {
+  const values = asList(documentos);
+  resetDocumentoRows();
+  if (!values.length) return;
+
+  const [first, ...rest] = values;
+  const firstRow = documentosTableBody.querySelector(".document-row");
+  setDocumentoRowValues(firstRow, first);
+  rest.forEach((documento) => addDocumentoRow(documento, false));
+}
+
+function restoreLegacyDocumentoRow(values) {
+  const documento = {
+    dataDocumento: values.dataDocumento,
+    tipoDocumento: values.tipoDocumento,
+    paginas: values.paginasDocumento,
+    numeroSei: values.numeroSei,
+    eventosAssuntos: values.eventosAssuntos
+  };
+
+  if (Object.values(documento).some(Boolean)) {
+    setDocumentoRowValues(documentosTableBody.querySelector(".document-row"), documento);
+  }
+}
+
+function setDocumentoRowValues(row, documento) {
+  if (!row) return;
+  row.querySelector("[name='dataDocumento']").value = asText(documento.dataDocumento);
+  row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
+  row.querySelector("[name='paginasDocumento']").value = asText(documento.paginas);
+  row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
+  row.querySelector("[name='eventosAssuntos']").value = asText(documento.eventosAssuntos);
+}
+
+function getDocumentosProcesso() {
+  return Array.from(documentosTableBody.querySelectorAll(".document-row"))
+    .map((row) => ({
+      dataDocumento: asText(row.querySelector("[name='dataDocumento']")?.value),
+      tipoDocumento: asText(row.querySelector("[name='tipoDocumento']")?.value),
+      paginas: asText(row.querySelector("[name='paginasDocumento']")?.value),
+      numeroSei: asText(row.querySelector("[name='numeroSei']")?.value),
+      eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value)
+    }))
+    .filter((documento) => Object.values(documento).some(Boolean));
+}
+
+function normalizeDocumentos(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+  return [];
 }
 
 function addProcessField(value = "") {

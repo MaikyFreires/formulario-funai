@@ -567,6 +567,60 @@ input[readonly] {
   gap: 8px;
 }
 
+.document-table-section {
+  display: grid;
+  gap: 12px;
+}
+
+.table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.table-heading h3 {
+  margin: 0;
+  color: var(--green);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.document-table {
+  width: 100%;
+  min-width: 960px;
+  border-collapse: collapse;
+}
+
+.document-table th {
+  padding: 0 10px 10px;
+  color: #222;
+  font-size: 1rem;
+  text-align: left;
+}
+
+.document-table td {
+  padding: 8px 10px;
+  vertical-align: top;
+}
+
+.document-table td:last-child,
+.document-table th:last-child {
+  width: 76px;
+  text-align: center;
+}
+
+.document-table input,
+.document-table textarea {
+  min-height: 42px;
+}
+
 .inline-date {
   max-width: 370px;
   margin-top: 8px;
@@ -632,8 +686,8 @@ fieldset.conditional.is-visible {
 
 .check-grid input {
   appearance: none;
-  display: inline-grid;
-  place-items: center;
+  position: relative;
+  display: inline-block;
   width: 22px;
   height: 22px;
   min-height: 22px;
@@ -650,11 +704,14 @@ fieldset.conditional.is-visible {
 
 .check-grid input[type="checkbox"]::before {
   content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 10px;
   height: 6px;
   border-left: 2px solid #fff;
   border-bottom: 2px solid #fff;
-  transform: rotate(-45deg) scale(0);
+  transform: translate(-50%, -60%) rotate(-45deg) scale(0);
   transition: transform 90ms ease;
 }
 
@@ -664,16 +721,19 @@ fieldset.conditional.is-visible {
 }
 
 .check-grid input[type="checkbox"]:checked::before {
-  transform: rotate(-45deg) scale(1);
+  transform: translate(-50%, -60%) rotate(-45deg) scale(1);
 }
 
 .check-grid input[type="radio"]::before {
   content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--green);
-  transform: scale(0);
+  transform: translate(-50%, -50%) scale(0);
   transition: transform 90ms ease;
 }
 
@@ -682,7 +742,7 @@ fieldset.conditional.is-visible {
 }
 
 .check-grid input[type="radio"]:checked::before {
-  transform: scale(1);
+  transform: translate(-50%, -50%) scale(1);
 }
 
 .message {
