@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260514-5";
+const APP_VERSION = "20260514-6";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 let formApp;
 let accessGate;
