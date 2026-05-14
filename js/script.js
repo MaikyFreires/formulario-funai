@@ -728,6 +728,7 @@ async function abrirRascunho(formularioId) {
 
     const data = await readJsonIfAvailable(response);
     const rascunho = normalizarRascunhoCarregado(data, resumo);
+    console.log("rascunho carregado", rascunho);
 
     currentFormularioId = getReportFormularioId(rascunho) || id;
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
@@ -741,9 +742,11 @@ async function abrirRascunho(formularioId) {
 }
 
 function normalizarRascunhoCarregado(data, fallback) {
+  if (Array.isArray(data)) return data[0] || fallback;
   if (data?.relatorio) return data.relatorio;
   if (data?.rascunho) return data.rascunho;
   if (data?.item) return data.item;
+  if (Array.isArray(data?.value)) return data.value[0] || fallback;
   if (data?.value && !Array.isArray(data.value)) return data.value;
   return data || fallback;
 }
@@ -918,26 +921,26 @@ function restoreValues(values) {
 
 function flattenDraft(draft) {
   return {
-    consultorEmail: draft.consultor?.email || draft.consultorEmail,
-    consultorNome: draft.consultor?.nome || draft.consultorNome,
-    areaEstudo: draft.consultor?.areaEstudo || draft.areaEstudo,
-    reivindicacaoId: draft.reivindicacao?.id || draft.reivindicacaoId || draft.ReivindicacaoId,
-    nomeReivindicacao: draft.reivindicacao?.nome || draft.nomeReivindicacao || draft.NomeReivindicacao,
-    outrosNomes: draft.reivindicacao?.outrosNomes || draft.outrosNomes,
-    outrosNomesTexto: draft.reivindicacao?.outrosNomesTexto || draft.outrosNomesTexto,
-    numerosProcesso: draft.reivindicacao?.numerosProcesso || draft.numerosProcesso || splitLegacyList(draft.reivindicacao?.numeroProcesso || draft.numeroProcesso),
-    temRoteiro: draft.reivindicacao?.temRoteiro || draft.temRoteiro,
-    dataRoteiro: draft.reivindicacao?.dataRoteiro || draft.dataRoteiro,
-    etnias: draft.reivindicacao?.etnias || draft.etnias,
-    outraEtnia: draft.reivindicacao?.outraEtnia || draft.outraEtnia,
-    tipoDemanda: draft.reivindicacao?.tipoDemanda || draft.tipoDemanda,
-    modalidadeConstituicao: draft.reivindicacao?.modalidadeConstituicao || draft.modalidadeConstituicao,
-    justificativaRevisao: draft.reivindicacao?.justificativaRevisao || draft.justificativaRevisao,
-    estados: draft.reivindicacao?.estados || draft.estados || splitLegacyList(draft.reivindicacao?.estado || draft.estado),
-    municipios: draft.reivindicacao?.municipios || draft.municipios || splitLegacyList(draft.reivindicacao?.municipio || draft.municipio),
-    coordenacaoRegional: draft.reivindicacao?.coordenacaoRegional || draft.coordenacaoRegional,
-    temRetomada: draft.reivindicacao?.temRetomada || draft.temRetomada,
-    detalhesRetomada: draft.reivindicacao?.detalhesRetomada || draft.detalhesRetomada,
+    consultorEmail: pickField(draft, directValue(() => draft.consultor?.email), "ConsultorEmail", "consultorEmail"),
+    consultorNome: pickField(draft, directValue(() => draft.consultor?.nome), "ConsultorNome", "Title", "consultorNome"),
+    areaEstudo: pickField(draft, directValue(() => draft.consultor?.areaEstudo), "AreaEstudo", "field_1", "areaEstudo"),
+    reivindicacaoId: pickField(draft, directValue(() => draft.reivindicacao?.id), "ReivindicacaoId", "field_2", "reivindicacaoId"),
+    nomeReivindicacao: pickField(draft, directValue(() => draft.reivindicacao?.nome), "NomeReivindicacao", "field_3", "nomeReivindicacao"),
+    outrosNomes: pickField(draft, directValue(() => draft.reivindicacao?.outrosNomes), "OutrosNomes", "field_4", "outrosNomes"),
+    outrosNomesTexto: pickField(draft, directValue(() => draft.reivindicacao?.outrosNomesTexto), "OutrosNomesTexto", "field_5", "outrosNomesTexto"),
+    numerosProcesso: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.numerosProcesso), "NumerosProcesso", "field_6", "numerosProcesso", directValue(() => draft.reivindicacao?.numeroProcesso), "numeroProcesso")),
+    temRoteiro: pickField(draft, directValue(() => draft.reivindicacao?.temRoteiro), "TemRoteiro", "field_7", "temRoteiro"),
+    dataRoteiro: pickField(draft, directValue(() => draft.reivindicacao?.dataRoteiro), "DataRoteiro", "field_8", "dataRoteiro"),
+    etnias: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.etnias), "Etnias", "field_9", "etnias")),
+    outraEtnia: pickField(draft, directValue(() => draft.reivindicacao?.outraEtnia), "OutraEtnia", "field_10", "outraEtnia"),
+    tipoDemanda: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.tipoDemanda), "TipoDemanda", "field_11", "tipoDemanda")),
+    modalidadeConstituicao: pickField(draft, directValue(() => draft.reivindicacao?.modalidadeConstituicao), "ModalidadeConstituicao", "field_12", "modalidadeConstituicao"),
+    justificativaRevisao: pickField(draft, directValue(() => draft.reivindicacao?.justificativaRevisao), "JustificativaRevisao", "field_13", "justificativaRevisao"),
+    estados: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.estados), "Estados", "field_14", "estados", directValue(() => draft.reivindicacao?.estado), "estado")),
+    municipios: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.municipios), "Municipios", "field_15", "municipios", directValue(() => draft.reivindicacao?.municipio), "municipio")),
+    coordenacaoRegional: pickField(draft, directValue(() => draft.reivindicacao?.coordenacaoRegional), "CoordenacaoRegional", "field_16", "coordenacaoRegional"),
+    temRetomada: pickField(draft, directValue(() => draft.reivindicacao?.temRetomada), "TemRetomada", "field_17", "temRetomada"),
+    detalhesRetomada: pickField(draft, directValue(() => draft.reivindicacao?.detalhesRetomada), "DetalhesRetomada", "field_18", "detalhesRetomada"),
     descricaoReivindicacao: draft.resumoProcesso?.descricao,
     dataDocumento: draft.resumoProcesso?.dataDocumento,
     tipoDocumento: draft.resumoProcesso?.tipoDocumento,
@@ -978,6 +981,22 @@ function splitLegacyList(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function directValue(getValue) {
+  return {
+    isDirectValue: true,
+    getValue
+  };
+}
+
+function pickField(source, ...candidates) {
+  for (const candidate of candidates) {
+    const value = candidate?.isDirectValue ? candidate.getValue() : source?.[candidate];
+    if (value !== undefined && value !== null && value !== "") return value;
+  }
+
+  return "";
 }
 
 function getAuthorizedEmail() {
