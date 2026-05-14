@@ -496,6 +496,25 @@ textarea {
   display: grid;
 }
 
+.occupation-community-group {
+  display: none;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(139, 61, 24, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.66);
+}
+
+.occupation-community-group.is-visible {
+  display: grid;
+}
+
+.community-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(210px, 1fr));
+  gap: 14px 22px;
+}
+
 .vulnerability-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(180px, 1fr));
@@ -673,6 +692,19 @@ textarea:focus {
 input[readonly] {
   color: var(--muted);
   background: var(--surface-soft);
+}
+
+.form-shell[data-mode="sent"] input:disabled,
+.form-shell[data-mode="sent"] select:disabled,
+.form-shell[data-mode="sent"] textarea:disabled {
+  opacity: 1;
+  color: var(--text);
+  background: rgba(255, 250, 240, 0.72);
+  cursor: default;
+}
+
+.form-shell[data-mode="sent"] .check-grid input:disabled {
+  opacity: 1;
 }
 
 .wide {
@@ -1449,6 +1481,7 @@ button.ghost {
   .area-details-grid,
   .bioma-block .check-grid,
   .occupation-subgrid,
+  .community-grid,
   .vulnerability-grid {
     grid-template-columns: 1fr;
   }

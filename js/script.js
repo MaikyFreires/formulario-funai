@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260514-10";
+const APP_VERSION = "20260514-12";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 let formApp;
 let accessGate;
@@ -69,6 +69,8 @@ let allEtnias = [];
 let formInitialized = false;
 let currentFormularioId = "";
 let cachedReports = [];
+let currentReportListMode = "draft";
+let activeFormMode = "edit";
 
 init();
 
@@ -252,23 +254,25 @@ async function initializeForm() {
 async function novoRelatorio() {
   currentFormularioId = createFormularioId();
   sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
-  await openForm({ reset: true });
+  await openForm({ reset: true, mode: "edit" });
 }
 
 async function startNewReport() {
   return novoRelatorio();
 }
 
-async function openForm({ reset = false } = {}) {
+async function openForm({ reset = false, mode = "edit" } = {}) {
   const email = getStoredAuthorizedEmail();
   if (!email || !hasActiveSession()) {
     showAccessScreen();
     return;
   }
 
+  activeFormMode = mode;
   await initializeForm();
   if (reset) limparFormulario();
   setAuthorizedEmail(email);
+  setFormViewMode(mode);
   accessGate.hidden = true;
   consultorDashboard.hidden = true;
   formApp.hidden = false;
@@ -348,9 +352,24 @@ function showStep(index) {
   prevBtn.hidden = false;
   prevBtn.disabled = currentStep === 0;
   nextBtn.hidden = currentStep === steps.length - 1;
-  submitBtn.hidden = currentStep !== steps.length - 1;
+  submitBtn.hidden = activeFormMode === "sent" || currentStep !== steps.length - 1;
+  saveDraftBtn.hidden = activeFormMode === "sent";
+  savePdfBtn.hidden = activeFormMode !== "sent";
 
   window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function setFormViewMode(mode = "edit") {
+  const isSentView = mode === "sent";
+  formApp.dataset.mode = mode;
+  form.querySelectorAll("input, select, textarea").forEach((field) => {
+    if (field.name === "consultorEmail") {
+      field.readOnly = true;
+      return;
+    }
+
+    field.disabled = isSentView;
+  });
 }
 
 function goToNextStep() {
@@ -410,6 +429,7 @@ function updateConditionals() {
   setConditional("aldeiasComunidadesWrap", getValue("citaAldeiasComunidades") === "Sim");
   setConditional("indigenasAreaWrap", getValue("indigenasArea") === "Sim");
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
+  setConditional("outrasComunidadesTradicionaisWrap", getCheckedValues("tiposComunidadeTradicional").includes("Outros"));
   setConditional("conflitoInteretnicoWrap", getValue("conflitoInteretnico") === "Sim");
   setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
@@ -797,6 +817,7 @@ function buildPayload(statusFormulario = "Enviado") {
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
       dataReferenciaVulnerabilidade: asText(getValue("dataReferenciaVulnerabilidade")),
       comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
+      tiposComunidadeTradicional: asList(getCheckedValues("tiposComunidadeTradicional")),
       descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
       dataReferenciaComunidadeTradicional: asText(getValue("dataReferenciaComunidadeTradicional")),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
@@ -882,6 +903,7 @@ async function listarRascunhos(email = getAuthorizedEmail()) {
     title: "Meus rascunhos",
     url: LIST_DRAFTS_URL,
     emptyMessage: "Nenhum rascunho encontrado.",
+    mode: "draft",
     email
   });
 }
@@ -890,11 +912,13 @@ async function listarEnviados() {
   await listarRelatorios({
     title: "Relatorios enviados",
     url: LIST_SENT_URL,
-    emptyMessage: "Nenhum relatorio enviado encontrado."
+    emptyMessage: "Nenhum relatorio enviado encontrado.",
+    mode: "sent"
   });
 }
 
-async function listarRelatorios({ title, url, emptyMessage, email = getAuthorizedEmail() }) {
+async function listarRelatorios({ title, url, emptyMessage, mode = "draft", email = getAuthorizedEmail() }) {
+  currentReportListMode = mode;
   showReportList(title, "Carregando...");
 
   if (!url) {
@@ -927,9 +951,17 @@ async function listarRelatorios({ title, url, emptyMessage, email = getAuthorize
 }
 
 async function abrirRascunho(formularioId) {
+  return abrirRelatorio(formularioId, "draft");
+}
+
+async function abrirRelatorioEnviado(formularioId) {
+  return abrirRelatorio(formularioId, "sent");
+}
+
+async function abrirRelatorio(formularioId, mode = "draft") {
   const resumo = getCachedReport(formularioId);
   if (!resumo) {
-    showReportListMessage("Rascunho nao encontrado nesta lista.", "error");
+    showReportListMessage("Relatorio nao encontrado nesta lista.", "error");
     return;
   }
 
@@ -940,7 +972,7 @@ async function abrirRascunho(formularioId) {
   }
 
   try {
-    showReportListMessage("Carregando rascunho...", "success");
+    showReportListMessage(mode === "sent" ? "Carregando relatorio enviado..." : "Carregando rascunho...", "success");
     const response = await fetch(LOAD_DRAFT_URL, {
       method: "POST",
       headers: {
@@ -955,20 +987,21 @@ async function abrirRascunho(formularioId) {
     });
     console.log(response.status, response.statusText);
 
-    if (!response.ok) throw new Error(`Falha ao carregar rascunho: ${response.status}`);
+    if (!response.ok) throw new Error(`Falha ao carregar relatorio: ${response.status}`);
 
     const data = await readJsonIfAvailable(response);
-    const rascunho = normalizarRascunhoCarregado(data, resumo);
-    console.log("rascunho carregado", rascunho);
+    const relatorio = normalizarRascunhoCarregado(data, resumo);
+    console.log(mode === "sent" ? "relatorio enviado carregado" : "rascunho carregado", relatorio);
 
-    currentFormularioId = getReportFormularioId(rascunho) || id;
+    currentFormularioId = getReportFormularioId(relatorio) || id;
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
-    await openForm({ reset: true });
-    preencherFormulario(rascunho);
+    await openForm({ reset: true, mode: mode === "sent" ? "sent" : "edit" });
+    preencherFormulario(relatorio);
+    setFormViewMode(mode === "sent" ? "sent" : "edit");
     updateConditionals();
     showStep(0);
   } catch (error) {
-    showReportListMessage("Nao foi possivel abrir o rascunho.", "error");
+    showReportListMessage("Nao foi possivel abrir o relatorio.", "error");
   }
 }
 
@@ -983,7 +1016,7 @@ function normalizarRascunhoCarregado(data, fallback) {
 }
 
 async function carregarRelatorio(id) {
-  return abrirRascunho(id);
+  return abrirRelatorio(id, currentReportListMode);
 }
 
 function preencherFormulario(dados) {
@@ -1004,7 +1037,7 @@ async function carregarRelatorioLocal(formularioId) {
 
   currentFormularioId = getReportFormularioId(relatorio) || asText(formularioId);
   sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
-  await openForm({ reset: true });
+  await openForm({ reset: true, mode: "edit" });
   preencherFormulario(relatorio);
   updateConditionals();
   showStep(0);
@@ -1065,7 +1098,14 @@ function renderReportList(relatorios, emptyMessage) {
     idButton.type = "button";
     idButton.className = "report-link";
     idButton.textContent = reivindicacaoId;
-    idButton.addEventListener("click", () => abrirRascunho(formularioId));
+    idButton.addEventListener("click", () => {
+      if (currentReportListMode === "sent") {
+        abrirRelatorioEnviado(formularioId);
+        return;
+      }
+
+      abrirRascunho(formularioId);
+    });
     idButton.disabled = !formularioId;
 
     name.textContent = nomeReivindicacao;
@@ -1226,6 +1266,7 @@ function flattenDraft(draft) {
     vulnerabilidades: draft.ocupacaoIndigena?.vulnerabilidades,
     dataReferenciaVulnerabilidade: draft.ocupacaoIndigena?.dataReferenciaVulnerabilidade,
     comunidadesTradicionais: draft.ocupacaoIndigena?.comunidadesTradicionais,
+    tiposComunidadeTradicional: asListOrSplit(draft.ocupacaoIndigena?.tiposComunidadeTradicional),
     descricaoComunidadeTradicional: draft.ocupacaoIndigena?.descricaoComunidadeTradicional,
     dataReferenciaComunidadeTradicional: draft.ocupacaoIndigena?.dataReferenciaComunidadeTradicional,
     conflitoInteretnico: draft.ocupacaoIndigena?.conflitoInteretnico,
