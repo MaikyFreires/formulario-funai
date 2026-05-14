@@ -10,6 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
+const APP_VERSION = "20260514-2";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 let formApp;
 let accessGate;
@@ -89,13 +90,17 @@ async function loadHtmlPartials() {
   const appRoot = document.querySelector("#appRoot");
   const partials = await Promise.all(
     HTML_PARTIALS.map(async (path) => {
-      const response = await fetch(path);
+      const response = await fetch(withCacheBust(path));
       if (!response.ok) throw new Error(`Nao foi possivel carregar ${path}`);
       return response.text();
     })
   );
 
   appRoot.innerHTML = partials.join("\n");
+}
+
+function withCacheBust(path) {
+  return `${path}?v=${APP_VERSION}`;
 }
 
 function cacheDomElements() {
@@ -763,6 +768,14 @@ function buildPayload(statusFormulario = "Enviado") {
       detalheUcFederal: asText(getValue("detalheUcFederal")),
       detalheUcEstadual: asText(getValue("detalheUcEstadual")),
       detalheUcMunicipal: asText(getValue("detalheUcMunicipal")),
+      detalheGlebaFederal: asText(getValue("detalheGlebaFederal")),
+      detalheGlebaEstadual: asText(getValue("detalheGlebaEstadual")),
+      detalheTerritorioQuilombola: asText(getValue("detalheTerritorioQuilombola")),
+      detalheProjetoAssentamento: asText(getValue("detalheProjetoAssentamento")),
+      detalheProjetoAssentamentoAgroextrativista: asText(getValue("detalheProjetoAssentamentoAgroextrativista")),
+      detalheProjetoDesenvolvimentoSustentavel: asText(getValue("detalheProjetoDesenvolvimentoSustentavel")),
+      detalheProjetoAssentamentoFlorestal: asText(getValue("detalheProjetoAssentamentoFlorestal")),
+      detalheOutrasSobreposicoes: asText(getValue("detalheOutrasSobreposicoes")),
       detalheSobreposicoes: asText(getValue("detalheSobreposicoes"))
     },
     ocupacaoIndigena: {
@@ -1172,6 +1185,14 @@ function flattenDraft(draft) {
     detalheUcFederal: draft.caracterizacaoArea?.detalheUcFederal,
     detalheUcEstadual: draft.caracterizacaoArea?.detalheUcEstadual,
     detalheUcMunicipal: draft.caracterizacaoArea?.detalheUcMunicipal,
+    detalheGlebaFederal: draft.caracterizacaoArea?.detalheGlebaFederal,
+    detalheGlebaEstadual: draft.caracterizacaoArea?.detalheGlebaEstadual,
+    detalheTerritorioQuilombola: draft.caracterizacaoArea?.detalheTerritorioQuilombola,
+    detalheProjetoAssentamento: draft.caracterizacaoArea?.detalheProjetoAssentamento,
+    detalheProjetoAssentamentoAgroextrativista: draft.caracterizacaoArea?.detalheProjetoAssentamentoAgroextrativista,
+    detalheProjetoDesenvolvimentoSustentavel: draft.caracterizacaoArea?.detalheProjetoDesenvolvimentoSustentavel,
+    detalheProjetoAssentamentoFlorestal: draft.caracterizacaoArea?.detalheProjetoAssentamentoFlorestal,
+    detalheOutrasSobreposicoes: draft.caracterizacaoArea?.detalheOutrasSobreposicoes,
     detalheSobreposicoes: draft.caracterizacaoArea?.detalheSobreposicoes,
     indigenasArea: draft.ocupacaoIndigena?.indigenasArea,
     tempoOcupacao: draft.ocupacaoIndigena?.tempoOcupacao,
