@@ -713,6 +713,30 @@ fieldset.conditional.is-visible {
   border-color: var(--danger) !important;
 }
 
+label.field-error > input,
+label.field-error > select,
+label.field-error > textarea,
+input.field-error,
+select.field-error,
+textarea.field-error,
+fieldset.field-error > .check-grid,
+.multi-autocomplete.field-error .autocomplete-row {
+  border-color: var(--danger) !important;
+}
+
+fieldset.field-error > .check-grid,
+.multi-autocomplete.field-error .autocomplete-row {
+  border: 2px solid var(--danger);
+  padding: 8px;
+  background: var(--danger-soft);
+}
+
+.field-error-message {
+  color: var(--danger);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
 .form-actions {
   display: flex;
   justify-content: space-between;

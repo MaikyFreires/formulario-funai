@@ -7,6 +7,7 @@ const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
 const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
 const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
+const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 const ETNIA_OPTIONS = [
@@ -294,6 +295,7 @@ function limparFormulario() {
   populateEstadoOptions();
   populateMunicipioOptions();
   clearMessage();
+  clearValidationErrors();
   updateConditionals();
 }
 
@@ -329,6 +331,7 @@ function bindEvents() {
 function handleFormChange() {
   clearMessage();
   updateConditionals();
+  clearResolvedValidationErrors();
 }
 
 function showStep(index) {
@@ -354,7 +357,6 @@ function showStep(index) {
 }
 
 function goToNextStep() {
-  if (!validateCurrentStep()) return;
   showStep(Math.min(currentStep + 1, steps.length - 1));
 }
 
@@ -412,8 +414,8 @@ function updateConditionals() {
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
 
   const demandas = getCheckedValues("tipoDemanda");
-  setConditional("modalidadeReservaWrap", demandas.includes("Reserva Indígena"));
-  setConditional("justificativaRevisaoWrap", demandas.includes("Revisão de limites"));
+  setConditional("modalidadeReservaWrap", hasDemand(demandas, "Reserva Indígena"));
+  setConditional("justificativaRevisaoWrap", hasDemand(demandas, "Revisão de limites"));
 }
 
 function setConditional(id, isVisible, requiredNames = []) {
@@ -424,6 +426,7 @@ function setConditional(id, isVisible, requiredNames = []) {
   element.querySelectorAll("input, select, textarea").forEach((field) => {
     if (!isVisible) {
       field.classList.remove("invalid");
+      clearFieldError(field.name);
       if (requiredNames.includes(field.name)) field.required = false;
       return;
     }
@@ -433,33 +436,202 @@ function setConditional(id, isVisible, requiredNames = []) {
 }
 
 function validateCurrentStep() {
+  return validateRequiredFields(true).length === 0;
+}
+
+function validateRequiredFields(isDraftSave = false) {
+  clearValidationErrors();
+  if (isDraftSave) return [];
+
   updateConditionals();
-  const activeStep = steps[currentStep];
-  const fields = Array.from(activeStep.querySelectorAll("input, select, textarea"));
-  const invalidFields = fields.filter((field) => isFieldVisible(field) && !field.checkValidity());
+  const errors = [];
+  const demandas = getCheckedValues("tipoDemanda");
+  const requiredRules = [
+    { fieldId: "consultorNome", label: "Nome completo do(a) consultor(a)", isValid: () => hasValue("consultorNome") },
+    { fieldId: "areaEstudo", label: "Área de estudo", isValid: () => hasValue("areaEstudo") },
+    { fieldId: "reivindicacaoId", label: "ID", isValid: () => hasValue("reivindicacaoId") },
+    { fieldId: "nomeReivindicacao", label: "Nome da reivindicação", isValid: () => hasValue("nomeReivindicacao") },
+    { fieldId: "outrosNomesTexto", label: "Outros nomes da reivindicação", isValid: () => getValue("outrosNomes") !== "Sim" || hasValue("outrosNomesTexto") },
+    { fieldId: "temRoteiro", label: "Tem roteiro", isValid: () => hasChecked("temRoteiro") },
+    { fieldId: "dataRoteiro", label: "Data do roteiro", isValid: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro") },
+    { fieldId: "etnias", label: "Etnia", isValid: () => selectedEtnias.length > 0 },
+    { fieldId: "tipoDemanda", label: "Tipo da demanda", isValid: () => demandas.length > 0 },
+    { fieldId: "modalidadeConstituicao", label: "Modalidade de Constituição", isValid: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao") },
+    { fieldId: "justificativaRevisao", label: "Justificativa da Revisão", isValid: () => !hasDemand(demandas, "Revisão de limites") || hasValue("justificativaRevisao") },
+    { fieldId: "estados", label: "Estado", isValid: () => selectedEstados.length > 0 },
+    { fieldId: "municipios", label: "Município", isValid: () => selectedMunicipios.length > 0 },
+    { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
+    { fieldId: "temRetomada", label: "Tem retomada", isValid: () => hasChecked("temRetomada") },
+    { fieldId: "detalhesRetomada", label: "Detalhes da retomada", isValid: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada") },
+    { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") }
+  ];
 
-  activeStep.querySelectorAll(".invalid").forEach((field) => field.classList.remove("invalid"));
-  invalidFields.forEach((field) => field.classList.add("invalid"));
+  requiredRules.forEach((rule) => {
+    if (rule.isValid()) return;
+    const error = showFieldError(rule.fieldId, "Campo obrigatório");
+    errors.push({
+      fieldId: rule.fieldId,
+      label: rule.label,
+      stepIndex: error.stepIndex,
+      target: error.target
+    });
+  });
 
-  const tipoDemandaGroup = activeStep.querySelector("[data-required-group='tipoDemanda']");
-  const demandInvalid = tipoDemandaGroup && getCheckedValues("tipoDemanda").length === 0;
-  if (demandInvalid) tipoDemandaGroup.classList.add("invalid");
-  if (tipoDemandaGroup && !demandInvalid) tipoDemandaGroup.classList.remove("invalid");
+  return errors;
+}
 
-  if (invalidFields.length || demandInvalid) {
-    showMessage("Preencha os campos obrigatórios antes de continuar.", "error");
-    const firstInvalid = invalidFields[0] || tipoDemandaGroup;
-    firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
-    return false;
+function clearValidationErrors() {
+  form.querySelectorAll(".field-error, [data-error-field]").forEach((element) => {
+    element.classList.remove("field-error");
+    delete element.dataset.errorField;
+  });
+  form.querySelectorAll(".field-error-message").forEach((element) => element.remove());
+}
+
+function clearResolvedValidationErrors() {
+  const activeErrors = Array.from(form.querySelectorAll("[data-error-field]"));
+  activeErrors.forEach((element) => {
+    const fieldId = element.dataset.errorField;
+    if (!isRequiredFieldResolved(fieldId)) return;
+    clearFieldError(fieldId);
+  });
+}
+
+function showFieldError(fieldId, message) {
+  const target = getFieldErrorTarget(fieldId);
+  const container = target?.container || target?.control;
+  const control = target?.control;
+  const step = container?.closest(".step") || control?.closest(".step");
+  const stepIndex = steps.indexOf(step);
+
+  if (container) {
+    container.classList.add("field-error");
+    container.dataset.errorField = fieldId;
   }
 
-  clearMessage();
-  return true;
+  if (control) {
+    control.classList.add("field-error");
+    control.dataset.errorField = fieldId;
+  }
+
+  if (container && !container.querySelector(`.field-error-message[data-error-for="${fieldId}"]`)) {
+    const errorMessage = document.createElement("small");
+    errorMessage.className = "field-error-message";
+    errorMessage.dataset.errorFor = fieldId;
+    errorMessage.textContent = message;
+    container.append(errorMessage);
+  }
+
+  return {
+    target: container || control,
+    stepIndex: stepIndex >= 0 ? stepIndex : 0
+  };
+}
+
+function goToFirstErrorStep(errors) {
+  if (!errors.length) return;
+
+  const [firstError] = errors;
+  showStep(firstError.stepIndex);
+  setTimeout(() => {
+    const target = getFieldErrorTarget(firstError.fieldId)?.container || firstError.target;
+    target?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, 80);
+}
+
+function clearFieldError(fieldId) {
+  form.querySelectorAll(`[data-error-field="${fieldId}"]`).forEach((element) => {
+    element.classList.remove("field-error");
+    delete element.dataset.errorField;
+  });
+  form.querySelectorAll(`.field-error-message[data-error-for="${fieldId}"]`).forEach((element) => element.remove());
+}
+
+function getFieldErrorTarget(fieldId) {
+  const customTargets = {
+    etnias: () => ({ container: etniaInput.closest(".multi-autocomplete"), control: etniaInput }),
+    estados: () => ({ container: estadoInput.closest(".multi-autocomplete"), control: estadoInput }),
+    municipios: () => ({ container: municipioInput.closest(".multi-autocomplete"), control: municipioInput }),
+    tipoDemanda: () => {
+      const group = form.querySelector("[data-required-group='tipoDemanda']");
+      return { container: group?.closest("fieldset") || group, control: group };
+    }
+  };
+
+  if (customTargets[fieldId]) return customTargets[fieldId]();
+
+  const element = form.elements[fieldId];
+  if (!element) return {};
+  const controls = element instanceof RadioNodeList ? Array.from(element) : [element];
+  const firstControl = controls[0];
+  const isGroup = firstControl?.type === "radio" || firstControl?.type === "checkbox";
+  const container = isGroup ? firstControl.closest("fieldset") : firstControl.closest("label, fieldset, .multi-autocomplete");
+
+  return {
+    container,
+    control: isGroup ? container?.querySelector(".check-grid") || container : firstControl
+  };
+}
+
+function isRequiredFieldResolved(fieldId) {
+  const demandas = getCheckedValues("tipoDemanda");
+  const resolved = {
+    consultorNome: () => hasValue("consultorNome"),
+    areaEstudo: () => hasValue("areaEstudo"),
+    reivindicacaoId: () => hasValue("reivindicacaoId"),
+    nomeReivindicacao: () => hasValue("nomeReivindicacao"),
+    outrosNomesTexto: () => getValue("outrosNomes") !== "Sim" || hasValue("outrosNomesTexto"),
+    temRoteiro: () => hasChecked("temRoteiro"),
+    dataRoteiro: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro"),
+    etnias: () => selectedEtnias.length > 0,
+    tipoDemanda: () => demandas.length > 0,
+    modalidadeConstituicao: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao"),
+    justificativaRevisao: () => !hasDemand(demandas, "Revisão de limites") || hasValue("justificativaRevisao"),
+    estados: () => selectedEstados.length > 0,
+    municipios: () => selectedMunicipios.length > 0,
+    coordenacaoRegional: () => hasValue("coordenacaoRegional"),
+    temRetomada: () => hasChecked("temRetomada"),
+    detalhesRetomada: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada"),
+    descricaoReivindicacao: () => hasValue("descricaoReivindicacao")
+  };
+
+  return resolved[fieldId]?.() ?? true;
+}
+
+function hasValue(name) {
+  return Boolean(getValue(name));
+}
+
+function hasChecked(name) {
+  return getCheckedValues(name).length > 0;
+}
+
+function hasDemand(demandas, value) {
+  const normalizedValue = normalizeText(value);
+  return demandas.some((demanda) => {
+    const normalizedDemand = normalizeText(demanda);
+    if (normalizedValue.includes("reserva")) return normalizedDemand.includes("reserva");
+    if (normalizedValue.includes("revisao")) return normalizedDemand.includes("revis");
+    return normalizedDemand === normalizedValue;
+  });
+}
+
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 }
 
 async function enviarFormulario(event) {
   event.preventDefault();
-  if (!validateCurrentStep()) return;
+  const isDraftSave = false;
+  const validationErrors = validateRequiredFields(isDraftSave);
+  if (validationErrors.length) {
+    showMessage(`Existem campos obrigatórios não preenchidos. Revise os campos destacados em vermelho. Campos: ${validationErrors.map((error) => error.label).join(", ")}.`, "error");
+    goToFirstErrorStep(validationErrors);
+    return;
+  }
 
   const authorizedEmail = getStoredAuthorizedEmail();
   if (!authorizedEmail || !hasActiveSession()) {
@@ -599,7 +771,10 @@ function buildPayload(statusFormulario = "Enviado") {
 }
 
 async function salvarRascunho() {
+  const isDraftSave = true;
+  validateRequiredFields(isDraftSave);
   const payload = buildPayload("Rascunho");
+  saveDraftPayloadLocally(payload);
   console.log("payload rascunho", payload);
 
   if (!POWER_AUTOMATE_URL) {
@@ -643,6 +818,14 @@ async function salvarRascunho() {
 
 async function saveDraft() {
   return salvarRascunho();
+}
+
+function saveDraftPayloadLocally(payload) {
+  try {
+    localStorage.setItem(`${LOCAL_DRAFT_PREFIX}${payload.formularioId}`, JSON.stringify(payload));
+  } catch (error) {
+    console.warn("Nao foi possivel salvar rascunho local.", error);
+  }
 }
 
 // Dashboard lists
@@ -1192,6 +1375,7 @@ function addSelectedEtnia() {
   etniaInput.value = "";
   renderEtniaChips();
   updateConditionals();
+  clearResolvedValidationErrors();
 }
 
 function removeSelectedEtnia(event) {
@@ -1201,6 +1385,7 @@ function removeSelectedEtnia(event) {
   selectedEtnias = selectedEtnias.filter((etnia) => etnia !== button.dataset.etnia);
   renderEtniaChips();
   updateConditionals();
+  clearResolvedValidationErrors();
 }
 
 function renderEtniaChips() {
@@ -1240,6 +1425,7 @@ function addSelectedEstado() {
   populateEstadoOptions();
   pruneSelectedMunicipios();
   populateMunicipioOptions();
+  clearResolvedValidationErrors();
 }
 
 function removeSelectedEstado(event) {
@@ -1251,6 +1437,7 @@ function removeSelectedEstado(event) {
   populateEstadoOptions();
   pruneSelectedMunicipios();
   populateMunicipioOptions();
+  clearResolvedValidationErrors();
 }
 
 function renderEstadoChips() {
@@ -1276,6 +1463,7 @@ function addSelectedMunicipio() {
   municipioInput.value = "";
   renderMunicipioChips();
   populateMunicipioOptions();
+  clearResolvedValidationErrors();
 }
 
 function removeSelectedMunicipio(event) {
@@ -1285,6 +1473,7 @@ function removeSelectedMunicipio(event) {
   selectedMunicipios = selectedMunicipios.filter((municipio) => municipio !== button.dataset.municipio);
   renderMunicipioChips();
   populateMunicipioOptions();
+  clearResolvedValidationErrors();
 }
 
 function renderMunicipioChips() {
