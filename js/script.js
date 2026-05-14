@@ -1681,16 +1681,16 @@ function handleCoordenadaTableClick(event) {
 }
 
 function handleCoordenadaTableInput(event) {
-  const input = event.target.closest("[data-gms]");
+  const input = event.target.closest("[data-coordinate-value]");
   if (!input) return;
-  input.value = formatGms(input.value, input.dataset.gms);
+  input.value = removeLettersFromCoordinate(input.value);
 }
 
 function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "coordinate-row";
   row.innerHTML = `
-    <td><input name="latitude" type="text" inputmode="numeric" data-gms="latitude" placeholder="00°00'00&quot;" aria-label="Latitude"></td>
+    <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
     <td>
       <select name="latitudeDirecao" aria-label="Direção da latitude">
         <option value="">Escolha</option>
@@ -1698,7 +1698,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
         <option>Sul</option>
       </select>
     </td>
-    <td><input name="longitude" type="text" inputmode="numeric" data-gms="longitude" placeholder="000°00'00&quot;" aria-label="Longitude"></td>
+    <td><input name="longitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Longitude" aria-label="Longitude"></td>
     <td>
       <select name="longitudeDirecao" aria-label="Direção da longitude">
         <option value="">Escolha</option>
@@ -1805,19 +1805,8 @@ function normalizeCoordenadas(value) {
   return [];
 }
 
-function formatGms(value, type) {
-  const digits = String(value || "").replace(/\D/g, "");
-  const degreeSize = type === "longitude" ? 3 : 2;
-  const maxLength = degreeSize + 4;
-  const padded = digits.slice(0, maxLength);
-  const degrees = padded.slice(0, degreeSize);
-  const minutes = padded.slice(degreeSize, degreeSize + 2);
-  const seconds = padded.slice(degreeSize + 2, degreeSize + 4);
-
-  if (!degrees) return "";
-  if (!minutes) return `${degrees}°`;
-  if (!seconds) return `${degrees}°${minutes}'`;
-  return `${degrees}°${minutes}'${seconds}"`;
+function removeLettersFromCoordinate(value) {
+  return String(value || "").replace(/[A-Za-zÀ-ÿ]/g, "");
 }
 
 function addProcessField(value = "") {

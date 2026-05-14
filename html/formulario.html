@@ -410,7 +410,7 @@
               <section class="conditional wide coordinate-table-section" id="coordenadasWrap" aria-labelledby="coordenadasTitle">
                 <div class="table-heading compact-heading">
                   <h3 id="coordenadasTitle">Coordenadas geográficas</h3>
-                  <p>Informe latitude e longitude no formato GMS e selecione a orientação correspondente.</p>
+                  <p>Informe latitude e longitude no formato disponível no processo e selecione a orientação correspondente.</p>
                 </div>
                 <div class="table-scroll">
                   <table class="coordinate-table">
@@ -426,7 +426,7 @@
                     </thead>
                     <tbody id="coordenadasTableBody">
                       <tr class="coordinate-row">
-                        <td><input name="latitude" type="text" inputmode="numeric" data-gms="latitude" placeholder="00°00'00&quot;" aria-label="Latitude"></td>
+                        <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
                         <td>
                           <select name="latitudeDirecao" aria-label="Direção da latitude">
                             <option value="">Escolha</option>
@@ -434,7 +434,7 @@
                             <option>Sul</option>
                           </select>
                         </td>
-                        <td><input name="longitude" type="text" inputmode="numeric" data-gms="longitude" placeholder="000°00'00&quot;" aria-label="Longitude"></td>
+                        <td><input name="longitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Longitude" aria-label="Longitude"></td>
                         <td>
                           <select name="longitudeDirecao" aria-label="Direção da longitude">
                             <option value="">Escolha</option>
