@@ -1,0 +1,141 @@
+﻿label,
+fieldset {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 10px;
+  color: var(--text);
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+legend {
+  padding: 0 0 14px;
+  font-weight: 800;
+}
+
+input,
+select,
+textarea {
+  width: 100%;
+  min-height: 47px;
+  border: 1px solid #d9c7a9;
+  border-radius: 6px;
+  padding: 11px 13px;
+  background: var(--field);
+  color: var(--text);
+  outline: none;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+select {
+  appearance: none;
+  background:
+    linear-gradient(45deg, transparent 50%, var(--terracotta) 50%) calc(100% - 21px) 19px / 13px 13px no-repeat,
+    linear-gradient(135deg, var(--terracotta) 50%, transparent 50%) calc(100% - 12px) 19px / 13px 13px no-repeat,
+    var(--field);
+  padding-right: 42px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #8b7d67;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--terracotta-2);
+  background: #fffdf8;
+  box-shadow: 0 0 0 3px rgba(184, 87, 27, 0.14);
+}
+
+input[readonly] {
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.form-shell[data-mode="sent"] input:disabled,
+.form-shell[data-mode="sent"] select:disabled,
+.form-shell[data-mode="sent"] textarea:disabled {
+  opacity: 1;
+  color: var(--text);
+  background: rgba(255, 250, 240, 0.72);
+  cursor: default;
+}
+
+.form-shell[data-mode="sent"] .check-grid input:disabled {
+  opacity: 1;
+}
+
+.wide {
+  grid-column: 1 / -1;
+}
+
+.wide-right {
+  grid-column: 2;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
+
+.multi-autocomplete {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.autocomplete-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 42px;
+  gap: 12px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 10px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border: 1px solid rgba(13, 104, 65, 0.22);
+  border-radius: 999px;
+  background: var(--green-soft);
+  color: var(--green);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.chip button {
+  min-width: 18px;
+  min-height: 18px;
+  border: 0;
+  padding: 0;
+  color: #333;
+  background: transparent;
+  font-size: 1.1rem;
+  line-height: 1;
+}

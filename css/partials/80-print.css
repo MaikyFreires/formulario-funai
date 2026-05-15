@@ -1,0 +1,26 @@
+﻿@media print {
+  body {
+    background: #fff;
+  }
+
+  .access-gate,
+  .dashboard-shell,
+  .progress-wrap,
+  .form-actions,
+  .message {
+    display: none !important;
+  }
+
+  .form-shell,
+  #funaiForm,
+  .step {
+    width: 100%;
+    max-width: none;
+    box-shadow: none;
+  }
+
+  .step {
+    display: block !important;
+    page-break-inside: avoid;
+  }
+}

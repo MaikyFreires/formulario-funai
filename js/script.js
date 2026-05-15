@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260514-12";
+const APP_VERSION = "20260515-2";
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 let formApp;
 let accessGate;
@@ -470,7 +470,7 @@ function validateRequiredFields(isDraftSave = false) {
   const errors = [];
   const demandas = getCheckedValues("tipoDemanda");
   const requiredRules = [
-    { fieldId: "consultorNome", label: "Nome completo do/a consultor/a", isValid: () => hasValue("consultorNome") },
+    { fieldId: "consultorNome", label: "Nome completo do(a) consultor(a)", isValid: () => hasValue("consultorNome") },
     { fieldId: "areaEstudo", label: "Área de estudo", isValid: () => hasValue("areaEstudo") },
     { fieldId: "reivindicacaoId", label: "ID", isValid: () => hasValue("reivindicacaoId") },
     { fieldId: "nomeReivindicacao", label: "Nome da reivindicação", isValid: () => hasValue("nomeReivindicacao") },

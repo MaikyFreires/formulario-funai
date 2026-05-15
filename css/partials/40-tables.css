@@ -1,0 +1,196 @@
+﻿.process-list {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) 96px;
+  gap: 14px;
+  align-items: end;
+}
+
+.process-field {
+  grid-column: 1;
+}
+
+.process-buttons {
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
+  gap: 8px;
+}
+
+.document-table-section {
+  display: grid;
+  gap: 28px;
+}
+
+.coordinate-table-section {
+  display: none;
+  gap: 22px;
+}
+
+.coordinate-table-section.is-visible {
+  display: grid;
+}
+
+section.coordinate-table-section.is-visible {
+  display: grid;
+  grid-template-columns: 1fr;
+  align-items: start;
+}
+
+.table-heading {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.32fr) minmax(360px, 0.68fr);
+  gap: 40px;
+  align-items: start;
+}
+
+.compact-heading {
+  grid-template-columns: 1fr;
+  gap: 8px;
+  max-width: 760px;
+}
+
+.table-heading h3 {
+  margin: 0;
+  color: var(--green);
+  font-size: 1.15rem;
+  line-height: 1.25;
+  font-weight: 800;
+}
+
+.table-heading p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1.05rem;
+  line-height: 1.25;
+  font-weight: 500;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.document-table {
+  width: 100%;
+  min-width: 1040px;
+  border-collapse: separate;
+  border-spacing: 12px 10px;
+}
+
+.coordinate-table {
+  width: 100%;
+  min-width: 0;
+  border-collapse: separate;
+  border-spacing: 8px 10px;
+  table-layout: fixed;
+}
+
+.coordinate-table th:nth-child(1),
+.coordinate-table td:nth-child(1),
+.coordinate-table th:nth-child(3),
+.coordinate-table td:nth-child(3) {
+  width: 18%;
+}
+
+.coordinate-table th:nth-child(2),
+.coordinate-table td:nth-child(2),
+.coordinate-table th:nth-child(4),
+.coordinate-table td:nth-child(4) {
+  width: 12%;
+}
+
+.coordinate-table th:nth-child(5),
+.coordinate-table td:nth-child(5) {
+  width: 28%;
+}
+
+.document-table th {
+  padding: 0 4px 4px;
+  color: var(--green);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.coordinate-table th {
+  padding: 0 4px 4px;
+  color: var(--green);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+.document-table td {
+  padding: 0;
+  vertical-align: top;
+}
+
+.coordinate-table td {
+  padding: 0;
+  vertical-align: top;
+}
+
+.document-table td:last-child,
+.document-table th:last-child {
+  width: 112px;
+  text-align: center;
+}
+
+.coordinate-table td:last-child,
+.coordinate-table th:last-child {
+  width: 96px;
+  text-align: center;
+}
+
+.document-table input,
+.document-table textarea {
+  min-height: 49px;
+}
+
+.coordinate-table input,
+.coordinate-table select {
+  min-height: 49px;
+  padding-inline: 8px;
+}
+
+.coordinate-table-section.field-error .coordinate-table {
+  outline: 2px solid var(--danger);
+  outline-offset: 2px;
+}
+
+.document-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.coordinate-actions {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.document-actions .icon-button {
+  min-width: 34px;
+  min-height: 49px;
+  color: var(--blue);
+  font-size: 2.15rem;
+}
+
+.coordinate-actions .icon-button {
+  min-width: 34px;
+  min-height: 49px;
+  color: var(--blue);
+  font-size: 2.15rem;
+}
+
+.document-actions .add-documento-row-btn {
+  color: var(--green-2);
+  font-size: 2.25rem;
+}
+
+.coordinate-actions .add-coordenada-row-btn {
+  color: var(--green-2);
+  font-size: 2.25rem;
+}

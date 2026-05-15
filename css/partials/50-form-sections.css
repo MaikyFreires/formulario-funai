@@ -1,0 +1,177 @@
+﻿.status-process-grid {
+  row-gap: 34px;
+}
+
+.status-details {
+  display: none;
+  gap: 30px;
+}
+
+.status-details.is-visible {
+  display: grid;
+}
+
+.status-short-field {
+  width: min(360px, 100%);
+}
+
+.decision-grid {
+  display: none;
+  grid-template-columns: minmax(150px, 0.7fr) minmax(210px, 1fr) minmax(180px, 0.85fr);
+  gap: 22px;
+  width: min(650px, 100%);
+}
+
+.decision-grid.is-visible {
+  display: grid;
+}
+
+.overlap-question {
+  gap: 24px;
+}
+
+.overlap-question legend {
+  padding-bottom: 16px;
+}
+
+.overlap-options {
+  display: none;
+  gap: 20px;
+}
+
+.overlap-options.is-visible {
+  display: grid;
+}
+
+.overlap-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.1fr) minmax(250px, 1fr) minmax(250px, 1fr);
+  gap: 36px;
+  align-items: start;
+}
+
+.overlap-column {
+  display: grid;
+  gap: 18px;
+}
+
+.overlap-item {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+  color: #333;
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.overlap-item.has-detail {
+  grid-template-columns: 32px minmax(120px, 0.9fr) minmax(130px, 1fr);
+}
+
+.overlap-item input[type="checkbox"] {
+  appearance: none;
+  position: relative;
+  width: 28px;
+  height: 28px;
+  min-height: 28px;
+  margin: 0;
+  border: 2px solid #7d705d;
+  background: #fffdf8;
+  border-radius: 4px;
+}
+
+.overlap-item input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 7px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: translate(-50%, -60%) rotate(-45deg) scale(0);
+  transition: transform 90ms ease;
+}
+
+.overlap-item input[type="checkbox"]:checked::before {
+  transform: translate(-50%, -60%) rotate(-45deg) scale(1);
+}
+
+.overlap-item input[type="checkbox"]:checked {
+  border-color: var(--green-2);
+  background: var(--green-2);
+}
+
+.overlap-detail {
+  display: none;
+  min-height: 46px;
+}
+
+.overlap-item.has-detail:has(input[type="checkbox"]:checked) .overlap-detail {
+  display: block;
+}
+
+.area-block {
+  padding: 18px 0 18px;
+  border-top: 1px solid rgba(139, 61, 24, 0.16);
+  border-bottom: 1px solid rgba(139, 61, 24, 0.16);
+}
+
+.bioma-block {
+  margin-top: 8px;
+}
+
+.bioma-block legend {
+  padding-bottom: 16px;
+  color: var(--green);
+  font-size: 1.15rem;
+}
+
+.bioma-block .check-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 18px 42px;
+  max-width: 980px;
+}
+
+.area-details-grid {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.05fr) minmax(360px, 0.95fr);
+  gap: 28px 56px;
+  align-items: start;
+  padding: 6px 0 8px;
+}
+
+.area-card {
+  gap: 14px;
+  padding-top: 0;
+  min-height: 112px;
+  padding: 16px;
+  border: 1px solid rgba(139, 61, 24, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.62);
+}
+
+.area-card .check-grid {
+  gap: 18px 30px;
+}
+
+.area-card input[type="text"] {
+  max-width: 680px;
+}
+
+.area-question-group {
+  display: grid;
+  gap: 18px;
+}
+
+.area-question-group .conditional.is-visible {
+  display: flex;
+}
+
+.inline-date {
+  max-width: 370px;
+  margin-top: 8px;
+}
