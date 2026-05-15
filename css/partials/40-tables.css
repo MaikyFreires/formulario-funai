@@ -82,29 +82,34 @@ section.coordinate-table-section.is-visible {
 
 .coordinate-table {
   width: 100%;
-  min-width: 1260px;
+  min-width: 1320px;
   border-collapse: separate;
-  border-spacing: 8px 10px;
+  border-spacing: 10px 10px;
   table-layout: fixed;
 }
 
-.coordinate-table th:nth-child(1),
-.coordinate-table td:nth-child(1),
-.coordinate-table th:nth-child(3),
-.coordinate-table td:nth-child(3) {
-  width: 18%;
+.coordinate-table .coord-col-format {
+  width: 170px;
 }
 
-.coordinate-table th:nth-child(2),
-.coordinate-table td:nth-child(2),
-.coordinate-table th:nth-child(4),
-.coordinate-table td:nth-child(4) {
-  width: 12%;
+.coordinate-table .coord-col-value {
+  width: 190px;
 }
 
-.coordinate-table th:nth-child(5),
-.coordinate-table td:nth-child(5) {
-  width: 28%;
+.coordinate-table .coord-col-direction {
+  width: 150px;
+}
+
+.coordinate-table .coord-col-sede {
+  width: 180px;
+}
+
+.coordinate-table .coord-col-comment {
+  width: 290px;
+}
+
+.coordinate-table .coord-col-actions {
+  width: 110px;
 }
 
 .document-table th {
@@ -121,6 +126,8 @@ section.coordinate-table-section.is-visible {
   font-size: 0.82rem;
   font-weight: 800;
   text-align: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
 }
 
 .document-table td {
@@ -141,7 +148,6 @@ section.coordinate-table-section.is-visible {
 
 .coordinate-table td:last-child,
 .coordinate-table th:last-child {
-  width: 96px;
   text-align: center;
 }
 

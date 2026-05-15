@@ -128,10 +128,6 @@
   gap: 22px 30px;
 }
 
-.step[data-step="6"] .check-grid {
-  gap: 20px 32px;
-}
-
 .step[data-step="6"] #indigenasAreaWrap,
 .step[data-step="6"] #comunidadesTradicionaisWrap,
 .step[data-step="6"] #conflitoInteretnicoWrap {
@@ -200,15 +196,19 @@
   gap: 18px 28px;
 }
 
-.vulnerability-details {
+.step[data-step="6"] .vulnerability-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(220px, 1fr));
-  gap: 16px 24px;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 22px 30px;
 }
 
 .vulnerability-detail-table {
-  display: grid;
+  display: none;
   gap: 10px;
+}
+
+.vulnerability-detail-table.has-visible-items {
+  display: grid;
 }
 
 .vulnerability-detail-row,
@@ -220,7 +220,7 @@
 }
 
 .vulnerability-detail-row.is-visible,
-.vulnerability-detail-row.header,
+.vulnerability-detail-table.has-visible-items .vulnerability-detail-row.header,
 .community-detail-row {
   display: grid;
 }

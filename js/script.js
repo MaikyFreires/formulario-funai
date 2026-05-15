@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260515-8";
+const APP_VERSION = "20260515-10";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -2147,6 +2147,9 @@ function getCoordenadasGeograficas() {
 
 function updateVulnerabilityDetails() {
   const selected = new Set(getCheckedValues("vulnerabilidades"));
+  const table = form.querySelector(".vulnerability-detail-table");
+  table?.classList.toggle("has-visible-items", selected.size > 0);
+
   form.querySelectorAll("[data-vulnerability-detail]").forEach((row) => {
     row.classList.toggle("is-visible", selected.has(row.dataset.vulnerabilityDetail));
   });
