@@ -99,10 +99,14 @@
                     </div>
                     <datalist id="etniaOptions"></datalist>
                     <div class="chips" id="etniaChips" aria-live="polite"></div>
-                    <label class="conditional" id="outraEtniaWrap">
-                      Outra etnia
-                      <input name="outraEtnia" type="text" placeholder="Digite aqui a etnia">
-                    </label>
+                    <div class="conditional other-entry" id="outraEtniaWrap">
+                      <label for="outraEtniaInput">Outra etnia</label>
+                      <div class="autocomplete-row">
+                        <input id="outraEtniaInput" type="text" placeholder="Digite aqui a etnia">
+                        <button type="button" class="icon-button" id="addOutraEtniaBtn" aria-label="Adicionar outra etnia">+</button>
+                      </div>
+                      <div class="chips other-chips" id="outraEtniaChips" aria-live="polite"></div>
+                    </div>
                   </div>
 
                   <fieldset>
@@ -110,7 +114,6 @@
                     <div class="check-grid">
                       <label><input type="radio" name="outrosNomes" value="Sim"> Sim</label>
                       <label><input type="radio" name="outrosNomes" value="Não"> Não</label>
-                      <label><input type="radio" name="outrosNomes" value="Sem informação"> Sem informação</label>
                     </div>
                   </fieldset>
 
@@ -124,6 +127,17 @@
               <section class="field-section">
                 <h3>Processo e qualificação</h3>
                 <div class="field-grid compact">
+                  <div class="process-list" id="processList">
+                    <label class="process-field">
+                      Nº do processo de reivindicação principal
+                      <input name="numeroProcesso" type="text">
+                    </label>
+                    <div class="process-buttons">
+                      <button type="button" class="icon-button" id="addProcessBtn" aria-label="Adicionar processo">+</button>
+                      <button type="button" class="icon-button danger" id="removeProcessBtn" aria-label="Excluir processo">&#128465;</button>
+                    </div>
+                  </div>
+
                   <fieldset class="roteiro-group">
                     Tem roteiro de qualificação ou material semelhante? *
                     <div class="check-grid">
@@ -134,18 +148,16 @@
                       Data do roteiro*
                       <input name="dataRoteiro" type="date">
                     </label>
+                    <label class="conditional inline-date" id="numeroSeiQualificacaoWrap">
+                      Número SEI do documento de qualificação
+                      <input name="numeroSeiQualificacao" type="text" placeholder="Número SEI">
+                    </label>
                   </fieldset>
 
-                  <div class="process-list" id="processList">
-                    <label class="process-field">
-                      Nº do processo
-                      <input name="numeroProcesso" type="text">
-                    </label>
-                    <div class="process-buttons">
-                      <button type="button" class="icon-button" id="addProcessBtn" aria-label="Adicionar processo">+</button>
-                      <button type="button" class="icon-button danger" id="removeProcessBtn" aria-label="Excluir processo">&#128465;</button>
-                    </div>
-                  </div>
+                  <label class="wide">
+                    Descrição dos processos analisados
+                    <textarea name="descricaoProcessosAnalisados" rows="3" placeholder="Descreva o tema principal dos processos analisados"></textarea>
+                  </label>
                 </div>
               </section>
 
@@ -291,8 +303,8 @@
                       <tr>
                         <th>Data</th>
                         <th>Tipo de documento</th>
-                        <th>Páginas</th>
-                        <th>Eventos</th>
+                        <th title="Para o caso de dossiê/volume digitalizado">Página</th>
+                        <th>Assunto</th>
                         <th>Nº SEI</th>
                         <th>Nº do processo</th>
                         <th>Ações</th>
@@ -302,8 +314,8 @@
                       <tr class="document-row">
                         <td><input name="dataDocumento" type="date" aria-label="Data"></td>
                         <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
-                        <td><input name="paginasDocumento" type="number" min="0" placeholder="Qtd." aria-label="Páginas"></td>
-                        <td><input name="eventosAssuntos" type="text" placeholder="Digite o evento" aria-label="Eventos"></td>
+                        <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página" title="Para o caso de dossiê/volume digitalizado"></td>
+                        <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
                         <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
                         <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
                         <td class="document-actions">
@@ -331,7 +343,6 @@
                 Está judicializado?
                 <div class="check-grid">
                   <label><input type="radio" name="estaJudicializado" value="Sim"> Sim</label>
-                  <label><input type="radio" name="estaJudicializado" value="Não"> Não</label>
                   <label><input type="radio" name="estaJudicializado" value="Sem informação"> Sem informação</label>
                 </div>
               </fieldset>
@@ -354,7 +365,6 @@
                   Tem decisão?
                   <div class="check-grid">
                     <label><input type="radio" name="temDecisao" value="Sim"> Sim</label>
-                    <label><input type="radio" name="temDecisao" value="Não"> Não</label>
                     <label><input type="radio" name="temDecisao" value="Sem informação"> Sem informação</label>
                   </div>
                 </fieldset>
@@ -372,6 +382,14 @@
                     <span class="sr-only">Sentença</span>
                     <input name="sentenca" type="text" placeholder="Sentença">
                   </label>
+                  <label>
+                    <span class="sr-only">Detalhes da decisão</span>
+                    <input name="detalhesDecisao" type="text" placeholder="Detalhe sobre a decisão">
+                  </label>
+                  <label>
+                    <span class="sr-only">Nº do processo judicial</span>
+                    <input name="numeroProcessoJudicial" type="text" placeholder="Nº do processo">
+                  </label>
                 </div>
               </div>
             </div>
@@ -381,7 +399,7 @@
             <div class="section-heading">
               <span>5</span>
               <div>
-                <h2>Caracterização da área</h2>
+                <h2>5. Caracterização da área</h2>
                 <p>Localização, coordenadas, bioma e sobreposições.</p>
               </div>
             </div>
@@ -397,29 +415,38 @@
                 <div class="check-grid">
                   <label><input type="radio" name="temCoordenadas" value="Sim"> Sim</label>
                   <label><input type="radio" name="temCoordenadas" value="Não"> Não</label>
-                  <label><input type="radio" name="temCoordenadas" value="Sem informação"> Sem informação</label>
                 </div>
               </fieldset>
 
               <section class="conditional wide coordinate-table-section" id="coordenadasWrap" aria-labelledby="coordenadasTitle">
                 <div class="table-heading compact-heading">
                   <h3 id="coordenadasTitle">Coordenadas geográficas</h3>
-                  <p>Informe latitude e longitude no formato disponível no processo e selecione a orientação correspondente.</p>
+                  <p>Informe as coordenadas no formato disponível no processo. Pode ser GMS, UTM ou outro formato registrado.</p>
                 </div>
                 <div class="table-scroll">
                   <table class="coordinate-table">
                     <thead>
                       <tr>
+                        <th>Formato</th>
                         <th>Latitude</th>
                         <th>N/S</th>
                         <th>Longitude</th>
                         <th>L/O</th>
+                        <th>Localizada na sede do município?</th>
                         <th>Comentário da coordenada</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
                     <tbody id="coordenadasTableBody">
                       <tr class="coordinate-row">
+                        <td>
+                          <select name="tipoCoordenada" aria-label="Formato da coordenada">
+                            <option value="">Escolha</option>
+                            <option>GMS</option>
+                            <option>UTM</option>
+                            <option>Outro</option>
+                          </select>
+                        </td>
                         <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
                         <td>
                           <select name="latitudeDirecao" aria-label="Direção da latitude">
@@ -434,6 +461,13 @@
                             <option value="">Escolha</option>
                             <option>Leste</option>
                             <option>Oeste</option>
+                          </select>
+                        </td>
+                        <td>
+                          <select name="coordenadaSedeMunicipio" aria-label="Coordenada localizada na sede do município">
+                            <option value="">Escolha</option>
+                            <option>Sim</option>
+                            <option>Não</option>
                           </select>
                         </td>
                         <td><input name="comentarioCoordenada" type="text" placeholder="Comentário da coordenada" aria-label="Comentário da coordenada"></td>
@@ -466,13 +500,20 @@
                     <div class="check-grid">
                       <label><input type="radio" name="citaAldeiasComunidades" value="Sim"> Sim</label>
                       <label><input type="radio" name="citaAldeiasComunidades" value="Não"> Não</label>
-                      <label><input type="radio" name="citaAldeiasComunidades" value="Sem informação"> Sem informação</label>
                     </div>
                   </fieldset>
-                  <label class="conditional" id="aldeiasComunidadesWrap">
-                    Quais?
-                    <input name="aldeiasComunidades" type="text" placeholder="Digite aqui">
-                  </label>
+                  <div class="conditional" id="aldeiasComunidadesWrap">
+                    <div class="process-list" id="aldeiasList">
+                      <label class="aldeia-field">
+                        Quais?
+                        <input name="aldeiasComunidades" type="text" placeholder="Digite aqui">
+                      </label>
+                      <div class="process-buttons">
+                        <button type="button" class="icon-button" id="addAldeiaBtn" aria-label="Adicionar aldeia ou comunidade">+</button>
+                        <button type="button" class="icon-button danger" id="removeAldeiaBtn" aria-label="Excluir aldeia ou comunidade">&#128465;</button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <fieldset class="area-card">
@@ -480,7 +521,6 @@
                   <div class="check-grid">
                     <label><input type="radio" name="contextoUrbano" value="Sim"> Sim</label>
                     <label><input type="radio" name="contextoUrbano" value="Não"> Não</label>
-                    <label><input type="radio" name="contextoUrbano" value="Sem informação"> Sem informação</label>
                   </div>
                 </fieldset>
 
@@ -489,7 +529,6 @@
                   <div class="check-grid">
                     <label><input type="radio" name="faixaFronteira" value="Sim"> Sim</label>
                     <label><input type="radio" name="faixaFronteira" value="Não"> Não</label>
-                    <label><input type="radio" name="faixaFronteira" value="Sem informação"> Sem informação</label>
                   </div>
                 </fieldset>
 
@@ -498,7 +537,6 @@
                   <div class="check-grid">
                     <label><input type="radio" name="temRetomada" value="Sim"> Sim</label>
                     <label><input type="radio" name="temRetomada" value="Não"> Não</label>
-                    <label><input type="radio" name="temRetomada" value="Sem informação"> Sem informação</label>
                   </div>
                   <label class="conditional" id="detalhesRetomadaWrap">
                     <span class="sr-only">Detalhes da retomada</span>
@@ -512,7 +550,6 @@
                 <div class="check-grid">
                   <label><input type="radio" name="sobreposicoes" value="Sim"> Sim</label>
                   <label><input type="radio" name="sobreposicoes" value="Não"> Não</label>
-                  <label><input type="radio" name="sobreposicoes" value="Sem informação"> Sem informação</label>
                 </div>
               </fieldset>
 
@@ -590,7 +627,7 @@
             <div class="section-heading">
               <span>6</span>
               <div>
-                <h2>Situação da ocupação indígena</h2>
+                <h2>6. Situação da ocupação indígena</h2>
                 <p>Registre presença, vulnerabilidades e conflitos existentes.</p>
               </div>
             </div>
@@ -636,13 +673,66 @@
                     </div>
                   </fieldset>
                   <details class="field-help">
-                    <summary>Glossário de conflitos</summary>
-                    <p>Use conflito deflagrado para conflito em curso ou explícito. Use conflito latente quando houver tensão, ameaça ou disputa indicada no processo.</p>
+                    <summary>Glossário dos critérios de vulnerabilidade</summary>
+                    <p>Garimpo: presença, pressão ou impacto associado a garimpo. Empreendimento de grande porte: obra ou atividade econômica relevante no entorno. Conflito deflagrado: conflito em curso ou explícito. Conflito latente: tensão, ameaça ou disputa indicada no processo. Danos ambientais: degradação ou risco ambiental registrado. Inacessibilidade a políticas públicas: dificuldade de acesso a serviços ou políticas públicas. Risco habitacional: vulnerabilidade ligada a moradia, deslocamento, permanência ou ameaça à ocupação. Outros: descreva quando o processo indicar outro critério.</p>
                   </details>
-                  <label class="reference-field">
-                    De quando é o dado?
-                    <input name="dataReferenciaVulnerabilidade" type="text" placeholder="Informe a referência do dado">
-                  </label>
+                  <div class="vulnerability-detail-table" aria-label="Fonte e data por critério de vulnerabilidade">
+                    <div class="vulnerability-detail-row header">
+                      <strong>Critério</strong>
+                      <strong>Fonte do dado</strong>
+                      <strong>De quando é o dado?</strong>
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Garimpo">
+                      <span>Garimpo</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Garimpo" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Garimpo" type="text" placeholder="Referência do dado">
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Empreendimento de grande porte">
+                      <span>Empreendimento de grande porte</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Empreendimento de grande porte" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Empreendimento de grande porte" type="text" placeholder="Referência do dado">
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Conflito deflagrado">
+                      <span>Conflito deflagrado</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Conflito deflagrado" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Conflito deflagrado" type="text" placeholder="Referência do dado">
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Conflito latente">
+                      <span>Conflito latente</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Conflito latente" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Conflito latente" type="text" placeholder="Referência do dado">
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Danos ambientais">
+                      <span>Danos ambientais</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Danos ambientais" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Danos ambientais" type="text" placeholder="Referência do dado">
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Inacessibilidade a políticas públicas">
+                      <span>Inacessibilidade a políticas públicas</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Inacessibilidade a políticas públicas" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Inacessibilidade a políticas públicas" type="text" placeholder="Referência do dado">
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Risco habitacional">
+                      <span>Risco habitacional</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Risco habitacional" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Risco habitacional" type="text" placeholder="Referência do dado">
+                    </div>
+                    <div class="vulnerability-detail-row" data-vulnerability-detail="Outros">
+                      <span>Outros</span>
+                      <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Outros" type="text" placeholder="Documento de origem">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Outros" type="text" placeholder="Referência do dado">
+                    </div>
+                  </div>
+                  <div class="vulnerability-details">
+                    <label>
+                      Fonte do dado
+                      <input name="fonteVulnerabilidade" type="text" placeholder="Documento de onde veio a informação">
+                    </label>
+                    <label>
+                      De quando é o dado?
+                      <input name="dataReferenciaVulnerabilidade" type="text" placeholder="Informe a referência do dado">
+                    </label>
+                  </div>
                 </div>
               </section>
 
@@ -714,7 +804,7 @@
               <section class="occupation-item">
                 <div class="occupation-content">
                   <fieldset>
-                    Há conflito interétnico na área reivindicada?
+                    Há conflitos?
                     <div class="check-grid">
                       <label><input type="radio" name="conflitoInteretnico" value="Sim"> Sim</label>
                       <label><input type="radio" name="conflitoInteretnico" value="Não"> Não</label>
@@ -723,6 +813,18 @@
                   </fieldset>
 
                   <div class="conditional occupation-subgrid" id="conflitoInteretnicoWrap">
+                    <fieldset>
+                      <legend>De que tipo?</legend>
+                      <div class="check-grid">
+                        <label><input type="checkbox" name="tiposConflito" value="Interétnico"> Interétnico</label>
+                        <label><input type="checkbox" name="tiposConflito" value="Fundiário"> Fundiário</label>
+                        <label><input type="checkbox" name="tiposConflito" value="Outro"> Outro</label>
+                      </div>
+                    </fieldset>
+                    <label>
+                      Com quem?
+                      <input name="envolvidosConflito" type="text" placeholder="Informe os envolvidos">
+                    </label>
                     <label>
                       Descreva
                       <input name="motivoConflitoInteretnico" type="text" placeholder="Descreva">
@@ -734,6 +836,10 @@
                     <label>
                       De quando é o dado?
                       <input name="dataReferenciaConflitoInteretnico" type="text" placeholder="Informe a referência do dado">
+                    </label>
+                    <label>
+                      Fonte do dado
+                      <input name="fonteConflito" type="text" placeholder="Documento de onde veio a informação">
                     </label>
                   </div>
                 </div>

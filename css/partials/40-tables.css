@@ -9,6 +9,10 @@
   grid-column: 1;
 }
 
+.aldeia-field {
+  grid-column: 1;
+}
+
 .process-buttons {
   display: flex;
   grid-column: 2;
@@ -78,7 +82,7 @@ section.coordinate-table-section.is-visible {
 
 .coordinate-table {
   width: 100%;
-  min-width: 0;
+  min-width: 1260px;
   border-collapse: separate;
   border-spacing: 8px 10px;
   table-layout: fixed;

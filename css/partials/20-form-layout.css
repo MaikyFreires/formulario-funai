@@ -200,6 +200,34 @@
   gap: 18px 28px;
 }
 
+.vulnerability-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 16px 24px;
+}
+
+.vulnerability-detail-table {
+  display: grid;
+  gap: 10px;
+}
+
+.vulnerability-detail-row {
+  display: none;
+  grid-template-columns: minmax(190px, 0.8fr) repeat(2, minmax(190px, 1fr));
+  gap: 12px;
+  align-items: center;
+}
+
+.vulnerability-detail-row.is-visible,
+.vulnerability-detail-row.header {
+  display: grid;
+}
+
+.vulnerability-detail-row.header {
+  color: var(--green);
+  font-size: 0.92rem;
+}
+
 .field-help {
   width: fit-content;
   max-width: 760px;

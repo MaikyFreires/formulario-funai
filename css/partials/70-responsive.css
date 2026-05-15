@@ -98,6 +98,8 @@
   .area-details-grid,
   .bioma-block .check-grid,
   .occupation-subgrid,
+  .vulnerability-details,
+  .vulnerability-detail-row,
   .community-grid,
   .vulnerability-grid {
     grid-template-columns: 1fr;
