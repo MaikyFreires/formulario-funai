@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260515-7";
+const APP_VERSION = "20260515-8";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -229,7 +229,7 @@ async function handleAccessSubmit(event) {
 
   const email = accessEmail.value.trim().toLowerCase();
   if (!accessEmail.checkValidity() || !email) {
-    showAccessMessage("Informe um e-mail vÃ¡lido.", "error");
+    showAccessMessage("Informe um e-mail válido.", "error");
     accessEmail.classList.add("invalid");
     return;
   }
@@ -266,16 +266,16 @@ async function handleAccessSubmit(event) {
     }
 
     if (data.autorizado === false) {
-      showAccessMessage("E-mail nÃ£o autorizado.", "error");
+      showAccessMessage("E-mail não autorizado.", "error");
       return;
     }
 
-    showAccessMessage("NÃ£o foi possÃ­vel confirmar a autorizaÃ§Ã£o do e-mail.", "error");
+    showAccessMessage("Não foi possível confirmar a autorização do e-mail.", "error");
   } catch (error) {
-    showAccessMessage("NÃ£o foi possÃ­vel verificar o e-mail. Tente novamente.", "error");
+    showAccessMessage("Não foi possível verificar o e-mail. Tente novamente.", "error");
   } finally {
     accessSubmitBtn.disabled = false;
-    accessSubmitBtn.textContent = "Acessar formulÃ¡rio";
+    accessSubmitBtn.textContent = "Acessar formulário";
   }
 }
 
@@ -471,13 +471,13 @@ function showReturnHomeDialog() {
 
   overlay.className = "confirm-overlay";
   dialog.className = "confirm-dialog";
-  title.textContent = "Deseja sair do formulÃ¡rio atual?";
+  title.textContent = "Deseja sair do formulário atual?";
   actions.className = "confirm-actions";
   keepEditingBtn.type = "button";
   keepEditingBtn.className = "ghost";
   keepEditingBtn.textContent = "Continuar editando";
   returnHomeBtn.type = "button";
-  returnHomeBtn.textContent = "Voltar ao inÃ­cio";
+  returnHomeBtn.textContent = "Voltar ao início";
 
   keepEditingBtn.addEventListener("click", () => overlay.remove());
   returnHomeBtn.addEventListener("click", () => {
@@ -514,9 +514,9 @@ function updateConditionals() {
   updateVulnerabilityDetails();
 
   const demandas = getCheckedValues("tipoDemanda");
-  setConditional("modalidadeReservaWrap", hasDemand(demandas, "Reserva IndÃ­gena"));
-  setConditional("justificativaRevisaoWrap", hasDemand(demandas, "RevisÃ£o de limites"));
-  setConditional("justificativaRevisaoTextoWrap", hasDemand(demandas, "RevisÃ£o de limites") && getValue("temJustificativaRevisao") === "Sim");
+  setConditional("modalidadeReservaWrap", hasDemand(demandas, "Reserva Indígena"));
+  setConditional("justificativaRevisaoWrap", hasDemand(demandas, "Revisão de limites"));
+  setConditional("justificativaRevisaoTextoWrap", hasDemand(demandas, "Revisão de limites") && getValue("temJustificativaRevisao") === "Sim");
 }
 
 function setConditional(id, isVisible, requiredNames = []) {
@@ -549,30 +549,30 @@ function validateRequiredFields(isDraftSave = false) {
   const demandas = getCheckedValues("tipoDemanda");
   const requiredRules = [
     { fieldId: "consultorNome", label: "Nome completo do(a) consultor(a)", isValid: () => hasValue("consultorNome") },
-    { fieldId: "areaEstudo", label: "Ãrea de estudo", isValid: () => hasValue("areaEstudo") },
+    { fieldId: "areaEstudo", label: "Área de estudo", isValid: () => hasValue("areaEstudo") },
     { fieldId: "reivindicacaoId", label: "ID", isValid: () => hasValue("reivindicacaoId") },
-    { fieldId: "nomeReivindicacao", label: "Nome da reivindicaÃ§Ã£o", isValid: () => hasValue("nomeReivindicacao") },
-    { fieldId: "outrosNomesTexto", label: "Outros nomes da reivindicaÃ§Ã£o", isValid: () => getValue("outrosNomes") !== "Sim" || hasValue("outrosNomesTexto") },
+    { fieldId: "nomeReivindicacao", label: "Nome da reivindicação", isValid: () => hasValue("nomeReivindicacao") },
+    { fieldId: "outrosNomesTexto", label: "Outros nomes da reivindicação", isValid: () => getValue("outrosNomes") !== "Sim" || hasValue("outrosNomesTexto") },
     { fieldId: "temRoteiro", label: "Tem roteiro", isValid: () => hasChecked("temRoteiro") },
     { fieldId: "dataRoteiro", label: "Data do roteiro", isValid: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro") },
     { fieldId: "etnias", label: "Etnia", isValid: () => selectedEtnias.length > 0 },
     { fieldId: "outraEtnia", label: "Outra etnia", isValid: () => !selectedEtnias.includes("Outros") || selectedOutrasEtnias.length > 0 },
     { fieldId: "tipoDemanda", label: "Tipo da demanda", isValid: () => demandas.length > 0 },
-    { fieldId: "modalidadeConstituicao", label: "Modalidade de ConstituiÃ§Ã£o", isValid: () => !hasDemand(demandas, "Reserva IndÃ­gena") || hasValue("modalidadeConstituicao") },
-    { fieldId: "temJustificativaRevisao", label: "HÃ¡ justificativa para a demanda por revisÃ£o de limites", isValid: () => !hasDemand(demandas, "RevisÃ£o de limites") || hasChecked("temJustificativaRevisao") },
-    { fieldId: "justificativaRevisao", label: "Justificativa da RevisÃ£o", isValid: () => getValue("temJustificativaRevisao") !== "Sim" || hasValue("justificativaRevisao") },
+    { fieldId: "modalidadeConstituicao", label: "Modalidade de Constituição", isValid: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao") },
+    { fieldId: "temJustificativaRevisao", label: "Há justificativa para a demanda por revisão de limites", isValid: () => !hasDemand(demandas, "Revisão de limites") || hasChecked("temJustificativaRevisao") },
+    { fieldId: "justificativaRevisao", label: "Justificativa da Revisão", isValid: () => getValue("temJustificativaRevisao") !== "Sim" || hasValue("justificativaRevisao") },
     { fieldId: "estados", label: "Estado", isValid: () => selectedEstados.length > 0 },
-    { fieldId: "municipios", label: "MunicÃ­pio", isValid: () => selectedMunicipios.length > 0 },
-    { fieldId: "coordenacaoRegional", label: "CoordenaÃ§Ã£o Regional", isValid: () => hasValue("coordenacaoRegional") },
+    { fieldId: "municipios", label: "Município", isValid: () => selectedMunicipios.length > 0 },
+    { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
     { fieldId: "temRetomada", label: "Tem retomada", isValid: () => hasChecked("temRetomada") },
     { fieldId: "detalhesRetomada", label: "Detalhes da retomada", isValid: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada") },
-    { fieldId: "descricaoReivindicacao", label: "DescriÃ§Ã£o da reivindicaÃ§Ã£o", isValid: () => hasValue("descricaoReivindicacao") },
-    { fieldId: "coordenadas", label: "Coordenadas geogrÃ¡ficas", isValid: () => areCoordenadasValid() }
+    { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") },
+    { fieldId: "coordenadas", label: "Coordenadas geográficas", isValid: () => areCoordenadasValid() }
   ];
 
   requiredRules.forEach((rule) => {
     if (rule.isValid()) return;
-    const error = showFieldError(rule.fieldId, "Campo obrigatÃ³rio");
+    const error = showFieldError(rule.fieldId, "Campo obrigatório");
     errors.push({
       fieldId: rule.fieldId,
       label: rule.label,
@@ -695,8 +695,8 @@ function isRequiredFieldResolved(fieldId) {
     etnias: () => selectedEtnias.length > 0,
     outraEtnia: () => !selectedEtnias.includes("Outros") || selectedOutrasEtnias.length > 0,
     tipoDemanda: () => demandas.length > 0,
-    modalidadeConstituicao: () => !hasDemand(demandas, "Reserva IndÃ­gena") || hasValue("modalidadeConstituicao"),
-    temJustificativaRevisao: () => !hasDemand(demandas, "RevisÃ£o de limites") || hasChecked("temJustificativaRevisao"),
+    modalidadeConstituicao: () => !hasDemand(demandas, "Reserva Indígena") || hasValue("modalidadeConstituicao"),
+    temJustificativaRevisao: () => !hasDemand(demandas, "Revisão de limites") || hasChecked("temJustificativaRevisao"),
     justificativaRevisao: () => getValue("temJustificativaRevisao") !== "Sim" || hasValue("justificativaRevisao"),
     estados: () => selectedEstados.length > 0,
     municipios: () => selectedMunicipios.length > 0,
@@ -740,7 +740,7 @@ async function enviarFormulario(event) {
   const isDraftSave = false;
   const validationErrors = validateRequiredFields(isDraftSave);
   if (validationErrors.length) {
-    showMessage(`Existem campos obrigatÃ³rios nÃ£o preenchidos. Revise os campos destacados em vermelho. Campos: ${validationErrors.map((error) => error.label).join(", ")}.`, "error");
+    showMessage(`Existem campos obrigatórios não preenchidos. Revise os campos destacados em vermelho. Campos: ${validationErrors.map((error) => error.label).join(", ")}.`, "error");
     goToFirstErrorStep(validationErrors);
     return;
   }
@@ -748,7 +748,7 @@ async function enviarFormulario(event) {
   const authorizedEmail = getStoredAuthorizedEmail();
   if (!authorizedEmail || !hasActiveSession()) {
     showAccessScreen();
-    showAccessMessage("Informe seu e-mail para acessar o formulÃ¡rio.", "error");
+    showAccessMessage("Informe seu e-mail para acessar o formulário.", "error");
     return;
   }
 
@@ -773,7 +773,7 @@ async function enviarFormulario(event) {
     console.log(response.status, response.statusText);
 
     if (response.ok) {
-      showMessage("FormulÃ¡rio enviado com sucesso.", "success");
+      showMessage("Formulário enviado com sucesso.", "success");
       sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
       showDashboard(authorizedEmail);
       return;
@@ -782,16 +782,16 @@ async function enviarFormulario(event) {
     await readJsonIfAvailable(response);
 
     if (response.status === 403) {
-      showMessage("Este e-mail nÃ£o estÃ¡ autorizado a enviar o formulÃ¡rio.", "error");
+      showMessage("Este e-mail não está autorizado a enviar o formulário.", "error");
       return;
     }
 
     throw new Error(`Falha no envio: ${response.status}`);
   } catch (error) {
-    showMessage("NÃ£o foi possÃ­vel enviar o formulÃ¡rio. Verifique a URL do Power Automate e tente novamente.", "error");
+    showMessage("Não foi possível enviar o formulário. Verifique a URL do Power Automate e tente novamente.", "error");
   } finally {
     submitBtn.disabled = false;
-    submitBtn.textContent = "Enviar formulÃ¡rio";
+    submitBtn.textContent = "Enviar formulário";
   }
 }
 
@@ -936,7 +936,7 @@ async function salvarRascunho() {
   console.log("payload rascunho", payload);
 
   if (!POWER_AUTOMATE_URL) {
-    showMessage("Rascunho salvo no navegador, mas nÃ£o foi enviado ao SharePoint.", "error");
+    showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
     return;
   }
 
@@ -961,13 +961,13 @@ async function salvarRascunho() {
     await readJsonIfAvailable(response);
 
     if (response.status === 403) {
-      showMessage("Este e-mail nÃ£o estÃ¡ autorizado.", "error");
+      showMessage("Este e-mail não está autorizado.", "error");
       return;
     }
 
     throw new Error(`Falha no envio do rascunho: ${response.status}`);
   } catch (error) {
-    showMessage("Rascunho salvo no navegador, mas nÃ£o foi enviado ao SharePoint.", "error");
+    showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
   } finally {
     saveDraftBtn.disabled = false;
     saveDraftBtn.textContent = "Salvar Rascunho";
@@ -1516,7 +1516,7 @@ async function loadEtniaData() {
     populateEtniaOptions();
   } catch (error) {
     allEtnias = ["Outros"];
-    etniaInput.placeholder = "NÃ£o foi possÃ­vel carregar etnias";
+    etniaInput.placeholder = "Não foi possível carregar etnias";
     populateEtniaOptions();
   }
 }
@@ -1538,8 +1538,8 @@ async function loadMunicipioData() {
     populateEstadoOptions();
     populateMunicipioOptions();
   } catch (error) {
-    estadoInput.placeholder = "NÃ£o foi possÃ­vel carregar estados";
-    municipioInput.placeholder = "NÃ£o foi possÃ­vel carregar municÃ­pios";
+    estadoInput.placeholder = "Não foi possível carregar estados";
+    municipioInput.placeholder = "Não foi possível carregar municípios";
     populateMunicipioOptions();
   }
 }
@@ -1620,7 +1620,7 @@ function populateMunicipioOptions() {
   const hasEstados = selectedEstados.length > 0;
   municipioInput.disabled = !hasEstados;
   addMunicipioBtn.disabled = !hasEstados;
-  municipioInput.placeholder = hasEstados ? "Localizar municÃ­pios" : "Selecione um estado primeiro";
+  municipioInput.placeholder = hasEstados ? "Localizar municípios" : "Selecione um estado primeiro";
 }
 
 function getAvailableMunicipios() {
@@ -1679,7 +1679,7 @@ function renderEtniaChips() {
     removeButton.type = "button";
     removeButton.dataset.etnia = etnia;
     removeButton.setAttribute("aria-label", `Remover ${etnia}`);
-    removeButton.textContent = "Ã—";
+    removeButton.textContent = "×";
     chip.append(removeButton);
     etniaChips.append(chip);
   });
@@ -1784,7 +1784,7 @@ function removeSelectedMunicipio(event) {
 }
 
 function renderMunicipioChips() {
-  renderChips(municipioChips, selectedMunicipios, "municipio", "Remover municÃ­pio");
+  renderChips(municipioChips, selectedMunicipios, "municipio", "Remover município");
 }
 
 function getSelectedMunicipios() {
@@ -1895,7 +1895,7 @@ function renderChips(container, values, dataName, ariaPrefix) {
     removeButton.type = "button";
     removeButton.dataset[dataName] = value;
     removeButton.setAttribute("aria-label", `${ariaPrefix} ${value}`);
-    removeButton.textContent = "Ã—";
+    removeButton.textContent = "×";
     chip.append(removeButton);
     container.append(chip);
   });
@@ -1920,10 +1920,10 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
     <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
     <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página" title="Para o caso de dossiê/volume digitalizado"></td>
     <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
-    <td><input name="numeroSei" type="text" placeholder="NÂº SEI" aria-label="NÂº SEI"></td>
-    <td><input name="numeroProcessoDocumento" type="text" placeholder="NÂº do processo" aria-label="NÂº do processo"></td>
+    <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
+    <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
     <td class="document-actions">
-      <button type="button" class="icon-button remove-documento-btn" aria-label="Remover documento">Ã—</button>
+      <button type="button" class="icon-button remove-documento-btn" aria-label="Remover documento">×</button>
       <button type="button" class="icon-button add-documento-row-btn" aria-label="Adicionar documento">+</button>
     </td>
   `;
@@ -2044,7 +2044,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
     </td>
     <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
     <td>
-      <select name="latitudeDirecao" aria-label="DireÃ§Ã£o da latitude">
+      <select name="latitudeDirecao" aria-label="Direção da latitude">
         <option value="">Escolha</option>
         <option>Norte</option>
         <option>Sul</option>
@@ -2052,7 +2052,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
     </td>
     <td><input name="longitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Longitude" aria-label="Longitude"></td>
     <td>
-      <select name="longitudeDirecao" aria-label="DireÃ§Ã£o da longitude">
+      <select name="longitudeDirecao" aria-label="Direção da longitude">
         <option value="">Escolha</option>
         <option>Leste</option>
         <option>Oeste</option>
