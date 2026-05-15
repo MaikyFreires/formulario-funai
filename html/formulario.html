@@ -10,7 +10,7 @@
 
         <div class="progress-wrap" aria-label="Progresso do formulário">
           <div class="progress-meta">
-            <strong id="progressTitle">DADOS DO(A) CONSULTOR(A)</strong>
+            <strong id="progressTitle">1. DADOS DO(A) CONSULTOR(A)</strong>
             <span id="stepCounter">Etapa 1 de 6</span>
           </div>
           <div class="progress-track">
@@ -19,11 +19,11 @@
         </div>
 
         <form id="funaiForm" novalidate>
-          <section class="step is-active" data-step="1" data-title="DADOS DO(A) CONSULTOR(A)">
+          <section class="step is-active" data-step="1" data-title="1. DADOS DO(A) CONSULTOR(A)">
             <div class="section-heading">
               <span>1</span>
               <div>
-                <h2>DADOS DO(A) CONSULTOR(A)</h2>
+                <h2>1. DADOS DO(A) CONSULTOR(A)</h2>
                 <p>Identifique quem está preenchendo o levantamento.</p>
               </div>
             </div>
@@ -129,7 +129,7 @@
                 <div class="field-grid compact">
                   <div class="process-list" id="processList">
                     <label class="process-field">
-                      Nº do processo de reivindicação principal
+                      Número SEI dos processos analisados
                       <input name="numeroProcesso" type="text">
                     </label>
                     <div class="process-buttons">
@@ -748,55 +748,22 @@
                   </fieldset>
 
                   <div class="conditional occupation-community-group" id="comunidadesTradicionaisWrap">
-                    <fieldset>
-                      <legend>Povo ou comunidade tradicional</legend>
-                      <div class="check-grid community-grid">
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Indígenas"> Indígenas</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Quilombolas"> Quilombolas</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Povos de Terreiro"> Povos de Terreiro</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Povos de Matriz Africana"> Povos de Matriz Africana</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Ciganos"> Ciganos</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Pescadores Artesanais"> Pescadores Artesanais</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Marisqueiras"> Marisqueiras</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Ribeirinhos"> Ribeirinhos</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Caiçaras"> Caiçaras</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Extrativistas"> Extrativistas</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Extrativistas Costeiros e Marinhos"> Extrativistas Costeiros e Marinhos</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Seringueiros"> Seringueiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Castanheiros"> Castanheiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Quebradeiras de Coco Babaçu"> Quebradeiras de Coco Babaçu</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Comunidades de Fundo e Fecho de Pasto"> Comunidades de Fundo e Fecho de Pasto</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Faxinalenses"> Faxinalenses</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Pantaneiros"> Pantaneiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Geraizeiros"> Geraizeiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Veredeiros"> Veredeiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Caatingueiros"> Caatingueiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Vazanteiros"> Vazanteiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Retireiros do Araguaia"> Retireiros do Araguaia</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Praieiros"> Praieiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Jangadeiros"> Jangadeiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Açorianos"> Açorianos</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Campeiros"> Campeiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Sertanejos"> Sertanejos</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Apanhadores de Flores Sempre-vivas"> Apanhadores de Flores Sempre-vivas</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Raizeiros"> Raizeiros</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Benzedeiras"> Benzedeiras</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Pomeranos"> Pomeranos</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Ilhéus"> Ilhéus</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Caboclos"> Caboclos</label>
-                        <label><input type="checkbox" name="tiposComunidadeTradicional" value="Outros"> Outros</label>
+                    <div class="multi-autocomplete">
+                      <label for="comunidadeTradicionalInput">Povo ou comunidade tradicional</label>
+                      <div class="autocomplete-row">
+                        <input id="comunidadeTradicionalInput" type="text" list="comunidadeTradicionalOptions" placeholder="Localizar comunidade">
+                        <button type="button" class="icon-button" id="addComunidadeTradicionalBtn" aria-label="Adicionar comunidade tradicional">+</button>
                       </div>
-                    </fieldset>
+                      <datalist id="comunidadeTradicionalOptions"></datalist>
+                      <div class="chips" id="comunidadeTradicionalChips" aria-live="polite"></div>
+                    </div>
 
                     <label class="conditional" id="outrasComunidadesTradicionaisWrap">
                       Outros
                       <input name="descricaoComunidadeTradicional" type="text" placeholder="Descreva">
                     </label>
 
-                    <label>
-                      De quando é o dado?
-                      <input name="dataReferenciaComunidadeTradicional" type="text" placeholder="Informe a referência do dado">
-                    </label>
+                    <div class="community-detail-table" id="comunidadeTradicionalDetalhes" aria-label="Fonte e data por comunidade tradicional"></div>
                   </div>
                 </div>
               </section>

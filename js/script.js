@@ -10,7 +10,43 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260515-3";
+const APP_VERSION = "20260515-7";
+const COMUNIDADES_TRADICIONAIS = [
+  "Indígenas",
+  "Quilombolas",
+  "Povos de Terreiro",
+  "Povos de Matriz Africana",
+  "Ciganos",
+  "Pescadores Artesanais",
+  "Marisqueiras",
+  "Ribeirinhos",
+  "Caiçaras",
+  "Extrativistas",
+  "Extrativistas Costeiros e Marinhos",
+  "Seringueiros",
+  "Castanheiros",
+  "Quebradeiras de Coco Babaçu",
+  "Comunidades de Fundo e Fecho de Pasto",
+  "Faxinalenses",
+  "Pantaneiros",
+  "Geraizeiros",
+  "Veredeiros",
+  "Caatingueiros",
+  "Vazanteiros",
+  "Retireiros do Araguaia",
+  "Praieiros",
+  "Jangadeiros",
+  "Açorianos",
+  "Campeiros",
+  "Sertanejos",
+  "Apanhadores de Flores Sempre-vivas",
+  "Raizeiros",
+  "Benzedeiras",
+  "Pomeranos",
+  "Ilhéus",
+  "Caboclos",
+  "Outros"
+];
 const HTML_PARTIALS = ["html/acesso.html", "html/dashboard.html", "html/formulario.html"];
 let formApp;
 let accessGate;
@@ -64,12 +100,18 @@ let municipioOptions;
 let municipioChips;
 let addMunicipioBtn;
 let coordenadasTableBody;
+let comunidadeTradicionalInput;
+let comunidadeTradicionalOptions;
+let comunidadeTradicionalChips;
+let addComunidadeTradicionalBtn;
+let comunidadeTradicionalDetalhes;
 
 let currentStep = 0;
 let selectedEtnias = [];
 let selectedOutrasEtnias = [];
 let selectedEstados = [];
 let selectedMunicipios = [];
+let selectedComunidadesTradicionais = [];
 let municipiosPorEstado = new Map();
 let allEstados = [];
 let allEtnias = [];
@@ -166,6 +208,11 @@ function cacheDomElements() {
   municipioChips = document.querySelector("#municipioChips");
   addMunicipioBtn = document.querySelector("#addMunicipioBtn");
   coordenadasTableBody = document.querySelector("#coordenadasTableBody");
+  comunidadeTradicionalInput = document.querySelector("#comunidadeTradicionalInput");
+  comunidadeTradicionalOptions = document.querySelector("#comunidadeTradicionalOptions");
+  comunidadeTradicionalChips = document.querySelector("#comunidadeTradicionalChips");
+  addComunidadeTradicionalBtn = document.querySelector("#addComunidadeTradicionalBtn");
+  comunidadeTradicionalDetalhes = document.querySelector("#comunidadeTradicionalDetalhes");
 }
 
 function bindAccessEvents() {
@@ -259,6 +306,7 @@ async function initializeForm() {
   formInitialized = true;
   await loadEtniaData();
   await loadMunicipioData();
+  populateComunidadeTradicionalOptions();
   bindEvents();
   updateConditionals();
   showStep(0);
@@ -298,6 +346,7 @@ function limparFormulario() {
   selectedOutrasEtnias = [];
   selectedEstados = [];
   selectedMunicipios = [];
+  selectedComunidadesTradicionais = [];
   resetDocumentoRows();
   resetCoordenadaRows();
   resetAldeiaFields();
@@ -305,8 +354,11 @@ function limparFormulario() {
   renderOutraEtniaChips();
   renderEstadoChips();
   renderMunicipioChips();
+  renderComunidadeTradicionalChips();
+  renderComunidadeTradicionalDetalhes();
   populateEstadoOptions();
   populateMunicipioOptions();
+  populateComunidadeTradicionalOptions();
   clearMessage();
   clearValidationErrors();
   updateConditionals();
@@ -336,6 +388,9 @@ function bindEvents() {
   addMunicipioBtn.addEventListener("click", addSelectedMunicipio);
   municipioInput.addEventListener("keydown", handleMunicipioKeydown);
   municipioChips.addEventListener("click", removeSelectedMunicipio);
+  addComunidadeTradicionalBtn.addEventListener("click", addSelectedComunidadeTradicional);
+  comunidadeTradicionalInput.addEventListener("keydown", handleComunidadeTradicionalKeydown);
+  comunidadeTradicionalChips.addEventListener("click", removeSelectedComunidadeTradicional);
   addProcessBtn.addEventListener("click", () => addProcessField());
   removeProcessBtn.addEventListener("click", removeProcessField);
   addAldeiaBtn.addEventListener("click", () => addAldeiaField());
@@ -451,7 +506,7 @@ function updateConditionals() {
   setConditional("aldeiasComunidadesWrap", getValue("citaAldeiasComunidades") === "Sim");
   setConditional("indigenasAreaWrap", getValue("indigenasArea") === "Sim");
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
-  setConditional("outrasComunidadesTradicionaisWrap", getCheckedValues("tiposComunidadeTradicional").includes("Outros"));
+  setConditional("outrasComunidadesTradicionaisWrap", selectedComunidadesTradicionais.includes("Outros"));
   setConditional("conflitoInteretnicoWrap", getValue("conflitoInteretnico") === "Sim");
   setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
@@ -852,9 +907,10 @@ function buildPayload(statusFormulario = "Enviado") {
       fonteVulnerabilidade: asText(getValue("fonteVulnerabilidade")),
       dataReferenciaVulnerabilidade: asText(getValue("dataReferenciaVulnerabilidade")),
       comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
-      tiposComunidadeTradicional: asList(getCheckedValues("tiposComunidadeTradicional")),
+      tiposComunidadeTradicional: asList(getSelectedComunidadesTradicionais()),
+      detalhesComunidadesTradicionais: asList(getDetalhesComunidadesTradicionais()),
       descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
-      dataReferenciaComunidadeTradicional: asText(getValue("dataReferenciaComunidadeTradicional")),
+      dataReferenciaComunidadeTradicional: asText(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
       tiposConflito: asList(getCheckedValues("tiposConflito")),
       envolvidosConflito: asText(getValue("envolvidosConflito")),
@@ -1183,6 +1239,7 @@ function restoreValues(values) {
   const outrasEtnias = asListOrSplit(values.outrasEtnias || values.outraEtnia);
   const estados = asListOrSplit(values.estados);
   const municipios = asListOrSplit(values.municipios);
+  const comunidadesTradicionais = asListOrSplit(values.tiposComunidadeTradicional);
   const numerosProcesso = asListOrSplit(values.numerosProcesso);
   const aldeiasComunidadesLista = asListOrSplit(values.aldeiasComunidadesLista || values.aldeiasComunidades);
 
@@ -1207,6 +1264,12 @@ function restoreValues(values) {
     renderMunicipioChips();
   }
 
+  if (comunidadesTradicionais.length) {
+    selectedComunidadesTradicionais = comunidadesTradicionais;
+    renderComunidadeTradicionalChips();
+    populateComunidadeTradicionalOptions();
+  }
+
   if (numerosProcesso.length) {
     restoreProcessFields(numerosProcesso);
   }
@@ -1222,9 +1285,10 @@ function restoreValues(values) {
   restoreCoordenadaRows(coordenadas);
   if (!coordenadas.length) restoreLegacyCoordenadaRow(values);
   restoreDetalhesVulnerabilidades(values.detalhesVulnerabilidades);
+  renderComunidadeTradicionalDetalhes(values.detalhesComunidadesTradicionais);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "numerosProcesso", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada"].includes(name)) return;
+    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "numerosProcesso", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1327,6 +1391,7 @@ function flattenDraft(draft) {
     dataReferenciaVulnerabilidade: draft.ocupacaoIndigena?.dataReferenciaVulnerabilidade,
     comunidadesTradicionais: draft.ocupacaoIndigena?.comunidadesTradicionais,
     tiposComunidadeTradicional: asListOrSplit(draft.ocupacaoIndigena?.tiposComunidadeTradicional),
+    detalhesComunidadesTradicionais: normalizeDetalhesComunidadesTradicionais(draft.ocupacaoIndigena?.detalhesComunidadesTradicionais),
     descricaoComunidadeTradicional: draft.ocupacaoIndigena?.descricaoComunidadeTradicional,
     dataReferenciaComunidadeTradicional: draft.ocupacaoIndigena?.dataReferenciaComunidadeTradicional,
     conflitoInteretnico: draft.ocupacaoIndigena?.conflitoInteretnico,
@@ -1726,6 +1791,93 @@ function getSelectedMunicipios() {
   return selectedMunicipios.filter(Boolean);
 }
 
+function populateComunidadeTradicionalOptions() {
+  comunidadeTradicionalOptions.innerHTML = COMUNIDADES_TRADICIONAIS
+    .filter((item) => !selectedComunidadesTradicionais.includes(item))
+    .map((item) => `<option value="${item}"></option>`)
+    .join("");
+}
+
+function handleComunidadeTradicionalKeydown(event) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  addSelectedComunidadeTradicional();
+}
+
+function addSelectedComunidadeTradicional() {
+  const value = comunidadeTradicionalInput.value.trim();
+  if (!value || selectedComunidadesTradicionais.includes(value) || !COMUNIDADES_TRADICIONAIS.includes(value)) return;
+
+  selectedComunidadesTradicionais.push(value);
+  comunidadeTradicionalInput.value = "";
+  renderComunidadeTradicionalChips();
+  populateComunidadeTradicionalOptions();
+  renderComunidadeTradicionalDetalhes();
+  updateConditionals();
+}
+
+function removeSelectedComunidadeTradicional(event) {
+  const button = event.target.closest("button[data-comunidade-tradicional]");
+  if (!button) return;
+
+  selectedComunidadesTradicionais = selectedComunidadesTradicionais.filter((item) => item !== button.dataset.comunidadeTradicional);
+  renderComunidadeTradicionalChips();
+  populateComunidadeTradicionalOptions();
+  renderComunidadeTradicionalDetalhes();
+  updateConditionals();
+}
+
+function renderComunidadeTradicionalChips() {
+  renderChips(comunidadeTradicionalChips, selectedComunidadesTradicionais, "comunidadeTradicional", "Remover comunidade tradicional");
+}
+
+function getSelectedComunidadesTradicionais() {
+  return selectedComunidadesTradicionais.filter(Boolean);
+}
+
+function renderComunidadeTradicionalDetalhes(existingDetails = []) {
+  const previous = new Map(getDetalhesComunidadesTradicionais().map((item) => [item.tipo, item]));
+  normalizeDetalhesComunidadesTradicionais(existingDetails).forEach((item) => previous.set(item.tipo, item));
+
+  comunidadeTradicionalDetalhes.innerHTML = "";
+  if (!selectedComunidadesTradicionais.length) return;
+
+  const header = document.createElement("div");
+  header.className = "community-detail-row header";
+  header.innerHTML = "<strong>Comunidade</strong><strong>Fonte do dado</strong><strong>De quando é o dado?</strong>";
+  comunidadeTradicionalDetalhes.append(header);
+
+  selectedComunidadesTradicionais.forEach((tipo) => {
+    const detail = previous.get(tipo) || {};
+    const row = document.createElement("div");
+    row.className = "community-detail-row";
+    row.dataset.communityDetail = tipo;
+    row.innerHTML = `
+      <span>${tipo}</span>
+      <input name="fonteComunidadeTradicional" data-community-source="${tipo}" type="text" placeholder="Documento de origem">
+      <input name="dataComunidadeTradicional" data-community-date="${tipo}" type="text" placeholder="Referência do dado">
+    `;
+    row.querySelector("[data-community-source]").value = asText(detail.fonte);
+    row.querySelector("[data-community-date]").value = asText(detail.dataReferencia);
+    comunidadeTradicionalDetalhes.append(row);
+  });
+}
+
+function getDetalhesComunidadesTradicionais() {
+  return Array.from(comunidadeTradicionalDetalhes.querySelectorAll("[data-community-detail]"))
+    .map((row) => {
+      const tipo = row.dataset.communityDetail;
+      const fonte = asText(row.querySelector("[data-community-source]")?.value);
+      const dataReferencia = asText(row.querySelector("[data-community-date]")?.value);
+      return { tipo, fonte, dataReferencia };
+    })
+    .filter((item) => item.tipo);
+}
+
+function getPrimeiroDetalheComunidadeTradicional() {
+  return getDetalhesComunidadesTradicionais()[0] || {};
+}
+
 function pruneSelectedMunicipios() {
   const availableMunicipios = getAvailableMunicipios();
   selectedMunicipios = selectedMunicipios.filter((municipio) => availableMunicipios.includes(municipio));
@@ -1915,7 +2067,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
     </td>
     <td><input name="comentarioCoordenada" type="text" placeholder="Comentário da coordenada" aria-label="Comentário da coordenada"></td>
     <td class="coordinate-actions">
-      <button type="button" class="icon-button remove-coordenada-btn" aria-label="Remover coordenada">Ã—</button>
+      <button type="button" class="icon-button remove-coordenada-btn" aria-label="Remover coordenada">×</button>
       <button type="button" class="icon-button add-coordenada-row-btn" aria-label="Adicionar coordenada">+</button>
     </td>
   `;
@@ -2037,6 +2189,20 @@ function normalizeDetalhesVulnerabilidades(value) {
   return [];
 }
 
+function normalizeDetalhesComunidadesTradicionais(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+  return [];
+}
+
 function areCoordenadasValid() {
   if (getValue("temCoordenadas") !== "Sim") return true;
   const coordenadas = getCoordenadasGeograficas();
@@ -2074,7 +2240,7 @@ function addProcessField(value = "") {
   input.name = "numeroProcesso";
   input.type = "text";
   input.value = value;
-  label.append(document.createTextNode("Nº do processo de reivindicação principal"), input);
+  label.append(document.createTextNode("Número SEI dos processos analisados"), input);
   processList.insertBefore(label, processList.querySelector(".process-buttons"));
   input.focus();
 }
