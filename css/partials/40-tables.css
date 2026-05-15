@@ -162,6 +162,15 @@ section.coordinate-table-section.is-visible {
   padding-inline: 8px;
 }
 
+.coordinate-format-detail {
+  display: none;
+  margin-top: 8px;
+}
+
+.coordinate-format-detail.is-visible {
+  display: block;
+}
+
 .coordinate-table-section.field-error .coordinate-table {
   outline: 2px solid var(--danger);
   outline-offset: 2px;

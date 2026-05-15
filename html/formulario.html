@@ -456,6 +456,7 @@
                             <option>UTM</option>
                             <option>Outro</option>
                           </select>
+                          <input class="coordinate-format-detail" name="outroFormatoCoordenada" type="text" placeholder="Descreva o formato" aria-label="Descreva o formato da coordenada">
                         </td>
                         <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
                         <td>
@@ -682,6 +683,10 @@
                       <label><input type="checkbox" name="vulnerabilidades" value="Outros"> Outros</label>
                     </div>
                   </fieldset>
+                  <label class="conditional vulnerability-other-field" id="outroVulnerabilidadeWrap">
+                    Qual outro critério?
+                    <input name="outroCriterioVulnerabilidade" type="text" placeholder="Descreva o critério de vulnerabilidade">
+                  </label>
                   <details class="field-help">
                     <summary>Glossário dos critérios de vulnerabilidade</summary>
                     <p>Garimpo: presença, pressão ou impacto associado a garimpo. Empreendimento de grande porte: obra ou atividade econômica relevante no entorno. Conflito deflagrado: conflito em curso ou explícito. Conflito latente: tensão, ameaça ou disputa indicada no processo. Danos ambientais: degradação ou risco ambiental registrado. Inacessibilidade a políticas públicas: dificuldade de acesso a serviços ou políticas públicas. Risco habitacional: vulnerabilidade ligada a moradia, deslocamento, permanência ou ameaça à ocupação. Outros: descreva quando o processo indicar outro critério.</p>
@@ -788,6 +793,10 @@
                         <label><input type="checkbox" name="tiposConflito" value="Outro"> Outro</label>
                       </div>
                     </fieldset>
+                    <label class="conditional" id="outroTipoConflitoWrap">
+                      Qual outro tipo?
+                      <input name="outroTipoConflito" type="text" placeholder="Descreva o tipo de conflito">
+                    </label>
                     <label>
                       Com quem?
                       <input name="envolvidosConflito" type="text" placeholder="Informe os envolvidos">

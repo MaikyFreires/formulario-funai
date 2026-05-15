@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260515-10";
+const APP_VERSION = "20260515-12";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -508,10 +508,13 @@ function updateConditionals() {
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
   setConditional("outrasComunidadesTradicionaisWrap", selectedComunidadesTradicionais.includes("Outros"));
   setConditional("conflitoInteretnicoWrap", getValue("conflitoInteretnico") === "Sim");
+  setConditional("outroTipoConflitoWrap", getValue("conflitoInteretnico") === "Sim" && getCheckedValues("tiposConflito").includes("Outro"));
   setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
   setConditional("descricaoAcaoWrap", getCheckedValues("acoesJudiciais").includes("Outros"));
+  setConditional("outroVulnerabilidadeWrap", getCheckedValues("vulnerabilidades").includes("Outros"));
   updateVulnerabilityDetails();
+  updateCoordinateFormatDetails();
 
   const demandas = getCheckedValues("tipoDemanda");
   setConditional("modalidadeReservaWrap", hasDemand(demandas, "Reserva Indígena"));
@@ -566,7 +569,13 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
     { fieldId: "temRetomada", label: "Tem retomada", isValid: () => hasChecked("temRetomada") },
     { fieldId: "detalhesRetomada", label: "Detalhes da retomada", isValid: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada") },
+    { fieldId: "descricaoAcao", label: "Descrição da ação judicial", isValid: () => !getCheckedValues("acoesJudiciais").includes("Outros") || hasValue("descricaoAcao") },
+    { fieldId: "detalheOutrasSobreposicoes", label: "Detalhe de outras sobreposições", isValid: () => !getCheckedValues("tiposSobreposicao").includes("Outros") || hasValue("detalheOutrasSobreposicoes") },
     { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") },
+    { fieldId: "outroCriterioVulnerabilidade", label: "Outro critério de vulnerabilidade", isValid: () => !getCheckedValues("vulnerabilidades").includes("Outros") || hasValue("outroCriterioVulnerabilidade") },
+    { fieldId: "descricaoComunidadeTradicional", label: "Outra comunidade tradicional", isValid: () => !selectedComunidadesTradicionais.includes("Outros") || hasValue("descricaoComunidadeTradicional") },
+    { fieldId: "outroTipoConflito", label: "Outro tipo de conflito", isValid: () => !getCheckedValues("tiposConflito").includes("Outro") || hasValue("outroTipoConflito") },
+    { fieldId: "coordenadas", label: "Formato da coordenada", isValid: () => areOtherCoordinateFormatsValid() },
     { fieldId: "coordenadas", label: "Coordenadas geográficas", isValid: () => areCoordenadasValid() }
   ];
 
@@ -871,6 +880,7 @@ function buildPayload(statusFormulario = "Enviado") {
       coordenadas,
       latitude: asText(primeiraCoordenada.latitude),
       tipoCoordenada: asText(primeiraCoordenada.tipoCoordenada),
+      outroFormatoCoordenada: asText(primeiraCoordenada.outroFormatoCoordenada),
       latitudeDirecao: asText(primeiraCoordenada.latitudeDirecao),
       longitude: asText(primeiraCoordenada.longitude),
       longitudeDirecao: asText(primeiraCoordenada.longitudeDirecao),
@@ -903,6 +913,7 @@ function buildPayload(statusFormulario = "Enviado") {
       tempoOcupacao: asText(getValue("tempoOcupacao")),
       dataReferenciaOcupacao: asText(getValue("dataReferenciaOcupacao")),
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
+      outroCriterioVulnerabilidade: asText(getValue("outroCriterioVulnerabilidade")),
       detalhesVulnerabilidades: asList(getDetalhesVulnerabilidades()),
       fonteVulnerabilidade: asText(getValue("fonteVulnerabilidade")),
       dataReferenciaVulnerabilidade: asText(getValue("dataReferenciaVulnerabilidade")),
@@ -913,6 +924,7 @@ function buildPayload(statusFormulario = "Enviado") {
       dataReferenciaComunidadeTradicional: asText(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
       tiposConflito: asList(getCheckedValues("tiposConflito")),
+      outroTipoConflito: asText(getValue("outroTipoConflito")),
       envolvidosConflito: asText(getValue("envolvidosConflito")),
       motivoConflitoInteretnico: asText(getValue("motivoConflitoInteretnico")),
       etniaConflitoInteretnico: asText(getValue("etniaConflitoInteretnico")),
@@ -1288,7 +1300,7 @@ function restoreValues(values) {
   renderComunidadeTradicionalDetalhes(values.detalhesComunidadesTradicionais);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "numerosProcesso", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada"].includes(name)) return;
+    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "numerosProcesso", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1357,6 +1369,7 @@ function flattenDraft(draft) {
     temCoordenadas: draft.caracterizacaoArea?.temCoordenadas,
     coordenadas: normalizeCoordenadas(draft.caracterizacaoArea?.coordenadas || draft.Coordenadas || draft.coordenadas),
     tipoCoordenada: draft.caracterizacaoArea?.tipoCoordenada,
+    outroFormatoCoordenada: draft.caracterizacaoArea?.outroFormatoCoordenada,
     latitude: draft.caracterizacaoArea?.latitude,
     latitudeDirecao: draft.caracterizacaoArea?.latitudeDirecao,
     longitude: draft.caracterizacaoArea?.longitude,
@@ -1386,6 +1399,7 @@ function flattenDraft(draft) {
     tempoOcupacao: draft.ocupacaoIndigena?.tempoOcupacao,
     dataReferenciaOcupacao: draft.ocupacaoIndigena?.dataReferenciaOcupacao,
     vulnerabilidades: draft.ocupacaoIndigena?.vulnerabilidades,
+    outroCriterioVulnerabilidade: draft.ocupacaoIndigena?.outroCriterioVulnerabilidade || getOutroCriterioVulnerabilidade(draft.ocupacaoIndigena?.detalhesVulnerabilidades),
     detalhesVulnerabilidades: normalizeDetalhesVulnerabilidades(draft.ocupacaoIndigena?.detalhesVulnerabilidades),
     fonteVulnerabilidade: draft.ocupacaoIndigena?.fonteVulnerabilidade,
     dataReferenciaVulnerabilidade: draft.ocupacaoIndigena?.dataReferenciaVulnerabilidade,
@@ -1396,6 +1410,7 @@ function flattenDraft(draft) {
     dataReferenciaComunidadeTradicional: draft.ocupacaoIndigena?.dataReferenciaComunidadeTradicional,
     conflitoInteretnico: draft.ocupacaoIndigena?.conflitoInteretnico,
     tiposConflito: draft.ocupacaoIndigena?.tiposConflito,
+    outroTipoConflito: draft.ocupacaoIndigena?.outroTipoConflito,
     envolvidosConflito: draft.ocupacaoIndigena?.envolvidosConflito,
     motivoConflitoInteretnico: draft.ocupacaoIndigena?.motivoConflitoInteretnico,
     etniaConflitoInteretnico: draft.ocupacaoIndigena?.etniaConflitoInteretnico,
@@ -2026,8 +2041,8 @@ function handleCoordenadaTableClick(event) {
 
 function handleCoordenadaTableInput(event) {
   const input = event.target.closest("[data-coordinate-value]");
-  if (!input) return;
-  input.value = removeLettersFromCoordinate(input.value);
+  updateCoordinateFormatDetails(event.target.closest(".coordinate-row"));
+  if (input) input.value = removeLettersFromCoordinate(input.value);
 }
 
 function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
@@ -2041,6 +2056,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
         <option>UTM</option>
         <option>Outro</option>
       </select>
+      <input class="coordinate-format-detail" name="outroFormatoCoordenada" type="text" placeholder="Descreva o formato" aria-label="Descreva o formato da coordenada">
     </td>
     <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
     <td>
@@ -2107,6 +2123,7 @@ function restoreCoordenadaRows(coordenadas = []) {
 function restoreLegacyCoordenadaRow(values) {
   const coordenada = {
     tipoCoordenada: values.tipoCoordenada,
+    outroFormatoCoordenada: values.outroFormatoCoordenada,
     latitude: values.latitude,
     latitudeDirecao: values.latitudeDirecao,
     longitude: values.longitude,
@@ -2123,18 +2140,21 @@ function restoreLegacyCoordenadaRow(values) {
 function setCoordenadaRowValues(row, coordenada) {
   if (!row) return;
   row.querySelector("[name='tipoCoordenada']").value = asText(coordenada.tipoCoordenada);
+  row.querySelector("[name='outroFormatoCoordenada']").value = asText(coordenada.outroFormatoCoordenada);
   row.querySelector("[name='latitude']").value = asText(coordenada.latitude);
   row.querySelector("[name='latitudeDirecao']").value = asText(coordenada.latitudeDirecao);
   row.querySelector("[name='longitude']").value = asText(coordenada.longitude);
   row.querySelector("[name='longitudeDirecao']").value = asText(coordenada.longitudeDirecao);
   row.querySelector("[name='coordenadaSedeMunicipio']").value = asText(coordenada.coordenadaSedeMunicipio);
   row.querySelector("[name='comentarioCoordenada']").value = asText(coordenada.comentarioCoordenada);
+  updateCoordinateFormatDetails(row);
 }
 
 function getCoordenadasGeograficas() {
   return Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"))
     .map((row) => ({
       tipoCoordenada: asText(row.querySelector("[name='tipoCoordenada']")?.value),
+      outroFormatoCoordenada: asText(row.querySelector("[name='outroFormatoCoordenada']")?.value),
       latitude: asText(row.querySelector("[name='latitude']")?.value),
       latitudeDirecao: asText(row.querySelector("[name='latitudeDirecao']")?.value),
       longitude: asText(row.querySelector("[name='longitude']")?.value),
@@ -2145,9 +2165,27 @@ function getCoordenadasGeograficas() {
     .filter((coordenada) => Object.values(coordenada).some(Boolean));
 }
 
+function updateCoordinateFormatDetails(row = null) {
+  const rows = row ? [row] : Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"));
+  rows.forEach((coordinateRow) => {
+    if (!coordinateRow) return;
+    const format = coordinateRow.querySelector("[name='tipoCoordenada']")?.value;
+    const detail = coordinateRow.querySelector("[name='outroFormatoCoordenada']");
+    if (!detail) return;
+
+    const isOther = format === "Outro";
+    detail.classList.toggle("is-visible", isOther);
+    if (!isOther) detail.value = "";
+  });
+}
+
 function updateVulnerabilityDetails() {
   const selected = new Set(getCheckedValues("vulnerabilidades"));
   const table = form.querySelector(".vulnerability-detail-table");
+  const outroLabel = form.querySelector('[data-vulnerability-detail="Outros"] span');
+  const outroTexto = asText(getValue("outroCriterioVulnerabilidade"));
+
+  if (outroLabel) outroLabel.textContent = outroTexto || "Outros";
   table?.classList.toggle("has-visible-items", selected.size > 0);
 
   form.querySelectorAll("[data-vulnerability-detail]").forEach((row) => {
@@ -2159,11 +2197,12 @@ function getDetalhesVulnerabilidades() {
   return Array.from(form.querySelectorAll("[data-vulnerability-detail]"))
     .map((row) => {
       const criterio = row.dataset.vulnerabilityDetail;
+      const criterioDescricao = criterio === "Outros" ? asText(getValue("outroCriterioVulnerabilidade")) : "";
       const fonte = asText(row.querySelector("[data-vulnerability-source]")?.value);
       const dataReferencia = asText(row.querySelector("[data-vulnerability-date]")?.value);
-      return { criterio, fonte, dataReferencia };
+      return { criterio, criterioDescricao, fonte, dataReferencia };
     })
-    .filter((item) => item.fonte || item.dataReferencia);
+    .filter((item) => item.criterioDescricao || item.fonte || item.dataReferencia);
 }
 
 function restoreDetalhesVulnerabilidades(detalhes = []) {
@@ -2192,6 +2231,11 @@ function normalizeDetalhesVulnerabilidades(value) {
   return [];
 }
 
+function getOutroCriterioVulnerabilidade(detalhes = []) {
+  const item = normalizeDetalhesVulnerabilidades(detalhes).find((detalhe) => detalhe.criterio === "Outros");
+  return asText(item?.criterioDescricao || item?.descricao || item?.outroCriterio);
+}
+
 function normalizeDetalhesComunidadesTradicionais(value) {
   if (Array.isArray(value)) return value;
   if (!value) return [];
@@ -2214,6 +2258,13 @@ function areCoordenadasValid() {
     coordenada.latitudeDirecao &&
     coordenada.longitude &&
     coordenada.longitudeDirecao
+  );
+}
+
+function areOtherCoordinateFormatsValid() {
+  if (getValue("temCoordenadas") !== "Sim") return true;
+  return getCoordenadasGeograficas().every((coordenada) =>
+    coordenada.tipoCoordenada !== "Outro" || Boolean(coordenada.outroFormatoCoordenada)
   );
 }
 

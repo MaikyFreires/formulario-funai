@@ -202,6 +202,10 @@
   gap: 22px 30px;
 }
 
+.vulnerability-other-field {
+  width: min(520px, 100%);
+}
+
 .vulnerability-detail-table {
   display: none;
   gap: 10px;
