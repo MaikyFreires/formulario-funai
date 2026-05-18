@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-3";
+const APP_VERSION = "20260518-4";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -119,6 +119,7 @@ let currentFormularioId = "";
 let cachedReports = [];
 let currentReportListMode = "draft";
 let activeFormMode = "edit";
+let activePersistenceMode = "create";
 
 init();
 
@@ -312,9 +313,12 @@ async function initializeForm() {
 }
 
 async function novoRelatorio() {
+  currentFormularioId = "";
+  activePersistenceMode = "create";
+  sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
+  await openForm({ reset: true, mode: "edit" });
   currentFormularioId = createFormularioId();
   sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
-  await openForm({ reset: true, mode: "edit" });
 }
 
 async function startNewReport() {
@@ -340,6 +344,7 @@ async function openForm({ reset = false, mode = "edit" } = {}) {
 }
 
 function limparFormulario() {
+  activePersistenceMode = "create";
   form.reset();
   selectedEtnias = [];
   selectedOutrasEtnias = [];
@@ -762,45 +767,7 @@ async function enviarFormulario(event) {
 
   setAuthorizedEmail(authorizedEmail);
 
-  if (!POWER_AUTOMATE_URL) {
-    showMessage("Configure POWER_AUTOMATE_URL no arquivo js/config.js antes de enviar.", "error");
-    return;
-  }
-
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Enviando...";
-
-  try {
-    const response = await fetch(POWER_AUTOMATE_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(buildPayload("Enviado"))
-    });
-    console.log(response.status, response.statusText);
-
-    if (response.ok) {
-      showMessage("Formulário enviado com sucesso.", "success");
-      sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
-      showDashboard(authorizedEmail);
-      return;
-    }
-
-    await readJsonIfAvailable(response);
-
-    if (response.status === 403) {
-      showMessage("Este e-mail não está autorizado a enviar o formulário.", "error");
-      return;
-    }
-
-    throw new Error(`Falha no envio: ${response.status}`);
-  } catch (error) {
-    showMessage("Não foi possível enviar o formulário. Verifique a URL do Power Automate e tente novamente.", "error");
-  } finally {
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Enviar formulário";
-  }
+  await salvarFormulario("Enviado");
 }
 
 async function handleSubmit(event) {
@@ -834,6 +801,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     atualizadoEm: asText(now),
     enviadoEm: statusFormulario === "Enviado" ? asText(now) : "",
     origem: "github-pages-funai",
+    etapaAtual: currentStep,
     consultor: {
       nome: asText(getValue("consultorNome")),
       email: asText(getAuthorizedEmail()),
@@ -954,16 +922,30 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
 async function salvarRascunho() {
   const isDraftSave = true;
   validateRequiredFields(isDraftSave);
-  const payload = buildPayload("Rascunho");
-  console.log("payload rascunho", payload);
+  await salvarFormulario("Rascunho");
+}
+
+async function salvarFormulario(statusFormulario = "Rascunho") {
+  const isDraft = statusFormulario === "Rascunho";
+  const actionButton = isDraft ? saveDraftBtn : submitBtn;
+  const defaultText = isDraft ? "Salvar Rascunho" : "Enviar formulário";
+  const loadingText = isDraft ? "Salvando..." : "Enviando...";
+
+  if (actionButton.disabled) return;
 
   if (!POWER_AUTOMATE_URL) {
     showMessage("Configure POWER_AUTOMATE_URL no arquivo js/config.js antes de salvar.", "error");
     return;
   }
 
+  const isUpdate = activePersistenceMode === "update";
+  const payload = buildPayload(statusFormulario);
+  console.log(isUpdate ? "modo update" : "modo create");
+  console.log("payload enviado", payload);
+
   saveDraftBtn.disabled = true;
-  saveDraftBtn.textContent = "Salvando...";
+  submitBtn.disabled = true;
+  actionButton.textContent = loadingText;
 
   try {
     const response = await fetch(POWER_AUTOMATE_URL, {
@@ -976,23 +958,34 @@ async function salvarRascunho() {
     console.log(response.status, response.statusText);
 
     if (response.ok) {
-      showMessage("Rascunho enviado ao SharePoint.", "success");
+      activePersistenceMode = "update";
+      sessionStorage.setItem(ACTIVE_FORM_ID_KEY, payload.formularioId);
+
+      if (!isDraft) {
+        showMessage("Formulário enviado com sucesso.", "success");
+        sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
+        showDashboard(getAuthorizedEmail());
+        return;
+      }
+
+      showMessage(isUpdate ? "Rascunho atualizado no SharePoint." : "Rascunho criado no SharePoint.", "success");
       return;
     }
 
     await readJsonIfAvailable(response);
 
     if (response.status === 403) {
-      showMessage("Este e-mail não está autorizado.", "error");
+      showMessage(isDraft ? "Este e-mail não está autorizado." : "Este e-mail não está autorizado a enviar o formulário.", "error");
       return;
     }
 
-    throw new Error(`Falha no envio do rascunho: ${response.status}`);
+    throw new Error(`Falha no envio: ${response.status}`);
   } catch (error) {
-    showMessage("Não foi possível enviar o rascunho ao SharePoint.", "error");
+    showMessage(isDraft ? "Erro ao salvar rascunho no SharePoint." : "Não foi possível enviar o formulário. Verifique a URL do Power Automate e tente novamente.", "error");
   } finally {
     saveDraftBtn.disabled = false;
-    saveDraftBtn.textContent = "Salvar Rascunho";
+    submitBtn.disabled = false;
+    actionButton.textContent = defaultText;
   }
 }
 
@@ -1067,6 +1060,10 @@ async function abrirRelatorioEnviado(formularioId) {
 }
 
 async function abrirRelatorio(formularioId, mode = "draft") {
+  return carregarFormulario(formularioId, mode);
+}
+
+async function carregarFormulario(formularioId, mode = "draft") {
   const resumo = getCachedReport(formularioId);
   if (!resumo) {
     showReportListMessage("Relatorio nao encontrado nesta lista.", "error");
@@ -1098,16 +1095,18 @@ async function abrirRelatorio(formularioId, mode = "draft") {
     if (!response.ok) throw new Error(`Falha ao carregar relatorio: ${response.status}`);
 
     const data = await readJsonIfAvailable(response);
+    console.log("rascunho carregado", data);
     const relatorio = normalizarRascunhoCarregado(data, resumo);
     console.log(mode === "sent" ? "relatorio enviado carregado" : "rascunho carregado", relatorio);
 
     currentFormularioId = getReportFormularioId(relatorio) || id;
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+    activePersistenceMode = "update";
     await openForm({ reset: true, mode: mode === "sent" ? "sent" : "edit" });
     preencherFormulario(relatorio);
     setFormViewMode(mode === "sent" ? "sent" : "edit");
     updateConditionals();
-    showStep(0);
+    showStep(getFormularioStep(relatorio));
   } catch (error) {
     showReportListMessage("Nao foi possivel abrir o relatorio.", "error");
   }
@@ -1132,6 +1131,7 @@ function preencherFormulario(dados) {
   if (formularioId) {
     currentFormularioId = formularioId;
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+    activePersistenceMode = "update";
   }
 
   const formularioJson = extrairFormularioJson(dados);
@@ -1149,6 +1149,7 @@ function preencherFormularioPorJson(dados) {
   if (formularioId) {
     currentFormularioId = formularioId;
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+    activePersistenceMode = "update";
   }
 
   restoreValues(flattenDraft(dados));
@@ -1166,6 +1167,13 @@ function extrairFormularioJson(item) {
     console.warn("FormularioJson invalido.", error);
     return null;
   }
+}
+
+function getFormularioStep(item) {
+  const formularioJson = extrairFormularioJson(item) || item;
+  const step = Number(formularioJson?.etapaAtual);
+  if (!Number.isInteger(step)) return 0;
+  return Math.min(Math.max(step, 0), Math.max(steps.length - 1, 0));
 }
 
 /* antigo fluxo local mantido como alias de compatibilidade */
