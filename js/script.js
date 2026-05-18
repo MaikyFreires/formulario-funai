@@ -9,7 +9,17 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-21";
+const APP_VERSION = "20260518-23";
+const DATE_BR_FIELD_NAMES = new Set([
+  "dataRoteiro",
+  "dataDocumento",
+  "dataAcaoJudicial",
+  "dataDecisao",
+  "dataReferenciaOcupacao",
+  "dataReferenciaVulnerabilidade",
+  "dataReferenciaComunidadeTradicional",
+  "dataReferenciaConflitoInteretnico"
+]);
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -383,6 +393,7 @@ function setAuthorizedEmail(email) {
 
 function bindEvents() {
   form.addEventListener("input", handleFormChange);
+  form.addEventListener("input", handleDateMaskInput);
   form.addEventListener("change", handleFormChange);
   form.addEventListener("submit", enviarFormulario);
   addEtniaBtn.addEventListener("click", addSelectedEtnia);
@@ -420,6 +431,21 @@ function handleFormChange() {
   clearMessage();
   updateConditionals();
   clearResolvedValidationErrors();
+}
+
+function handleDateMaskInput(event) {
+  const field = event.target;
+  if (!field || field.tagName !== "INPUT" || field.type !== "text") return;
+  if (!DATE_BR_FIELD_NAMES.has(field.name)) return;
+
+  field.value = formatDateInputValue(field.value);
+}
+
+function formatDateInputValue(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
 }
 
 function handleInfoToggleClick(event) {
@@ -2147,7 +2173,7 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "document-row";
   row.innerHTML = `
-    <td><input name="dataDocumento" type="date" aria-label="Data"></td>
+    <td><input name="dataDocumento" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" aria-label="Data"></td>
     <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
     <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página para o caso de dossiê/volume digitalizado"></td>
     <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
@@ -2209,7 +2235,7 @@ function restoreLegacyDocumentoRow(values) {
 
 function setDocumentoRowValues(row, documento) {
   if (!row) return;
-  row.querySelector("[name='dataDocumento']").value = normalizeDateForInput(documento.dataDocumento);
+  row.querySelector("[name='dataDocumento']").value = converterDataParaBR(documento.dataDocumento);
   row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
   row.querySelector("[name='paginasDocumento']").value = asText(documento.paginasDocumento || documento.paginas);
   row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
