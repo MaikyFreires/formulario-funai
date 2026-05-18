@@ -7,10 +7,9 @@ const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
 const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
 const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
-const LOCAL_DRAFT_PREFIX = "funaiDraft:";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260515-12";
+const APP_VERSION = "20260518-1";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -809,21 +808,32 @@ async function handleSubmit(event) {
 }
 
 function buildPayload(statusFormulario = "Enviado") {
+  const now = new Date().toISOString();
+  const formularioJson = montarFormularioJson(statusFormulario, now);
+  return {
+    ...formularioJson,
+    formularioJson: JSON.stringify(formularioJson)
+  };
+}
+
+function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().toISOString()) {
   const etnias = asList(getSelectedEtnias());
   const outrasEtnias = asList(getSelectedOutrasEtnias());
   const estados = asList(getSelectedEstados());
   const municipios = asList(getSelectedMunicipios());
   const documentos = asList(getDocumentosProcesso());
   const primeiroDocumento = documentos[0] || {};
+  const coordenadasDetalhadas = asList(getCoordenadasDetalhadas());
   const coordenadas = asList(getCoordenadasGeograficas());
-  const primeiraCoordenada = coordenadas[0] || {};
-  const now = new Date().toISOString();
-  const payload = {
+  const primeiraCoordenada = coordenadasDetalhadas[0] || {};
+
+  return {
     formularioId: asText(getCurrentFormularioId()),
     tokenSecreto: asText(SECRET_TOKEN),
-    origem: "github-pages-funai",
-    atualizadoEm: now,
     statusFormulario: asText(statusFormulario),
+    atualizadoEm: asText(now),
+    enviadoEm: statusFormulario === "Enviado" ? asText(now) : "",
+    origem: "github-pages-funai",
     consultor: {
       nome: asText(getValue("consultorNome")),
       email: asText(getAuthorizedEmail()),
@@ -859,9 +869,11 @@ function buildPayload(statusFormulario = "Enviado") {
       documentos,
       dataDocumento: asText(primeiroDocumento.dataDocumento),
       tipoDocumento: asText(primeiroDocumento.tipoDocumento),
-      paginas: asText(primeiroDocumento.paginas),
+      paginas: asText(primeiroDocumento.paginasDocumento),
+      paginasDocumento: asText(primeiroDocumento.paginasDocumento),
       numeroSei: asText(primeiroDocumento.numeroSei),
-      eventosAssuntos: asText(primeiroDocumento.eventosAssuntos)
+      eventosAssuntos: asText(primeiroDocumento.eventosAssuntos),
+      numeroProcessoDocumento: asText(primeiroDocumento.numeroProcessoDocumento)
     },
     statusProcesso: {
       estaJudicializado: asText(getValue("estaJudicializado")),
@@ -878,6 +890,7 @@ function buildPayload(statusFormulario = "Enviado") {
       localizacaoDemanda: asText(getValue("localizacaoDemanda")),
       temCoordenadas: asText(getValue("temCoordenadas")),
       coordenadas,
+      coordenadasDetalhadas,
       latitude: asText(primeiraCoordenada.latitude),
       tipoCoordenada: asText(primeiraCoordenada.tipoCoordenada),
       outroFormatoCoordenada: asText(primeiraCoordenada.outroFormatoCoordenada),
@@ -935,20 +948,16 @@ function buildPayload(statusFormulario = "Enviado") {
       informacoesAdicionais: asText(getValue("informacoesAdicionais"))
     }
   };
-
-  if (statusFormulario === "Enviado") payload.enviadoEm = now;
-  return payload;
 }
 
 async function salvarRascunho() {
   const isDraftSave = true;
   validateRequiredFields(isDraftSave);
   const payload = buildPayload("Rascunho");
-  saveDraftPayloadLocally(payload);
   console.log("payload rascunho", payload);
 
   if (!POWER_AUTOMATE_URL) {
-    showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
+    showMessage("Configure POWER_AUTOMATE_URL no arquivo js/config.js antes de salvar.", "error");
     return;
   }
 
@@ -966,7 +975,7 @@ async function salvarRascunho() {
     console.log(response.status, response.statusText);
 
     if (response.ok) {
-      showMessage("Rascunho salvo no navegador e enviado ao SharePoint.", "success");
+      showMessage("Rascunho enviado ao SharePoint.", "success");
       return;
     }
 
@@ -979,7 +988,7 @@ async function salvarRascunho() {
 
     throw new Error(`Falha no envio do rascunho: ${response.status}`);
   } catch (error) {
-    showMessage("Rascunho salvo no navegador, mas não foi enviado ao SharePoint.", "error");
+    showMessage("Não foi possível enviar o rascunho ao SharePoint.", "error");
   } finally {
     saveDraftBtn.disabled = false;
     saveDraftBtn.textContent = "Salvar Rascunho";
@@ -993,14 +1002,6 @@ function salvarPdf() {
 
 async function saveDraft() {
   return salvarRascunho();
-}
-
-function saveDraftPayloadLocally(payload) {
-  try {
-    localStorage.setItem(`${LOCAL_DRAFT_PREFIX}${payload.formularioId}`, JSON.stringify(payload));
-  } catch (error) {
-    console.warn("Nao foi possivel salvar rascunho local.", error);
-  }
 }
 
 // Dashboard lists
@@ -1132,8 +1133,38 @@ function preencherFormulario(dados) {
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
   }
 
-  restoreValues(flattenDraft(dados));
+  const formularioJson = extrairFormularioJson(dados);
+  if (formularioJson) {
+    preencherFormularioPorJson(formularioJson);
+  } else {
+    restoreValues(flattenDraft(dados));
+  }
   setAuthorizedEmail(getAuthorizedEmail());
+}
+
+function preencherFormularioPorJson(dados) {
+  if (!dados || typeof dados !== "object") return;
+  const formularioId = getReportFormularioId(dados);
+  if (formularioId) {
+    currentFormularioId = formularioId;
+    sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+  }
+
+  restoreValues(flattenDraft(dados));
+  updateConditionals();
+}
+
+function extrairFormularioJson(item) {
+  const raw = item?.FormularioJson || item?.formularioJson;
+  if (!raw) return null;
+  if (typeof raw === "object") return raw;
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.warn("FormularioJson invalido.", error);
+    return null;
+  }
 }
 
 /* antigo fluxo local mantido como alias de compatibilidade */
@@ -1231,7 +1262,8 @@ function getCachedReport(id) {
 }
 
 function getReportFormularioId(relatorio) {
-  return asText(relatorio.formularioId || relatorio.FormularioId || relatorio.id || relatorio.ID);
+  const formularioJson = extrairFormularioJson(relatorio);
+  return asText(relatorio.formularioId || relatorio.FormularioId || relatorio.id || relatorio.ID || formularioJson?.formularioId);
 }
 
 function getReportReivindicacaoId(relatorio) {
@@ -1293,7 +1325,7 @@ function restoreValues(values) {
   const documentos = asList(values.documentos);
   restoreDocumentoRows(documentos);
   if (!documentos.length) restoreLegacyDocumentoRow(values);
-  const coordenadas = asList(values.coordenadas);
+  const coordenadas = asList(values.coordenadasDetalhadas || values.coordenadas);
   restoreCoordenadaRows(coordenadas);
   if (!coordenadas.length) restoreLegacyCoordenadaRow(values);
   restoreDetalhesVulnerabilidades(values.detalhesVulnerabilidades);
@@ -1367,7 +1399,7 @@ function flattenDraft(draft) {
     numeroProcessoJudicial: draft.statusProcesso?.numeroProcessoJudicial,
     localizacaoDemanda: draft.caracterizacaoArea?.localizacaoDemanda,
     temCoordenadas: draft.caracterizacaoArea?.temCoordenadas,
-    coordenadas: normalizeCoordenadas(draft.caracterizacaoArea?.coordenadas || draft.Coordenadas || draft.coordenadas),
+    coordenadas: normalizeCoordenadas(draft.caracterizacaoArea?.coordenadasDetalhadas || draft.caracterizacaoArea?.coordenadas || draft.Coordenadas || draft.coordenadas),
     tipoCoordenada: draft.caracterizacaoArea?.tipoCoordenada,
     outroFormatoCoordenada: draft.caracterizacaoArea?.outroFormatoCoordenada,
     latitude: draft.caracterizacaoArea?.latitude,
@@ -1980,9 +2012,9 @@ function restoreLegacyDocumentoRow(values) {
   const documento = {
     dataDocumento: values.dataDocumento,
     tipoDocumento: values.tipoDocumento,
-    paginas: values.paginasDocumento,
+    paginasDocumento: values.paginasDocumento || values.paginas,
     numeroSei: values.numeroSei,
-    numeroProcesso: values.numeroProcessoDocumento,
+    numeroProcessoDocumento: values.numeroProcessoDocumento || values.numeroProcesso,
     eventosAssuntos: values.eventosAssuntos
   };
 
@@ -1995,9 +2027,9 @@ function setDocumentoRowValues(row, documento) {
   if (!row) return;
   row.querySelector("[name='dataDocumento']").value = asText(documento.dataDocumento);
   row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
-  row.querySelector("[name='paginasDocumento']").value = asText(documento.paginas);
+  row.querySelector("[name='paginasDocumento']").value = asText(documento.paginasDocumento || documento.paginas);
   row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
-  row.querySelector("[name='numeroProcessoDocumento']").value = asText(documento.numeroProcesso);
+  row.querySelector("[name='numeroProcessoDocumento']").value = asText(documento.numeroProcessoDocumento || documento.numeroProcesso);
   row.querySelector("[name='eventosAssuntos']").value = asText(documento.eventosAssuntos);
 }
 
@@ -2006,10 +2038,10 @@ function getDocumentosProcesso() {
     .map((row) => ({
       dataDocumento: asText(row.querySelector("[name='dataDocumento']")?.value),
       tipoDocumento: asText(row.querySelector("[name='tipoDocumento']")?.value),
-      paginas: asText(row.querySelector("[name='paginasDocumento']")?.value),
+      paginasDocumento: asText(row.querySelector("[name='paginasDocumento']")?.value),
+      eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value),
       numeroSei: asText(row.querySelector("[name='numeroSei']")?.value),
-      numeroProcesso: asText(row.querySelector("[name='numeroProcessoDocumento']")?.value),
-      eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value)
+      numeroProcessoDocumento: asText(row.querySelector("[name='numeroProcessoDocumento']")?.value)
     }))
     .filter((documento) => Object.values(documento).some(Boolean));
 }
@@ -2129,7 +2161,7 @@ function restoreLegacyCoordenadaRow(values) {
     longitude: values.longitude,
     longitudeDirecao: values.longitudeDirecao,
     coordenadaSedeMunicipio: values.coordenadaSedeMunicipio,
-    comentarioCoordenada: values.comentarioCoordenada
+    comentarioCoordenada: values.comentarioCoordenada || values.comentario
   };
 
   if (Object.values(coordenada).some(Boolean)) {
@@ -2146,11 +2178,11 @@ function setCoordenadaRowValues(row, coordenada) {
   row.querySelector("[name='longitude']").value = asText(coordenada.longitude);
   row.querySelector("[name='longitudeDirecao']").value = asText(coordenada.longitudeDirecao);
   row.querySelector("[name='coordenadaSedeMunicipio']").value = asText(coordenada.coordenadaSedeMunicipio);
-  row.querySelector("[name='comentarioCoordenada']").value = asText(coordenada.comentarioCoordenada);
+  row.querySelector("[name='comentarioCoordenada']").value = asText(coordenada.comentarioCoordenada || coordenada.comentario);
   updateCoordinateFormatDetails(row);
 }
 
-function getCoordenadasGeograficas() {
+function getCoordenadasDetalhadas() {
   return Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"))
     .map((row) => ({
       tipoCoordenada: asText(row.querySelector("[name='tipoCoordenada']")?.value),
@@ -2163,6 +2195,16 @@ function getCoordenadasGeograficas() {
       comentarioCoordenada: asText(row.querySelector("[name='comentarioCoordenada']")?.value)
     }))
     .filter((coordenada) => Object.values(coordenada).some(Boolean));
+}
+
+function getCoordenadasGeograficas() {
+  return getCoordenadasDetalhadas().map((coordenada) => ({
+    latitude: asText(coordenada.latitude),
+    latitudeDirecao: asText(coordenada.latitudeDirecao),
+    longitude: asText(coordenada.longitude),
+    longitudeDirecao: asText(coordenada.longitudeDirecao),
+    comentario: asText(coordenada.comentarioCoordenada)
+  }));
 }
 
 function updateCoordinateFormatDetails(row = null) {
@@ -2252,7 +2294,7 @@ function normalizeDetalhesComunidadesTradicionais(value) {
 
 function areCoordenadasValid() {
   if (getValue("temCoordenadas") !== "Sim") return true;
-  const coordenadas = getCoordenadasGeograficas();
+  const coordenadas = getCoordenadasDetalhadas();
   return coordenadas.some((coordenada) =>
     coordenada.latitude &&
     coordenada.latitudeDirecao &&
@@ -2263,7 +2305,7 @@ function areCoordenadasValid() {
 
 function areOtherCoordinateFormatsValid() {
   if (getValue("temCoordenadas") !== "Sim") return true;
-  return getCoordenadasGeograficas().every((coordenada) =>
+  return getCoordenadasDetalhadas().every((coordenada) =>
     coordenada.tipoCoordenada !== "Outro" || Boolean(coordenada.outroFormatoCoordenada)
   );
 }
