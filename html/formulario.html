@@ -135,7 +135,7 @@
                       </label>
                       <label class="process-field">
                         Descrição dos processos analisados
-                        <textarea name="descricaoProcessoAnalisado" rows="2" placeholder="Descreva o tema principal dos processos analisados"></textarea>
+                        <textarea name="descricaoProcessoAnalisado" rows="1" placeholder="Descreva o tema principal dos processos analisados"></textarea>
                       </label>
                       <div class="process-item-actions">
                         <button type="button" class="icon-button add-processo-analisado-btn" aria-label="Adicionar processo analisado">+</button>
@@ -308,8 +308,8 @@
                         <th>
                           <span class="table-info-label">
                             Página
-                            <span class="info-icon" aria-hidden="true">i</span>
-                            <span class="info-text">para o caso de dossiê/volume digitalizado</span>
+                            <button type="button" class="info-icon" aria-expanded="false" aria-controls="paginasDocumentoInfo">i</button>
+                            <span class="info-text" id="paginasDocumentoInfo">para o caso de dossiê/volume digitalizado</span>
                           </span>
                         </th>
                         <th>Assunto</th>
@@ -476,12 +476,19 @@
               <section class="conditional wide coordinate-table-section" id="coordenadasWrap" aria-labelledby="coordenadasTitle">
                 <div class="table-heading compact-heading">
                   <h3 id="coordenadasTitle">Coordenadas geográficas</h3>
-                  <p>Informe as coordenadas no formato disponível no processo. Pode ser GMS, UTM ou outro formato registrado.</p>
+                  <div class="coordinate-examples">
+                    <p>Informe as coordenadas no formato disponível no processo.</p>
+                    <p><strong>Formato GMS (Graus, Minutos e Segundos):</strong></p>
+                    <p>Latitude: 15° 47' 39" S</p>
+                    <p>Longitude: 47° 52' 56" O</p>
+                    <p><strong>Formato Coordenadas em Graus Decimais:</strong></p>
+                    <p>Latitude: -15.7942</p>
+                    <p>Longitude: -47.8822</p>
+                  </div>
                 </div>
                 <div class="table-scroll">
                   <table class="coordinate-table">
                     <colgroup>
-                      <col class="coord-col-format">
                       <col class="coord-col-value">
                       <col class="coord-col-direction">
                       <col class="coord-col-value">
@@ -492,7 +499,6 @@
                     </colgroup>
                     <thead>
                       <tr>
-                        <th>Formato</th>
                         <th>Latitude</th>
                         <th>N/S</th>
                         <th>Longitude</th>
@@ -504,16 +510,7 @@
                     </thead>
                     <tbody id="coordenadasTableBody">
                       <tr class="coordinate-row">
-                        <td>
-                          <select name="tipoCoordenada" aria-label="Formato da coordenada">
-                            <option value="">Escolha</option>
-                            <option>GMS</option>
-                            <option>UTM</option>
-                            <option>Outro</option>
-                          </select>
-                          <input class="coordinate-format-detail" name="outroFormatoCoordenada" type="text" placeholder="Descreva o formato" aria-label="Descreva o formato da coordenada">
-                        </td>
-                        <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
+                        <td><input name="latitude" type="text" data-coordinate-value placeholder="Ex: 15° 47' 39&quot; S ou -15.7942" aria-label="Latitude"></td>
                         <td>
                           <select name="latitudeDirecao" aria-label="Direção da latitude">
                             <option value="">Escolha</option>
@@ -521,7 +518,7 @@
                             <option>Sul</option>
                           </select>
                         </td>
-                        <td><input name="longitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Longitude" aria-label="Longitude"></td>
+                        <td><input name="longitude" type="text" data-coordinate-value placeholder="Ex: 47° 52' 56&quot; O ou -47.8822" aria-label="Longitude"></td>
                         <td>
                           <select name="longitudeDirecao" aria-label="Direção da longitude">
                             <option value="">Escolha</option>

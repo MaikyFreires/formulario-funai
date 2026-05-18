@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-9";
+const APP_VERSION = "20260518-11";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -396,6 +396,7 @@ function bindEvents() {
   addAldeiaBtn.addEventListener("click", () => addAldeiaField());
   removeAldeiaBtn.addEventListener("click", removeAldeiaField);
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
+  document.addEventListener("click", handleInfoToggleClick);
   coordenadasTableBody.addEventListener("click", handleCoordenadaTableClick);
   coordenadasTableBody.addEventListener("input", handleCoordenadaTableInput);
   prevBtn.addEventListener("click", goToPreviousStep);
@@ -409,6 +410,18 @@ function handleFormChange() {
   clearMessage();
   updateConditionals();
   clearResolvedValidationErrors();
+}
+
+function handleInfoToggleClick(event) {
+  const button = event.target.closest(".info-icon");
+  if (!button) return;
+
+  const label = button.closest(".table-info-label");
+  const text = label?.querySelector(".info-text");
+  if (!text) return;
+
+  const isVisible = text.classList.toggle("is-visible");
+  button.setAttribute("aria-expanded", String(isVisible));
 }
 
 function showStep(index) {
@@ -576,7 +589,6 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "outroCriterioVulnerabilidade", label: "Outro critério de vulnerabilidade", isValid: () => !getCheckedValues("vulnerabilidades").includes("Outros") || hasValue("outroCriterioVulnerabilidade") },
     { fieldId: "descricaoComunidadeTradicional", label: "Outra comunidade tradicional", isValid: () => !selectedComunidadesTradicionais.includes("Outros") || hasValue("descricaoComunidadeTradicional") },
     { fieldId: "outroTipoConflito", label: "Outro tipo de conflito", isValid: () => !getCheckedValues("tiposConflito").includes("Outro") || hasValue("outroTipoConflito") },
-    { fieldId: "coordenadas", label: "Formato da coordenada", isValid: () => areOtherCoordinateFormatsValid() },
     { fieldId: "coordenadas", label: "Coordenadas geográficas", isValid: () => areCoordenadasValid() }
   ];
 
@@ -2201,16 +2213,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "coordinate-row";
   row.innerHTML = `
-    <td>
-      <select name="tipoCoordenada" aria-label="Formato da coordenada">
-        <option value="">Escolha</option>
-        <option>GMS</option>
-        <option>UTM</option>
-        <option>Outro</option>
-      </select>
-      <input class="coordinate-format-detail" name="outroFormatoCoordenada" type="text" placeholder="Descreva o formato" aria-label="Descreva o formato da coordenada">
-    </td>
-    <td><input name="latitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Latitude" aria-label="Latitude"></td>
+    <td><input name="latitude" type="text" data-coordinate-value placeholder="Ex: 15° 47' 39&quot; S ou -15.7942" aria-label="Latitude"></td>
     <td>
       <select name="latitudeDirecao" aria-label="Direção da latitude">
         <option value="">Escolha</option>
@@ -2218,7 +2221,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
         <option>Sul</option>
       </select>
     </td>
-    <td><input name="longitude" type="text" inputmode="decimal" data-coordinate-value placeholder="Longitude" aria-label="Longitude"></td>
+    <td><input name="longitude" type="text" data-coordinate-value placeholder="Ex: 47° 52' 56&quot; O ou -47.8822" aria-label="Longitude"></td>
     <td>
       <select name="longitudeDirecao" aria-label="Direção da longitude">
         <option value="">Escolha</option>
@@ -2291,8 +2294,8 @@ function restoreLegacyCoordenadaRow(values) {
 
 function setCoordenadaRowValues(row, coordenada) {
   if (!row) return;
-  row.querySelector("[name='tipoCoordenada']").value = asText(coordenada.tipoCoordenada);
-  row.querySelector("[name='outroFormatoCoordenada']").value = asText(coordenada.outroFormatoCoordenada);
+  if (row.querySelector("[name='tipoCoordenada']")) row.querySelector("[name='tipoCoordenada']").value = asText(coordenada.tipoCoordenada);
+  if (row.querySelector("[name='outroFormatoCoordenada']")) row.querySelector("[name='outroFormatoCoordenada']").value = asText(coordenada.outroFormatoCoordenada);
   row.querySelector("[name='latitude']").value = asText(coordenada.latitude);
   row.querySelector("[name='latitudeDirecao']").value = asText(coordenada.latitudeDirecao);
   row.querySelector("[name='longitude']").value = asText(coordenada.longitude);
@@ -2423,13 +2426,6 @@ function areCoordenadasValid() {
   );
 }
 
-function areOtherCoordinateFormatsValid() {
-  if (getValue("temCoordenadas") !== "Sim") return true;
-  return getCoordenadasDetalhadas().every((coordenada) =>
-    coordenada.tipoCoordenada !== "Outro" || Boolean(coordenada.outroFormatoCoordenada)
-  );
-}
-
 function normalizeCoordenadas(value) {
   if (Array.isArray(value)) return value;
   if (!value) return [];
@@ -2484,7 +2480,7 @@ function adicionarProcessoAnalisado(processo = {}, shouldFocus = true) {
   descricaoLabel.className = "process-field";
   descricaoLabel.append(document.createTextNode("Descri\u00e7\u00e3o dos processos analisados"));
   descricaoInput.name = "descricaoProcessoAnalisado";
-  descricaoInput.rows = 2;
+  descricaoInput.rows = 1;
   descricaoInput.placeholder = "Descreva o tema principal dos processos analisados";
   descricaoInput.value = asText(processo.descricao || processo.descricaoProcessosAnalisados);
   descricaoLabel.append(descricaoInput);
