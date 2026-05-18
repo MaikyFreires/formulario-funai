@@ -526,6 +526,41 @@
                 </div>
               </section>
 
+              <fieldset class="wide area-block">
+                <legend>Há mapa e material cartográfico nos processos?</legend>
+                <div class="check-grid">
+                  <label><input type="radio" name="temMapaCartografico" value="Sim"> Sim</label>
+                  <label><input type="radio" name="temMapaCartografico" value="Não"> Não</label>
+                </div>
+              </fieldset>
+
+              <section class="conditional wide map-table-section" id="mapasCartograficosWrap" aria-labelledby="mapasCartograficosTitle">
+                <div class="table-heading compact-heading">
+                  <h3 id="mapasCartograficosTitle">Mapa e material cartográfico</h3>
+                </div>
+                <div class="table-scroll">
+                  <table class="map-table">
+                    <thead>
+                      <tr>
+                        <th>Nº do documento SEI</th>
+                        <th>Página</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="mapasTableBody">
+                      <tr class="map-row">
+                        <td><input name="numeroSeiMapa" type="text" placeholder="Nº do documento SEI" aria-label="Nº do documento SEI"></td>
+                        <td><input name="paginaMapa" type="number" min="0" placeholder="Página" aria-label="Página do mapa ou material cartográfico"></td>
+                        <td class="document-actions">
+                          <button type="button" class="icon-button remove-mapa-btn" aria-label="Remover mapa ou material cartográfico">×</button>
+                          <button type="button" class="icon-button add-mapa-row-btn" aria-label="Adicionar mapa ou material cartográfico">+</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
               <fieldset class="wide area-block bioma-block">
                 <legend>Bioma</legend>
                 <div class="check-grid">
@@ -830,7 +865,7 @@
                       <input name="outroTipoConflito" type="text" placeholder="Descreva o tipo de conflito">
                     </label>
                     <label>
-                      Com quem?
+                      Envolvidos
                       <input name="envolvidosConflito" type="text" placeholder="Informe os envolvidos">
                     </label>
                     <label>
@@ -867,6 +902,24 @@
                   <label class="conditional" id="reintegracaoPosseWrap">
                     Descreva
                     <textarea name="descricaoReintegracaoPosse" rows="3" placeholder="Descreva"></textarea>
+                  </label>
+                </div>
+              </section>
+
+              <section class="occupation-item">
+                <div class="occupation-content">
+                  <fieldset>
+                    Há outras ações judiciais envolvendo a comunidade?
+                    <div class="check-grid">
+                      <label><input type="radio" name="outrasAcoesJudiciaisComunidade" value="Sim"> Sim</label>
+                      <label><input type="radio" name="outrasAcoesJudiciaisComunidade" value="Não"> Não</label>
+                      <label><input type="radio" name="outrasAcoesJudiciaisComunidade" value="Sem informação"> Sem informação</label>
+                    </div>
+                  </fieldset>
+
+                  <label class="conditional" id="outrasAcoesJudiciaisComunidadeWrap">
+                    Descreva
+                    <textarea name="descricaoOutrasAcoesJudiciaisComunidade" rows="3" placeholder="Descreva"></textarea>
                   </label>
                 </div>
               </section>

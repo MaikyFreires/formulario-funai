@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-13";
+const APP_VERSION = "20260518-16";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -98,6 +98,7 @@ let municipioOptions;
 let municipioChips;
 let addMunicipioBtn;
 let coordenadasTableBody;
+let mapasTableBody;
 let comunidadeTradicionalInput;
 let comunidadeTradicionalOptions;
 let comunidadeTradicionalChips;
@@ -207,6 +208,7 @@ function cacheDomElements() {
   municipioChips = document.querySelector("#municipioChips");
   addMunicipioBtn = document.querySelector("#addMunicipioBtn");
   coordenadasTableBody = document.querySelector("#coordenadasTableBody");
+  mapasTableBody = document.querySelector("#mapasTableBody");
   comunidadeTradicionalInput = document.querySelector("#comunidadeTradicionalInput");
   comunidadeTradicionalOptions = document.querySelector("#comunidadeTradicionalOptions");
   comunidadeTradicionalChips = document.querySelector("#comunidadeTradicionalChips");
@@ -353,6 +355,7 @@ function limparFormulario() {
   selectedAldeiasComunidades = [];
   resetDocumentoRows();
   resetCoordenadaRows();
+  resetMapaRows();
   carregarProcessosAnalisados();
   resetAldeiaFields();
   renderEtniaChips();
@@ -398,13 +401,14 @@ function bindEvents() {
   comunidadeTradicionalInput.addEventListener("keydown", handleComunidadeTradicionalKeydown);
   comunidadeTradicionalChips.addEventListener("click", removeSelectedComunidadeTradicional);
   processList.addEventListener("click", handleProcessosAnalisadosClick);
-  addAldeiaBtn.addEventListener("click", addAldeiaField);
+  addAldeiaBtn.addEventListener("click", () => addAldeiaField());
   aldeiaInput.addEventListener("keydown", handleAldeiaKeydown);
   aldeiaChips.addEventListener("click", removeAldeiaField);
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
   document.addEventListener("click", handleInfoToggleClick);
   coordenadasTableBody.addEventListener("click", handleCoordenadaTableClick);
   coordenadasTableBody.addEventListener("input", handleCoordenadaTableInput);
+  mapasTableBody.addEventListener("click", handleMapaTableClick);
   prevBtn.addEventListener("click", goToPreviousStep);
   nextBtn.addEventListener("click", goToNextStep);
   saveDraftBtn.addEventListener("click", salvarRascunho);
@@ -522,6 +526,7 @@ function updateConditionals() {
   setConditional("decisaoDetalhes", getValue("temDecisao") === "Sim");
   setConditional("classificacaoJudicializacaoOutrosWrap", getValue("classificacaoJudicializacao") === "Outros");
   setConditional("coordenadasWrap", getValue("temCoordenadas") === "Sim");
+  setConditional("mapasCartograficosWrap", getValue("temMapaCartografico") === "Sim");
   setConditional("sobreposicoesWrap", getValue("sobreposicoes") === "Sim");
   setConditional("aldeiasComunidadesWrap", getValue("citaAldeiasComunidades") === "Sim");
   setConditional("indigenasAreaWrap", getValue("indigenasArea") === "Sim");
@@ -530,6 +535,7 @@ function updateConditionals() {
   setConditional("conflitoInteretnicoWrap", getValue("conflitoInteretnico") === "Sim");
   setConditional("outroTipoConflitoWrap", getValue("conflitoInteretnico") === "Sim" && getCheckedValues("tiposConflito").includes("Outro"));
   setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
+  setConditional("outrasAcoesJudiciaisComunidadeWrap", getValue("outrasAcoesJudiciaisComunidade") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
   setConditional("descricaoAcaoWrap", getCheckedValues("acoesJudiciais").includes("Outros"));
   setConditional("outroVulnerabilidadeWrap", getCheckedValues("vulnerabilidades").includes("Outros"));
@@ -808,6 +814,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
   const coordenadasDetalhadas = asList(getCoordenadasDetalhadas());
   const coordenadas = asList(getCoordenadasGeograficas());
   const primeiraCoordenada = coordenadasDetalhadas[0] || {};
+  const mapasCartograficos = asList(getMapasCartograficos());
   const processosAnalisados = asList(getProcessosAnalisados());
 
   return {
@@ -890,6 +897,8 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       longitudeDirecao: asText(primeiraCoordenada.longitudeDirecao),
       coordenadaSedeMunicipio: asText(primeiraCoordenada.coordenadaSedeMunicipio),
       comentarioCoordenada: asText(primeiraCoordenada.comentarioCoordenada),
+      temMapaCartografico: asText(getValue("temMapaCartografico")),
+      mapasCartograficos,
       bioma: asList(getCheckedValues("bioma")),
       citaAldeiasComunidades: asText(getValue("citaAldeiasComunidades")),
       aldeiasComunidades: asText(getAldeiasComunidades().join(", ")),
@@ -936,6 +945,8 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       fonteConflito: asText(getValue("fonteConflito")),
       reintegracaoPosse: asText(getValue("reintegracaoPosse")),
       descricaoReintegracaoPosse: asText(getValue("descricaoReintegracaoPosse")),
+      outrasAcoesJudiciaisComunidade: asText(getValue("outrasAcoesJudiciaisComunidade")),
+      descricaoOutrasAcoesJudiciaisComunidade: asText(getValue("descricaoOutrasAcoesJudiciaisComunidade")),
       informacoesAdicionais: asText(getValue("informacoesAdicionais"))
     }
   };
@@ -1357,11 +1368,12 @@ function restoreValues(values) {
   const coordenadas = asList(values.coordenadasDetalhadas || values.coordenadas);
   restoreCoordenadaRows(coordenadas);
   if (!coordenadas.length) restoreLegacyCoordenadaRow(values);
+  restoreMapaRows(values.mapasCartograficos);
   restoreDetalhesVulnerabilidades(values.detalhesVulnerabilidades);
   renderComunidadeTradicionalDetalhes(values.detalhesComunidadesTradicionais);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "processosAnalisados", "numerosProcesso", "descricaoProcessosAnalisados", "numeroSeiProcessoAnalisado", "descricaoProcessoAnalisado", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada"].includes(name)) return;
+    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "processosAnalisados", "numerosProcesso", "descricaoProcessosAnalisados", "numeroSeiProcessoAnalisado", "descricaoProcessoAnalisado", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "mapasCartograficos", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada", "numeroSeiMapa", "paginaMapa"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1461,6 +1473,8 @@ function flattenDraft(draft) {
     longitudeDirecao: draft.caracterizacaoArea?.longitudeDirecao,
     coordenadaSedeMunicipio: draft.caracterizacaoArea?.coordenadaSedeMunicipio,
     comentarioCoordenada: draft.caracterizacaoArea?.comentarioCoordenada,
+    temMapaCartografico: draft.caracterizacaoArea?.temMapaCartografico,
+    mapasCartograficos: normalizeMapasCartograficos(draft.caracterizacaoArea?.mapasCartograficos || draft.MapasCartograficos || draft.mapasCartograficos),
     bioma: draft.caracterizacaoArea?.bioma,
     citaAldeiasComunidades: draft.caracterizacaoArea?.citaAldeiasComunidades,
     aldeiasComunidades: draft.caracterizacaoArea?.aldeiasComunidades,
@@ -1503,6 +1517,8 @@ function flattenDraft(draft) {
     fonteConflito: draft.ocupacaoIndigena?.fonteConflito,
     reintegracaoPosse: draft.ocupacaoIndigena?.reintegracaoPosse,
     descricaoReintegracaoPosse: draft.ocupacaoIndigena?.descricaoReintegracaoPosse,
+    outrasAcoesJudiciaisComunidade: draft.ocupacaoIndigena?.outrasAcoesJudiciaisComunidade,
+    descricaoOutrasAcoesJudiciaisComunidade: draft.ocupacaoIndigena?.descricaoOutrasAcoesJudiciaisComunidade,
     informacoesAdicionais: draft.ocupacaoIndigena?.informacoesAdicionais
   };
 }
@@ -2336,6 +2352,90 @@ function getCoordenadasGeograficas() {
   }));
 }
 
+function handleMapaTableClick(event) {
+  const removeButton = event.target.closest(".remove-mapa-btn");
+  if (removeButton) {
+    removeMapaRow(removeButton.closest(".map-row"));
+    return;
+  }
+
+  const addButton = event.target.closest(".add-mapa-row-btn");
+  if (addButton) addMapaRow();
+}
+
+function addMapaRow(mapa = {}, shouldFocus = true) {
+  const row = document.createElement("tr");
+  row.className = "map-row";
+  row.innerHTML = `
+    <td><input name="numeroSeiMapa" type="text" placeholder="Nº do documento SEI" aria-label="Nº do documento SEI"></td>
+    <td><input name="paginaMapa" type="number" min="0" placeholder="Página" aria-label="Página do mapa ou material cartográfico"></td>
+    <td class="document-actions">
+      <button type="button" class="icon-button remove-mapa-btn" aria-label="Remover mapa ou material cartográfico">×</button>
+      <button type="button" class="icon-button add-mapa-row-btn" aria-label="Adicionar mapa ou material cartográfico">+</button>
+    </td>
+  `;
+  mapasTableBody.append(row);
+  setMapaRowValues(row, mapa);
+  if (shouldFocus) row.querySelector("input")?.focus();
+}
+
+function removeMapaRow(row) {
+  if (!row) return;
+  const rows = Array.from(mapasTableBody.querySelectorAll(".map-row"));
+  if (rows.length > 1) {
+    row.remove();
+    return;
+  }
+
+  setMapaRowValues(row, {});
+}
+
+function resetMapaRows() {
+  const rows = Array.from(mapasTableBody.querySelectorAll(".map-row"));
+  if (!rows.length) return;
+  rows.slice(1).forEach((row) => row.remove());
+  setMapaRowValues(rows[0], {});
+}
+
+function restoreMapaRows(mapas = []) {
+  const values = normalizeMapasCartograficos(mapas);
+  resetMapaRows();
+  if (!values.length) return;
+
+  const [first, ...rest] = values;
+  setMapaRowValues(mapasTableBody.querySelector(".map-row"), first);
+  rest.forEach((mapa) => addMapaRow(mapa, false));
+}
+
+function setMapaRowValues(row, mapa) {
+  if (!row) return;
+  row.querySelector("[name='numeroSeiMapa']").value = asText(mapa.numeroSei || mapa.numeroSeiMapa || mapa.documentoSei);
+  row.querySelector("[name='paginaMapa']").value = asText(mapa.pagina || mapa.paginaMapa);
+}
+
+function getMapasCartograficos() {
+  return Array.from(mapasTableBody.querySelectorAll(".map-row"))
+    .map((row) => ({
+      numeroSei: asText(row.querySelector("[name='numeroSeiMapa']")?.value),
+      pagina: asText(row.querySelector("[name='paginaMapa']")?.value)
+    }))
+    .filter((mapa) => mapa.numeroSei || mapa.pagina);
+}
+
+function normalizeMapasCartograficos(value) {
+  if (Array.isArray(value)) return value;
+  if (!value) return [];
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+  return [];
+}
+
 function updateCoordinateFormatDetails(row = null) {
   const rows = row ? [row] : Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"));
   rows.forEach((coordinateRow) => {
@@ -2629,7 +2729,7 @@ function handleAldeiaKeydown(event) {
 }
 
 function addAldeiaField(value = "") {
-  const aldeia = asText(value || aldeiaInput.value).trim();
+  const aldeia = asText(typeof value === "string" ? value : aldeiaInput.value).trim();
   if (!aldeia || selectedAldeiasComunidades.includes(aldeia)) return;
 
   selectedAldeiasComunidades.push(aldeia);

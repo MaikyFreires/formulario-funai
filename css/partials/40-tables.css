@@ -161,6 +161,14 @@ section.coordinate-table-section.is-visible {
   table-layout: fixed;
 }
 
+.map-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: separate;
+  border-spacing: 10px 10px;
+  table-layout: fixed;
+}
+
 .coordinate-table .coord-col-value {
   width: 260px;
 }
@@ -245,7 +253,8 @@ section.coordinate-table-section.is-visible {
   padding-bottom: 12px;
 }
 
-.coordinate-table th {
+.coordinate-table th,
+.map-table th {
   padding: 0 4px 4px;
   color: var(--green);
   font-size: 0.82rem;
@@ -260,7 +269,8 @@ section.coordinate-table-section.is-visible {
   vertical-align: top;
 }
 
-.coordinate-table td {
+.coordinate-table td,
+.map-table td {
   padding: 0;
   vertical-align: top;
 }
@@ -287,7 +297,8 @@ section.coordinate-table-section.is-visible {
 }
 
 .coordinate-table input,
-.coordinate-table select {
+.coordinate-table select,
+.map-table input {
   min-height: 49px;
   padding-inline: 8px;
 }
