@@ -265,6 +265,11 @@ section.coordinate-table-section.is-visible {
   vertical-align: top;
 }
 
+.coordinate-table td:has([name="latitudeDirecao"]),
+.coordinate-table td:has([name="longitudeDirecao"]) {
+  display: none;
+}
+
 .document-table td:last-child,
 .document-table th:last-child {
   width: 112px;

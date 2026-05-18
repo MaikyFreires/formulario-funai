@@ -490,9 +490,7 @@
                   <table class="coordinate-table">
                     <colgroup>
                       <col class="coord-col-value">
-                      <col class="coord-col-direction">
                       <col class="coord-col-value">
-                      <col class="coord-col-direction">
                       <col class="coord-col-sede">
                       <col class="coord-col-comment">
                       <col class="coord-col-actions">
@@ -500,9 +498,7 @@
                     <thead>
                       <tr>
                         <th>Latitude</th>
-                        <th>N/S</th>
                         <th>Longitude</th>
-                        <th>L/O</th>
                         <th>Localizada na sede do município?</th>
                         <th>Comentário da coordenada</th>
                         <th>Ações</th>
@@ -511,21 +507,7 @@
                     <tbody id="coordenadasTableBody">
                       <tr class="coordinate-row">
                         <td><input name="latitude" type="text" data-coordinate-value placeholder="Ex: 15° 47' 39&quot; S ou -15.7942" aria-label="Latitude"></td>
-                        <td>
-                          <select name="latitudeDirecao" aria-label="Direção da latitude">
-                            <option value="">Escolha</option>
-                            <option>Norte</option>
-                            <option>Sul</option>
-                          </select>
-                        </td>
                         <td><input name="longitude" type="text" data-coordinate-value placeholder="Ex: 47° 52' 56&quot; O ou -47.8822" aria-label="Longitude"></td>
-                        <td>
-                          <select name="longitudeDirecao" aria-label="Direção da longitude">
-                            <option value="">Escolha</option>
-                            <option>Leste</option>
-                            <option>Oeste</option>
-                          </select>
-                        </td>
                         <td>
                           <select name="coordenadaSedeMunicipio" aria-label="Coordenada localizada na sede do município">
                             <option value="">Escolha</option>
@@ -566,15 +548,13 @@
                     </div>
                   </fieldset>
                   <div class="conditional" id="aldeiasComunidadesWrap">
-                    <div class="process-list" id="aldeiasList">
-                      <label class="aldeia-field">
-                        Quais?
-                        <input name="aldeiasComunidades" type="text" placeholder="Digite aqui">
-                      </label>
-                      <div class="process-buttons">
+                    <div class="multi-autocomplete" id="aldeiasList">
+                      <label for="aldeiaInput">Quais?</label>
+                      <div class="autocomplete-row">
+                        <input id="aldeiaInput" type="text" placeholder="Digite a aldeia/comunidade">
                         <button type="button" class="icon-button" id="addAldeiaBtn" aria-label="Adicionar aldeia ou comunidade">+</button>
-                        <button type="button" class="icon-button danger" id="removeAldeiaBtn" aria-label="Excluir aldeia ou comunidade">&#128465;</button>
                       </div>
+                      <div class="chips" id="aldeiaChips" aria-live="polite"></div>
                     </div>
                   </div>
                 </div>

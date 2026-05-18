@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-11";
+const APP_VERSION = "20260518-13";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -84,8 +84,9 @@ let outraEtniaChips;
 let addOutraEtniaBtn;
 let processList;
 let aldeiasList;
+let aldeiaInput;
+let aldeiaChips;
 let addAldeiaBtn;
-let removeAldeiaBtn;
 let documentosTableBody;
 let addDocumentoBtn;
 let estadoInput;
@@ -109,6 +110,7 @@ let selectedOutrasEtnias = [];
 let selectedEstados = [];
 let selectedMunicipios = [];
 let selectedComunidadesTradicionais = [];
+let selectedAldeiasComunidades = [];
 let municipiosPorEstado = new Map();
 let allEstados = [];
 let allEtnias = [];
@@ -191,8 +193,9 @@ function cacheDomElements() {
   addOutraEtniaBtn = document.querySelector("#addOutraEtniaBtn");
   processList = document.querySelector("#processList");
   aldeiasList = document.querySelector("#aldeiasList");
+  aldeiaInput = document.querySelector("#aldeiaInput");
+  aldeiaChips = document.querySelector("#aldeiaChips");
   addAldeiaBtn = document.querySelector("#addAldeiaBtn");
-  removeAldeiaBtn = document.querySelector("#removeAldeiaBtn");
   documentosTableBody = document.querySelector("#documentosTableBody");
   addDocumentoBtn = document.querySelector("#addDocumentoBtn");
   estadoInput = document.querySelector("#estadoInput");
@@ -347,6 +350,7 @@ function limparFormulario() {
   selectedEstados = [];
   selectedMunicipios = [];
   selectedComunidadesTradicionais = [];
+  selectedAldeiasComunidades = [];
   resetDocumentoRows();
   resetCoordenadaRows();
   carregarProcessosAnalisados();
@@ -356,6 +360,7 @@ function limparFormulario() {
   renderEstadoChips();
   renderMunicipioChips();
   renderComunidadeTradicionalChips();
+  renderAldeiaChips();
   renderComunidadeTradicionalDetalhes();
   populateEstadoOptions();
   populateMunicipioOptions();
@@ -393,8 +398,9 @@ function bindEvents() {
   comunidadeTradicionalInput.addEventListener("keydown", handleComunidadeTradicionalKeydown);
   comunidadeTradicionalChips.addEventListener("click", removeSelectedComunidadeTradicional);
   processList.addEventListener("click", handleProcessosAnalisadosClick);
-  addAldeiaBtn.addEventListener("click", () => addAldeiaField());
-  removeAldeiaBtn.addEventListener("click", removeAldeiaField);
+  addAldeiaBtn.addEventListener("click", addAldeiaField);
+  aldeiaInput.addEventListener("keydown", handleAldeiaKeydown);
+  aldeiaChips.addEventListener("click", removeAldeiaField);
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
   document.addEventListener("click", handleInfoToggleClick);
   coordenadasTableBody.addEventListener("click", handleCoordenadaTableClick);
@@ -2215,7 +2221,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
   row.innerHTML = `
     <td><input name="latitude" type="text" data-coordinate-value placeholder="Ex: 15° 47' 39&quot; S ou -15.7942" aria-label="Latitude"></td>
     <td>
-      <select name="latitudeDirecao" aria-label="Direção da latitude">
+      <select name="latitudeDirecao" aria-label="Direção da latitude" hidden>
         <option value="">Escolha</option>
         <option>Norte</option>
         <option>Sul</option>
@@ -2223,7 +2229,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
     </td>
     <td><input name="longitude" type="text" data-coordinate-value placeholder="Ex: 47° 52' 56&quot; O ou -47.8822" aria-label="Longitude"></td>
     <td>
-      <select name="longitudeDirecao" aria-label="Direção da longitude">
+      <select name="longitudeDirecao" aria-label="Direção da longitude" hidden>
         <option value="">Escolha</option>
         <option>Leste</option>
         <option>Oeste</option>
@@ -2297,9 +2303,9 @@ function setCoordenadaRowValues(row, coordenada) {
   if (row.querySelector("[name='tipoCoordenada']")) row.querySelector("[name='tipoCoordenada']").value = asText(coordenada.tipoCoordenada);
   if (row.querySelector("[name='outroFormatoCoordenada']")) row.querySelector("[name='outroFormatoCoordenada']").value = asText(coordenada.outroFormatoCoordenada);
   row.querySelector("[name='latitude']").value = asText(coordenada.latitude);
-  row.querySelector("[name='latitudeDirecao']").value = asText(coordenada.latitudeDirecao);
+  if (row.querySelector("[name='latitudeDirecao']")) row.querySelector("[name='latitudeDirecao']").value = asText(coordenada.latitudeDirecao);
   row.querySelector("[name='longitude']").value = asText(coordenada.longitude);
-  row.querySelector("[name='longitudeDirecao']").value = asText(coordenada.longitudeDirecao);
+  if (row.querySelector("[name='longitudeDirecao']")) row.querySelector("[name='longitudeDirecao']").value = asText(coordenada.longitudeDirecao);
   row.querySelector("[name='coordenadaSedeMunicipio']").value = asText(coordenada.coordenadaSedeMunicipio);
   row.querySelector("[name='comentarioCoordenada']").value = asText(coordenada.comentarioCoordenada || coordenada.comentario);
   updateCoordinateFormatDetails(row);
@@ -2420,9 +2426,7 @@ function areCoordenadasValid() {
   const coordenadas = getCoordenadasDetalhadas();
   return coordenadas.some((coordenada) =>
     coordenada.latitude &&
-    coordenada.latitudeDirecao &&
-    coordenada.longitude &&
-    coordenada.longitudeDirecao
+    coordenada.longitude
   );
 }
 
@@ -2618,51 +2622,47 @@ function getProcessNumbers() {
     .filter(Boolean);
 }
 
-function addAldeiaField(value = "") {
-  const label = document.createElement("label");
-  const input = document.createElement("input");
-
-  label.className = "aldeia-field";
-  input.name = "aldeiasComunidades";
-  input.type = "text";
-  input.placeholder = "Digite aqui";
-  input.value = value;
-  label.append(document.createTextNode("Quais?"), input);
-  aldeiasList.insertBefore(label, aldeiasList.querySelector(".process-buttons"));
-  input.focus();
+function handleAldeiaKeydown(event) {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  addAldeiaField();
 }
 
-function removeAldeiaField() {
-  const fields = Array.from(aldeiasList.querySelectorAll(".aldeia-field"));
-  const last = fields[fields.length - 1];
-  if (fields.length > 1) {
-    last.remove();
-    fields[fields.length - 2].querySelector("input").focus();
-    return;
-  }
+function addAldeiaField(value = "") {
+  const aldeia = asText(value || aldeiaInput.value).trim();
+  if (!aldeia || selectedAldeiasComunidades.includes(aldeia)) return;
 
-  last.querySelector("input").value = "";
-  last.querySelector("input").focus();
+  selectedAldeiasComunidades.push(aldeia);
+  aldeiaInput.value = "";
+  renderAldeiaChips();
+}
+
+function removeAldeiaField(event) {
+  const button = event.target.closest("button[data-aldeia]");
+  if (!button) return;
+
+  selectedAldeiasComunidades = selectedAldeiasComunidades.filter((aldeia) => aldeia !== button.dataset.aldeia);
+  renderAldeiaChips();
 }
 
 function resetAldeiaFields() {
-  const fields = Array.from(aldeiasList.querySelectorAll(".aldeia-field"));
-  fields.slice(1).forEach((field) => field.remove());
-  if (fields[0]) fields[0].querySelector("input").value = "";
+  selectedAldeiasComunidades = [];
+  if (aldeiaInput) aldeiaInput.value = "";
+  renderAldeiaChips();
 }
 
 function restoreAldeiaFields(values) {
-  const aldeias = values.filter(Boolean);
-  resetAldeiaFields();
-  const existing = aldeiasList.querySelector(".aldeia-field input");
-  if (existing) existing.value = aldeias[0] || "";
-  aldeias.slice(1).forEach((value) => addAldeiaField(value));
+  selectedAldeiasComunidades = asListOrSplit(values).filter(Boolean);
+  if (aldeiaInput) aldeiaInput.value = "";
+  renderAldeiaChips();
+}
+
+function renderAldeiaChips() {
+  renderChips(aldeiaChips, selectedAldeiasComunidades, "aldeia", "Remover aldeia ou comunidade");
 }
 
 function getAldeiasComunidades() {
-  return Array.from(aldeiasList.querySelectorAll(".aldeia-field input"))
-    .map((field) => field.value.trim())
-    .filter(Boolean);
+  return selectedAldeiasComunidades.filter(Boolean);
 }
 
 function getTodayDate() {
