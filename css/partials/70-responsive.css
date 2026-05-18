@@ -123,7 +123,19 @@
   }
 
   .process-list {
-    grid-template-columns: minmax(0, 1fr) 96px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .process-item {
+    grid-template-columns: 1fr;
+  }
+
+  .process-item-actions {
+    justify-content: flex-start;
+  }
+
+  .action-grid {
+    grid-template-columns: 1fr;
   }
 
   .section-heading h2 {

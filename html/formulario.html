@@ -127,14 +127,20 @@
               <section class="field-section">
                 <h3>Processo e qualificação</h3>
                 <div class="field-grid compact">
-                  <div class="process-list" id="processList">
-                    <label class="process-field">
-                      Número SEI dos processos analisados
-                      <input name="numeroProcesso" type="text">
-                    </label>
-                    <div class="process-buttons">
-                      <button type="button" class="icon-button" id="addProcessBtn" aria-label="Adicionar processo">+</button>
-                      <button type="button" class="icon-button danger" id="removeProcessBtn" aria-label="Excluir processo">&#128465;</button>
+                  <div class="process-list wide" id="processList">
+                    <div class="process-item">
+                      <label class="process-field">
+                        Número SEI dos processos analisados
+                        <input name="numeroSeiProcessoAnalisado" type="text" placeholder="Número SEI dos processos analisados">
+                      </label>
+                      <label class="process-field">
+                        Descrição dos processos analisados
+                        <textarea name="descricaoProcessoAnalisado" rows="2" placeholder="Descreva o tema principal dos processos analisados"></textarea>
+                      </label>
+                      <div class="process-item-actions">
+                        <button type="button" class="icon-button add-processo-analisado-btn" aria-label="Adicionar processo analisado">+</button>
+                        <button type="button" class="icon-button danger remove-processo-analisado-btn" aria-label="Remover processo analisado">×</button>
+                      </div>
                     </div>
                   </div>
 
@@ -154,10 +160,6 @@
                     </label>
                   </fieldset>
 
-                  <label class="wide">
-                    Descrição dos processos analisados
-                    <textarea name="descricaoProcessosAnalisados" rows="3" placeholder="Descreva o tema principal dos processos analisados"></textarea>
-                  </label>
                 </div>
               </section>
 
@@ -303,7 +305,13 @@
                       <tr>
                         <th>Data</th>
                         <th>Tipo de documento</th>
-                        <th title="Para o caso de dossiê/volume digitalizado">Página</th>
+                        <th>
+                          <span class="table-info-label">
+                            Página
+                            <span class="info-icon" aria-hidden="true">i</span>
+                            <span class="info-text">para o caso de dossiê/volume digitalizado</span>
+                          </span>
+                        </th>
                         <th>Assunto</th>
                         <th>Nº SEI</th>
                         <th>Nº do processo</th>
@@ -314,7 +322,7 @@
                       <tr class="document-row">
                         <td><input name="dataDocumento" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" aria-label="Data"></td>
                         <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
-                        <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página" title="Para o caso de dossiê/volume digitalizado"></td>
+                        <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página para o caso de dossiê/volume digitalizado"></td>
                         <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
                         <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
                         <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
@@ -340,14 +348,37 @@
 
             <div class="field-grid status-process-grid">
               <fieldset class="wide">
-                Está judicializado?
+                Há ações judiciais contra a FUNAI?
                 <div class="check-grid">
                   <label><input type="radio" name="estaJudicializado" value="Sim"> Sim</label>
+                  <label><input type="radio" name="estaJudicializado" value="Não"> Não</label>
                   <label><input type="radio" name="estaJudicializado" value="Sem informação"> Sem informação</label>
                 </div>
               </fieldset>
 
               <div class="conditional wide status-details" id="judicializadoDetalhes">
+                <label class="wide">
+                  Motivação
+                  <textarea name="motivacaoJudicializacao" rows="3" placeholder="Descreva a motivação da ação judicial"></textarea>
+                </label>
+
+                <div class="field-grid compact">
+                  <label>
+                    Qualificação/constituição de GT/Outros
+                    <select name="classificacaoJudicializacao">
+                      <option value="">Selecione</option>
+                      <option>Qualificação</option>
+                      <option>Constituição de GT</option>
+                      <option>Outros</option>
+                    </select>
+                  </label>
+
+                  <label class="conditional" id="classificacaoJudicializacaoOutrosWrap">
+                    <span class="sr-only">Descreva a classificação</span>
+                    <input name="classificacaoJudicializacaoOutros" type="text" placeholder="Descreva">
+                  </label>
+                </div>
+
                 <fieldset class="wide">
                   <legend>Qual a ação?</legend>
                   <div class="check-grid">
@@ -356,15 +387,39 @@
                   </div>
                 </fieldset>
 
-                <label class="conditional status-short-field" id="descricaoAcaoWrap">
+                <label class="conditional" id="descricaoAcaoWrap">
                   <span class="sr-only">Descreva a ação</span>
                   <input name="descricaoAcao" type="text" placeholder="Descreva a ação">
                 </label>
 
+                <div class="decision-grid action-grid">
+                  <label>
+                    Apelante/parte autora
+                    <input name="parteAutoraAcao" type="text" placeholder="Informe a parte autora">
+                  </label>
+                  <label>
+                    Número do processo SEI
+                    <input name="numeroProcessoSeiJudicial" type="text" placeholder="Número do processo SEI">
+                  </label>
+                  <label>
+                    Número da ação
+                    <input name="numeroAcaoJudicial" type="text" placeholder="Número da ação">
+                  </label>
+                  <label>
+                    Data
+                    <input name="dataAcaoJudicial" type="date">
+                  </label>
+                  <label class="wide">
+                    Detalhes sobre a judicialização
+                    <textarea name="detalhesJudicializacao" rows="3" placeholder="Detalhe sobre a judicialização"></textarea>
+                  </label>
+                </div>
+
                 <fieldset class="wide">
-                  Tem decisão?
+                  Tem decisão judicial?
                   <div class="check-grid">
                     <label><input type="radio" name="temDecisao" value="Sim"> Sim</label>
+                    <label><input type="radio" name="temDecisao" value="Não"> Não</label>
                     <label><input type="radio" name="temDecisao" value="Sem informação"> Sem informação</label>
                   </div>
                 </fieldset>

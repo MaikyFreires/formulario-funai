@@ -26,6 +26,16 @@
   display: grid;
 }
 
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  width: 100%;
+}
+
+.action-grid .wide {
+  grid-column: 1 / -1;
+}
+
 .overlap-question {
   gap: 24px;
 }

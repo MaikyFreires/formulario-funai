@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-7";
+const APP_VERSION = "20260518-9";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -83,8 +83,6 @@ let outraEtniaInput;
 let outraEtniaChips;
 let addOutraEtniaBtn;
 let processList;
-let addProcessBtn;
-let removeProcessBtn;
 let aldeiasList;
 let addAldeiaBtn;
 let removeAldeiaBtn;
@@ -192,8 +190,6 @@ function cacheDomElements() {
   outraEtniaChips = document.querySelector("#outraEtniaChips");
   addOutraEtniaBtn = document.querySelector("#addOutraEtniaBtn");
   processList = document.querySelector("#processList");
-  addProcessBtn = document.querySelector("#addProcessBtn");
-  removeProcessBtn = document.querySelector("#removeProcessBtn");
   aldeiasList = document.querySelector("#aldeiasList");
   addAldeiaBtn = document.querySelector("#addAldeiaBtn");
   removeAldeiaBtn = document.querySelector("#removeAldeiaBtn");
@@ -353,6 +349,7 @@ function limparFormulario() {
   selectedComunidadesTradicionais = [];
   resetDocumentoRows();
   resetCoordenadaRows();
+  carregarProcessosAnalisados();
   resetAldeiaFields();
   renderEtniaChips();
   renderOutraEtniaChips();
@@ -395,8 +392,7 @@ function bindEvents() {
   addComunidadeTradicionalBtn.addEventListener("click", addSelectedComunidadeTradicional);
   comunidadeTradicionalInput.addEventListener("keydown", handleComunidadeTradicionalKeydown);
   comunidadeTradicionalChips.addEventListener("click", removeSelectedComunidadeTradicional);
-  addProcessBtn.addEventListener("click", () => addProcessField());
-  removeProcessBtn.addEventListener("click", removeProcessField);
+  processList.addEventListener("click", handleProcessosAnalisadosClick);
   addAldeiaBtn.addEventListener("click", () => addAldeiaField());
   removeAldeiaBtn.addEventListener("click", removeAldeiaField);
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
@@ -505,6 +501,7 @@ function updateConditionals() {
   }
   setConditional("judicializadoDetalhes", getValue("estaJudicializado") === "Sim");
   setConditional("decisaoDetalhes", getValue("temDecisao") === "Sim");
+  setConditional("classificacaoJudicializacaoOutrosWrap", getValue("classificacaoJudicializacao") === "Outros");
   setConditional("coordenadasWrap", getValue("temCoordenadas") === "Sim");
   setConditional("sobreposicoesWrap", getValue("sobreposicoes") === "Sim");
   setConditional("aldeiasComunidadesWrap", getValue("citaAldeiasComunidades") === "Sim");
@@ -793,6 +790,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
   const coordenadasDetalhadas = asList(getCoordenadasDetalhadas());
   const coordenadas = asList(getCoordenadasGeograficas());
   const primeiraCoordenada = coordenadasDetalhadas[0] || {};
+  const processosAnalisados = asList(getProcessosAnalisados());
 
   return {
     formularioId: asText(getCurrentFormularioId()),
@@ -812,8 +810,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       nome: asText(getValue("nomeReivindicacao")),
       outrosNomes: asText(getValue("outrosNomes")),
       outrosNomesTexto: asText(getValue("outrosNomesTexto")),
-      numerosProcesso: asList(getProcessNumbers()),
-      descricaoProcessosAnalisados: asText(getValue("descricaoProcessosAnalisados")),
+      processosAnalisados,
       temRoteiro: asText(getValue("temRoteiro")),
       dataRoteiro: converterDataParaISO(getValue("dataRoteiro")),
       numeroSeiQualificacao: asText(getValue("numeroSeiQualificacao")),
@@ -834,7 +831,6 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     },
     resumoProcesso: {
       descricao: asText(getValue("descricaoReivindicacao")),
-      descricaoProcessosAnalisados: asText(getValue("descricaoProcessosAnalisados")),
       documentos,
       dataDocumento: asText(primeiroDocumento.dataDocumento),
       tipoDocumento: asText(primeiroDocumento.tipoDocumento),
@@ -846,8 +842,16 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     },
     statusProcesso: {
       estaJudicializado: asText(getValue("estaJudicializado")),
+      motivacaoJudicializacao: asText(getValue("motivacaoJudicializacao")),
+      classificacaoJudicializacao: asText(getValue("classificacaoJudicializacao")),
+      classificacaoJudicializacaoOutros: asText(getValue("classificacaoJudicializacaoOutros")),
       acoesJudiciais: asList(getCheckedValues("acoesJudiciais")),
       descricaoAcao: asText(getValue("descricaoAcao")),
+      parteAutoraAcao: asText(getValue("parteAutoraAcao")),
+      numeroProcessoSeiJudicial: asText(getValue("numeroProcessoSeiJudicial")),
+      numeroAcaoJudicial: asText(getValue("numeroAcaoJudicial")),
+      dataAcaoJudicial: converterDataParaISO(getValue("dataAcaoJudicial")),
+      detalhesJudicializacao: asText(getValue("detalhesJudicializacao")),
       temDecisao: asText(getValue("temDecisao")),
       numeroDecisao: asText(getValue("numeroDecisao")),
       dataDecisao: converterDataParaISO(getValue("dataDecisao")),
@@ -1293,7 +1297,7 @@ function restoreValues(values) {
   const estados = asListOrSplit(values.estados);
   const municipios = asListOrSplit(values.municipios);
   const comunidadesTradicionais = asListOrSplit(values.tiposComunidadeTradicional);
-  const numerosProcesso = asListOrSplit(values.numerosProcesso);
+  const processosAnalisados = normalizarProcessosAnalisados(values.processosAnalisados, values.numerosProcesso, values.descricaoProcessosAnalisados);
   const aldeiasComunidadesLista = asListOrSplit(values.aldeiasComunidadesLista || values.aldeiasComunidades);
 
   if (etnias.length) {
@@ -1323,9 +1327,7 @@ function restoreValues(values) {
     populateComunidadeTradicionalOptions();
   }
 
-  if (numerosProcesso.length) {
-    restoreProcessFields(numerosProcesso);
-  }
+  carregarProcessosAnalisados(processosAnalisados);
 
   if (aldeiasComunidadesLista.length) {
     restoreAldeiaFields(aldeiasComunidadesLista);
@@ -1341,7 +1343,7 @@ function restoreValues(values) {
   renderComunidadeTradicionalDetalhes(values.detalhesComunidadesTradicionais);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "numerosProcesso", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada"].includes(name)) return;
+    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "processosAnalisados", "numerosProcesso", "descricaoProcessosAnalisados", "numeroSeiProcessoAnalisado", "descricaoProcessoAnalisado", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1384,6 +1386,11 @@ function flattenDraft(draft) {
     nomeReivindicacao: pickField(draft, directValue(() => draft.reivindicacao?.nome), "NomeReivindicacao", "field_3", "nomeReivindicacao"),
     outrosNomes: pickField(draft, directValue(() => draft.reivindicacao?.outrosNomes), "OutrosNomes", "field_4", "outrosNomes"),
     outrosNomesTexto: pickField(draft, directValue(() => draft.reivindicacao?.outrosNomesTexto), "OutrosNomesTexto", "field_5", "outrosNomesTexto"),
+    processosAnalisados: normalizarProcessosAnalisados(
+      pickField(draft, directValue(() => draft.reivindicacao?.processosAnalisados), "ProcessosAnalisados", "processosAnalisados"),
+      pickField(draft, directValue(() => draft.reivindicacao?.numerosProcesso), "NumerosProcesso", "field_6", "numerosProcesso", directValue(() => draft.reivindicacao?.numeroProcesso), "numeroProcesso"),
+      draft.resumoProcesso?.descricaoProcessosAnalisados || draft.reivindicacao?.descricaoProcessosAnalisados
+    ),
     numerosProcesso: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.numerosProcesso), "NumerosProcesso", "field_6", "numerosProcesso", directValue(() => draft.reivindicacao?.numeroProcesso), "numeroProcesso")),
     descricaoProcessosAnalisados: draft.resumoProcesso?.descricaoProcessosAnalisados || draft.reivindicacao?.descricaoProcessosAnalisados,
     temRoteiro: pickField(draft, directValue(() => draft.reivindicacao?.temRoteiro), "TemRoteiro", "field_7", "temRoteiro"),
@@ -1409,8 +1416,16 @@ function flattenDraft(draft) {
     numeroSei: draft.resumoProcesso?.numeroSei,
     eventosAssuntos: draft.resumoProcesso?.eventosAssuntos,
     estaJudicializado: draft.statusProcesso?.estaJudicializado,
+    motivacaoJudicializacao: draft.statusProcesso?.motivacaoJudicializacao,
+    classificacaoJudicializacao: draft.statusProcesso?.classificacaoJudicializacao,
+    classificacaoJudicializacaoOutros: draft.statusProcesso?.classificacaoJudicializacaoOutros,
     acoesJudiciais: draft.statusProcesso?.acoesJudiciais,
     descricaoAcao: draft.statusProcesso?.descricaoAcao,
+    parteAutoraAcao: draft.statusProcesso?.parteAutoraAcao,
+    numeroProcessoSeiJudicial: draft.statusProcesso?.numeroProcessoSeiJudicial,
+    numeroAcaoJudicial: draft.statusProcesso?.numeroAcaoJudicial,
+    dataAcaoJudicial: draft.statusProcesso?.dataAcaoJudicial,
+    detalhesJudicializacao: draft.statusProcesso?.detalhesJudicializacao,
     temDecisao: draft.statusProcesso?.temDecisao,
     numeroDecisao: draft.statusProcesso?.numeroDecisao,
     dataDecisao: draft.statusProcesso?.dataDecisao,
@@ -2070,7 +2085,7 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
   row.innerHTML = `
     <td><input name="dataDocumento" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" aria-label="Data"></td>
     <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
-    <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página" title="Para o caso de dossiê/volume digitalizado"></td>
+    <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página para o caso de dossiê/volume digitalizado"></td>
     <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
     <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
     <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
@@ -2433,12 +2448,146 @@ function removeLettersFromCoordinate(value) {
   return String(value || "");
 }
 
+function handleProcessosAnalisadosClick(event) {
+  const addButton = event.target.closest(".add-processo-analisado-btn");
+  if (addButton) {
+    adicionarProcessoAnalisado();
+    return;
+  }
+
+  const removeButton = event.target.closest(".remove-processo-analisado-btn");
+  if (removeButton) {
+    removerProcessoAnalisado(removeButton.closest(".process-item"));
+  }
+}
+
+function adicionarProcessoAnalisado(processo = {}, shouldFocus = true) {
+  const item = document.createElement("div");
+  const numeroLabel = document.createElement("label");
+  const numeroInput = document.createElement("input");
+  const descricaoLabel = document.createElement("label");
+  const descricaoInput = document.createElement("textarea");
+  const actions = document.createElement("div");
+  const addButton = document.createElement("button");
+  const removeButton = document.createElement("button");
+
+  item.className = "process-item";
+
+  numeroLabel.className = "process-field";
+  numeroLabel.append(document.createTextNode("N\u00famero SEI dos processos analisados"));
+  numeroInput.name = "numeroSeiProcessoAnalisado";
+  numeroInput.type = "text";
+  numeroInput.placeholder = "N\u00famero SEI dos processos analisados";
+  numeroInput.value = asText(processo.numeroSei || processo.numeroProcesso || processo.numeroProcessoDocumento);
+  numeroLabel.append(numeroInput);
+
+  descricaoLabel.className = "process-field";
+  descricaoLabel.append(document.createTextNode("Descri\u00e7\u00e3o dos processos analisados"));
+  descricaoInput.name = "descricaoProcessoAnalisado";
+  descricaoInput.rows = 2;
+  descricaoInput.placeholder = "Descreva o tema principal dos processos analisados";
+  descricaoInput.value = asText(processo.descricao || processo.descricaoProcessosAnalisados);
+  descricaoLabel.append(descricaoInput);
+
+  actions.className = "process-item-actions";
+  addButton.type = "button";
+  addButton.className = "icon-button add-processo-analisado-btn";
+  addButton.setAttribute("aria-label", "Adicionar processo analisado");
+  addButton.textContent = "+";
+  removeButton.type = "button";
+  removeButton.className = "icon-button danger remove-processo-analisado-btn";
+  removeButton.setAttribute("aria-label", "Remover processo analisado");
+  removeButton.textContent = "\u00d7";
+  actions.append(addButton, removeButton);
+
+  item.append(numeroLabel, descricaoLabel, actions);
+  processList.append(item);
+
+  if (shouldFocus) numeroInput.focus();
+}
+
+function removerProcessoAnalisado(item) {
+  const items = Array.from(processList.querySelectorAll(".process-item"));
+  if (!item) return;
+
+  if (items.length > 1) {
+    const previousItem = item.previousElementSibling || item.nextElementSibling;
+    item.remove();
+    previousItem?.querySelector("input, textarea")?.focus();
+    return;
+  }
+
+  item.querySelectorAll("input, textarea").forEach((field) => {
+    field.value = "";
+  });
+  item.querySelector("input")?.focus();
+}
+
+function carregarProcessosAnalisados(processos = []) {
+  const normalizados = normalizarProcessosAnalisados(processos);
+  const registros = normalizados.length ? normalizados : [{ numeroSei: "", descricao: "" }];
+
+  processList.innerHTML = "";
+  registros.forEach((processo) => adicionarProcessoAnalisado(processo, false));
+}
+
+function getProcessosAnalisados() {
+  return Array.from(processList.querySelectorAll(".process-item"))
+    .map((item) => ({
+      numeroSei: asText(item.querySelector('[name="numeroSeiProcessoAnalisado"]')?.value),
+      descricao: asText(item.querySelector('[name="descricaoProcessoAnalisado"]')?.value)
+    }))
+    .filter((processo) => processo.numeroSei || processo.descricao);
+}
+
+function normalizarProcessosAnalisados(processos = [], numerosLegados = [], descricaoLegada = "") {
+  let registros = [];
+
+  if (Array.isArray(processos)) {
+    registros = processos;
+  } else if (typeof processos === "string" && processos.trim()) {
+    try {
+      const parsed = JSON.parse(processos);
+      registros = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      registros = asListOrSplit(processos).map((numeroSei) => ({ numeroSei, descricao: "" }));
+    }
+  }
+
+  registros = registros
+    .map((processo) => {
+      if (typeof processo === "string") {
+        return { numeroSei: asText(processo), descricao: "" };
+      }
+
+      return {
+        numeroSei: asText(processo?.numeroSei || processo?.numeroProcesso || processo?.numeroProcessoDocumento),
+        descricao: asText(processo?.descricao || processo?.descricaoProcessosAnalisados)
+      };
+    })
+    .filter((processo) => processo.numeroSei || processo.descricao);
+
+  if (registros.length) return registros;
+
+  const numeros = asListOrSplit(numerosLegados);
+  const descricao = asText(descricaoLegada);
+  if (numeros.length) {
+    return numeros.map((numeroSei, index) => ({
+      numeroSei,
+      descricao: index === 0 ? descricao : ""
+    }));
+  }
+
+  if (descricao) return [{ numeroSei: "", descricao }];
+  return [];
+}
+
 function addProcessField(value = "") {
   const label = document.createElement("label");
   const input = document.createElement("input");
 
   label.className = "process-field";
-  input.name = "numeroProcesso";
+  input.name = "numeroSeiProcessoAnalisado";
   input.type = "text";
   input.value = value;
   label.append(document.createTextNode("Número SEI dos processos analisados"), input);
