@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-4";
+const APP_VERSION = "20260518-6";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -815,7 +815,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       numerosProcesso: asList(getProcessNumbers()),
       descricaoProcessosAnalisados: asText(getValue("descricaoProcessosAnalisados")),
       temRoteiro: asText(getValue("temRoteiro")),
-      dataRoteiro: getBrazilDateValue("dataRoteiro"),
+      dataRoteiro: converterDataParaISO(getValue("dataRoteiro")),
       numeroSeiQualificacao: asText(getValue("numeroSeiQualificacao")),
       etnias,
       outraEtnia: asText(outrasEtnias.join(", ")),
@@ -850,7 +850,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       descricaoAcao: asText(getValue("descricaoAcao")),
       temDecisao: asText(getValue("temDecisao")),
       numeroDecisao: asText(getValue("numeroDecisao")),
-      dataDecisao: getBrazilDateValue("dataDecisao"),
+      dataDecisao: converterDataParaISO(getValue("dataDecisao")),
       sentenca: asText(getValue("sentenca")),
       detalhesDecisao: asText(getValue("detalhesDecisao")),
       numeroProcessoJudicial: asText(getValue("numeroProcessoJudicial"))
@@ -893,24 +893,24 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     ocupacaoIndigena: {
       indigenasArea: asText(getValue("indigenasArea")),
       tempoOcupacao: asText(getValue("tempoOcupacao")),
-      dataReferenciaOcupacao: asText(getValue("dataReferenciaOcupacao")),
+      dataReferenciaOcupacao: converterDataParaISO(getValue("dataReferenciaOcupacao")),
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
       outroCriterioVulnerabilidade: asText(getValue("outroCriterioVulnerabilidade")),
       detalhesVulnerabilidades: asList(getDetalhesVulnerabilidades()),
       fonteVulnerabilidade: asText(getValue("fonteVulnerabilidade")),
-      dataReferenciaVulnerabilidade: asText(getValue("dataReferenciaVulnerabilidade")),
+      dataReferenciaVulnerabilidade: converterDataParaISO(getValue("dataReferenciaVulnerabilidade")),
       comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
       tiposComunidadeTradicional: asList(getSelectedComunidadesTradicionais()),
       detalhesComunidadesTradicionais: asList(getDetalhesComunidadesTradicionais()),
       descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
-      dataReferenciaComunidadeTradicional: asText(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
+      dataReferenciaComunidadeTradicional: converterDataParaISO(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
       tiposConflito: asList(getCheckedValues("tiposConflito")),
       outroTipoConflito: asText(getValue("outroTipoConflito")),
       envolvidosConflito: asText(getValue("envolvidosConflito")),
       motivoConflitoInteretnico: asText(getValue("motivoConflitoInteretnico")),
       etniaConflitoInteretnico: asText(getValue("etniaConflitoInteretnico")),
-      dataReferenciaConflitoInteretnico: asText(getValue("dataReferenciaConflitoInteretnico")),
+      dataReferenciaConflitoInteretnico: converterDataParaISO(getValue("dataReferenciaConflitoInteretnico")),
       fonteConflito: asText(getValue("fonteConflito")),
       reintegracaoPosse: asText(getValue("reintegracaoPosse")),
       descricaoReintegracaoPosse: asText(getValue("descricaoReintegracaoPosse")),
@@ -1360,10 +1360,19 @@ function restoreValues(values) {
         const hasOption = Array.from(field.options).some((option) => option.value === value || option.textContent === value);
         field.value = hasOption ? value || "" : "";
       } else {
-        field.value = value || "";
+        field.value = shouldDisplayDateAsBrazil(name) ? converterDataParaBR(value) : value || "";
       }
     });
   });
+}
+
+function shouldDisplayDateAsBrazil(name) {
+  return [
+    "dataReferenciaOcupacao",
+    "dataReferenciaVulnerabilidade",
+    "dataReferenciaComunidadeTradicional",
+    "dataReferenciaConflitoInteretnico"
+  ].includes(name);
 }
 
 function flattenDraft(draft) {
@@ -1553,20 +1562,49 @@ function getValue(name) {
   return String(field.value || "").trim();
 }
 
-function getBrazilDateValue(name) {
-  return formatDateToBrazil(getValue(name));
+function converterDataParaISO(dataBr) {
+  const text = asText(dataBr).trim();
+  if (!text) return "";
+
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDate) {
+    const value = `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+    console.log("data enviada ISO", value);
+    return value;
+  }
+
+  const brazilDate = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brazilDate) {
+    const value = `${brazilDate[3]}-${brazilDate[2]}-${brazilDate[1]}`;
+    console.log("data enviada ISO", value);
+    return value;
+  }
+
+  return text;
+}
+
+function converterDataParaBR(dataIso) {
+  const text = asText(dataIso).trim();
+  if (!text) return "";
+
+  const brazilDate = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brazilDate) {
+    console.log("data exibida BR", text);
+    return text;
+  }
+
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDate) {
+    const value = `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
+    console.log("data exibida BR", value);
+    return value;
+  }
+
+  return text;
 }
 
 function formatDateToBrazil(value) {
-  const text = asText(value).trim();
-  if (!text) return "";
-  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoDate) return `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
-
-  const brazilDate = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (brazilDate) return text;
-
-  return text;
+  return converterDataParaBR(value);
 }
 
 function normalizeDateForInput(value) {
@@ -1944,7 +1982,7 @@ function renderComunidadeTradicionalDetalhes(existingDetails = []) {
       <input name="dataComunidadeTradicional" data-community-date="${tipo}" type="text" placeholder="Referência do dado">
     `;
     row.querySelector("[data-community-source]").value = asText(detail.fonte);
-    row.querySelector("[data-community-date]").value = asText(detail.dataReferencia);
+    row.querySelector("[data-community-date]").value = converterDataParaBR(detail.dataReferencia);
     comunidadeTradicionalDetalhes.append(row);
   });
 }
@@ -1954,7 +1992,7 @@ function getDetalhesComunidadesTradicionais() {
     .map((row) => {
       const tipo = row.dataset.communityDetail;
       const fonte = asText(row.querySelector("[data-community-source]")?.value);
-      const dataReferencia = asText(row.querySelector("[data-community-date]")?.value);
+      const dataReferencia = converterDataParaISO(row.querySelector("[data-community-date]")?.value);
       return { tipo, fonte, dataReferencia };
     })
     .filter((item) => item.tipo);
@@ -2002,7 +2040,7 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "document-row";
   row.innerHTML = `
-    <td><input name="dataDocumento" type="date" aria-label="Data"></td>
+    <td><input name="dataDocumento" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" aria-label="Data"></td>
     <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
     <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página" title="Para o caso de dossiê/volume digitalizado"></td>
     <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
@@ -2064,7 +2102,7 @@ function restoreLegacyDocumentoRow(values) {
 
 function setDocumentoRowValues(row, documento) {
   if (!row) return;
-  row.querySelector("[name='dataDocumento']").value = normalizeDateForInput(documento.dataDocumento);
+  row.querySelector("[name='dataDocumento']").value = converterDataParaBR(documento.dataDocumento);
   row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
   row.querySelector("[name='paginasDocumento']").value = asText(documento.paginasDocumento || documento.paginas);
   row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
@@ -2075,7 +2113,7 @@ function setDocumentoRowValues(row, documento) {
 function getDocumentosProcesso() {
   return Array.from(documentosTableBody.querySelectorAll(".document-row"))
     .map((row) => ({
-      dataDocumento: formatDateToBrazil(row.querySelector("[name='dataDocumento']")?.value),
+      dataDocumento: converterDataParaISO(row.querySelector("[name='dataDocumento']")?.value),
       tipoDocumento: asText(row.querySelector("[name='tipoDocumento']")?.value),
       paginasDocumento: asText(row.querySelector("[name='paginasDocumento']")?.value),
       eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value),
@@ -2280,7 +2318,7 @@ function getDetalhesVulnerabilidades() {
       const criterio = row.dataset.vulnerabilityDetail;
       const criterioDescricao = criterio === "Outros" ? asText(getValue("outroCriterioVulnerabilidade")) : "";
       const fonte = asText(row.querySelector("[data-vulnerability-source]")?.value);
-      const dataReferencia = asText(row.querySelector("[data-vulnerability-date]")?.value);
+      const dataReferencia = converterDataParaISO(row.querySelector("[data-vulnerability-date]")?.value);
       return { criterio, criterioDescricao, fonte, dataReferencia };
     })
     .filter((item) => item.criterioDescricao || item.fonte || item.dataReferencia);
@@ -2294,7 +2332,7 @@ function restoreDetalhesVulnerabilidades(detalhes = []) {
     const source = row.querySelector("[data-vulnerability-source]");
     const date = row.querySelector("[data-vulnerability-date]");
     if (source) source.value = asText(item.fonte);
-    if (date) date.value = asText(item.dataReferencia);
+    if (date) date.value = converterDataParaBR(item.dataReferencia);
   });
 }
 
