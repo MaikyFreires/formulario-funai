@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-6";
+const APP_VERSION = "20260518-7";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -1567,20 +1567,20 @@ function converterDataParaISO(dataBr) {
   if (!text) return "";
 
   const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (isoDate) {
+  if (isoDate && isDataValida(text)) {
     const value = `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
     console.log("data enviada ISO", value);
     return value;
   }
 
   const brazilDate = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (brazilDate) {
+  if (brazilDate && isDataValida(text)) {
     const value = `${brazilDate[3]}-${brazilDate[2]}-${brazilDate[1]}`;
     console.log("data enviada ISO", value);
     return value;
   }
 
-  return text;
+  return "";
 }
 
 function converterDataParaBR(dataIso) {
@@ -1617,6 +1617,34 @@ function normalizeDateForInput(value) {
   if (isoDate) return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
 
   return "";
+}
+
+function isDataValida(valor) {
+  const text = asText(valor).trim();
+  if (!text) return false;
+
+  let year;
+  let month;
+  let day;
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const brazilDate = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+  if (isoDate) {
+    year = Number(isoDate[1]);
+    month = Number(isoDate[2]);
+    day = Number(isoDate[3]);
+  } else if (brazilDate) {
+    day = Number(brazilDate[1]);
+    month = Number(brazilDate[2]);
+    year = Number(brazilDate[3]);
+  } else {
+    return false;
+  }
+
+  const parsed = new Date(year, month - 1, day);
+  return parsed.getFullYear() === year &&
+    parsed.getMonth() === month - 1 &&
+    parsed.getDate() === day;
 }
 
 function getCheckedValues(name) {
