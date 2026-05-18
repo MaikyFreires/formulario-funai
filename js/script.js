@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-1";
+const APP_VERSION = "20260518-3";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -847,7 +847,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       numerosProcesso: asList(getProcessNumbers()),
       descricaoProcessosAnalisados: asText(getValue("descricaoProcessosAnalisados")),
       temRoteiro: asText(getValue("temRoteiro")),
-      dataRoteiro: asText(getValue("dataRoteiro")),
+      dataRoteiro: getBrazilDateValue("dataRoteiro"),
       numeroSeiQualificacao: asText(getValue("numeroSeiQualificacao")),
       etnias,
       outraEtnia: asText(outrasEtnias.join(", ")),
@@ -866,6 +866,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     },
     resumoProcesso: {
       descricao: asText(getValue("descricaoReivindicacao")),
+      descricaoProcessosAnalisados: asText(getValue("descricaoProcessosAnalisados")),
       documentos,
       dataDocumento: asText(primeiroDocumento.dataDocumento),
       tipoDocumento: asText(primeiroDocumento.tipoDocumento),
@@ -881,7 +882,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       descricaoAcao: asText(getValue("descricaoAcao")),
       temDecisao: asText(getValue("temDecisao")),
       numeroDecisao: asText(getValue("numeroDecisao")),
-      dataDecisao: asText(getValue("dataDecisao")),
+      dataDecisao: getBrazilDateValue("dataDecisao"),
       sentenca: asText(getValue("sentenca")),
       detalhesDecisao: asText(getValue("detalhesDecisao")),
       numeroProcessoJudicial: asText(getValue("numeroProcessoJudicial"))
@@ -1345,6 +1346,8 @@ function restoreValues(values) {
         field.checked = asListOrSplit(value).includes(field.value);
       } else if (field.type === "radio") {
         field.checked = field.value === value;
+      } else if (field.type === "date") {
+        field.value = normalizeDateForInput(value);
       } else if (field.tagName === "SELECT") {
         const hasOption = Array.from(field.options).some((option) => option.value === value || option.textContent === value);
         field.value = hasOption ? value || "" : "";
@@ -1365,7 +1368,7 @@ function flattenDraft(draft) {
     outrosNomes: pickField(draft, directValue(() => draft.reivindicacao?.outrosNomes), "OutrosNomes", "field_4", "outrosNomes"),
     outrosNomesTexto: pickField(draft, directValue(() => draft.reivindicacao?.outrosNomesTexto), "OutrosNomesTexto", "field_5", "outrosNomesTexto"),
     numerosProcesso: asListOrSplit(pickField(draft, directValue(() => draft.reivindicacao?.numerosProcesso), "NumerosProcesso", "field_6", "numerosProcesso", directValue(() => draft.reivindicacao?.numeroProcesso), "numeroProcesso")),
-    descricaoProcessosAnalisados: draft.reivindicacao?.descricaoProcessosAnalisados,
+    descricaoProcessosAnalisados: draft.resumoProcesso?.descricaoProcessosAnalisados || draft.reivindicacao?.descricaoProcessosAnalisados,
     temRoteiro: pickField(draft, directValue(() => draft.reivindicacao?.temRoteiro), "TemRoteiro", "field_7", "temRoteiro"),
     dataRoteiro: pickField(draft, directValue(() => draft.reivindicacao?.dataRoteiro), "DataRoteiro", "field_8", "dataRoteiro"),
     numeroSeiQualificacao: draft.reivindicacao?.numeroSeiQualificacao,
@@ -1540,6 +1543,34 @@ function getValue(name) {
   const field = form.elements[name];
   if (!field) return "";
   return String(field.value || "").trim();
+}
+
+function getBrazilDateValue(name) {
+  return formatDateToBrazil(getValue(name));
+}
+
+function formatDateToBrazil(value) {
+  const text = asText(value).trim();
+  if (!text) return "";
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDate) return `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}`;
+
+  const brazilDate = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brazilDate) return text;
+
+  return text;
+}
+
+function normalizeDateForInput(value) {
+  const text = asText(value).trim();
+  if (!text) return "";
+  const brazilDate = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brazilDate) return `${brazilDate[3]}-${brazilDate[2]}-${brazilDate[1]}`;
+
+  const isoDate = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoDate) return `${isoDate[1]}-${isoDate[2]}-${isoDate[3]}`;
+
+  return "";
 }
 
 function getCheckedValues(name) {
@@ -2025,7 +2056,7 @@ function restoreLegacyDocumentoRow(values) {
 
 function setDocumentoRowValues(row, documento) {
   if (!row) return;
-  row.querySelector("[name='dataDocumento']").value = asText(documento.dataDocumento);
+  row.querySelector("[name='dataDocumento']").value = normalizeDateForInput(documento.dataDocumento);
   row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
   row.querySelector("[name='paginasDocumento']").value = asText(documento.paginasDocumento || documento.paginas);
   row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
@@ -2036,7 +2067,7 @@ function setDocumentoRowValues(row, documento) {
 function getDocumentosProcesso() {
   return Array.from(documentosTableBody.querySelectorAll(".document-row"))
     .map((row) => ({
-      dataDocumento: asText(row.querySelector("[name='dataDocumento']")?.value),
+      dataDocumento: formatDateToBrazil(row.querySelector("[name='dataDocumento']")?.value),
       tipoDocumento: asText(row.querySelector("[name='tipoDocumento']")?.value),
       paginasDocumento: asText(row.querySelector("[name='paginasDocumento']")?.value),
       eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value),
