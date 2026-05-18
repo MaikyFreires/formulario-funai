@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-16";
+const APP_VERSION = "20260518-17";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -2729,7 +2729,8 @@ function handleAldeiaKeydown(event) {
 }
 
 function addAldeiaField(value = "") {
-  const aldeia = asText(typeof value === "string" ? value : aldeiaInput.value).trim();
+  const rawValue = typeof value === "string" && value.trim() ? value : aldeiaInput.value;
+  const aldeia = asText(rawValue).trim();
   if (!aldeia || selectedAldeiasComunidades.includes(aldeia)) return;
 
   selectedAldeiasComunidades.push(aldeia);
