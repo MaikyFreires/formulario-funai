@@ -152,7 +152,7 @@
                     </div>
                     <label class="conditional inline-date" id="dataRoteiroWrap">
                       Data do roteiro*
-                      <input name="dataRoteiro" type="date">
+                      <input name="dataRoteiro" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
                     </label>
                     <label class="conditional inline-date" id="numeroSeiQualificacaoWrap">
                       Número SEI do documento de qualificação
@@ -320,7 +320,7 @@
                     </thead>
                     <tbody id="documentosTableBody">
                       <tr class="document-row">
-                        <td><input name="dataDocumento" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" aria-label="Data"></td>
+                        <td><input name="dataDocumento" type="date" aria-label="Data"></td>
                         <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
                         <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página para o caso de dossiê/volume digitalizado"></td>
                         <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
@@ -407,7 +407,7 @@
                   </label>
                   <label>
                     Data
-                    <input name="dataAcaoJudicial" type="date">
+                    <input name="dataAcaoJudicial" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
                   </label>
                   <label class="wide">
                     Detalhes sobre a judicialização
@@ -431,7 +431,7 @@
                   </label>
                   <label>
                     <span class="sr-only">Data da decisão</span>
-                    <input name="dataDecisao" type="date">
+                    <input name="dataDecisao" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
                   </label>
                   <label>
                     <span class="sr-only">Sentença</span>

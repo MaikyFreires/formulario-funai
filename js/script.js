@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-18";
+const APP_VERSION = "20260518-21";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -520,7 +520,7 @@ function updateConditionals() {
   setConditional("numeroSeiQualificacaoWrap", getValue("temRoteiro") === "Sim");
   setConditional("outraEtniaWrap", selectedEtnias.includes("Outros"));
   if (getValue("temRoteiro") === "Sim" && !getValue("dataRoteiro")) {
-    form.elements.dataRoteiro.value = getTodayDate();
+    form.elements.dataRoteiro.value = converterDataParaBR(getTodayDate());
   }
   setConditional("judicializadoDetalhes", getValue("estaJudicializado") === "Sim");
   setConditional("decisaoDetalhes", getValue("temDecisao") === "Sim");
@@ -1427,6 +1427,9 @@ function restoreValues(values) {
 
 function shouldDisplayDateAsBrazil(name) {
   return [
+    "dataRoteiro",
+    "dataAcaoJudicial",
+    "dataDecisao",
     "dataReferenciaOcupacao",
     "dataReferenciaVulnerabilidade",
     "dataReferenciaComunidadeTradicional",
@@ -2144,7 +2147,7 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "document-row";
   row.innerHTML = `
-    <td><input name="dataDocumento" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" aria-label="Data"></td>
+    <td><input name="dataDocumento" type="date" aria-label="Data"></td>
     <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
     <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página para o caso de dossiê/volume digitalizado"></td>
     <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
@@ -2206,7 +2209,7 @@ function restoreLegacyDocumentoRow(values) {
 
 function setDocumentoRowValues(row, documento) {
   if (!row) return;
-  row.querySelector("[name='dataDocumento']").value = converterDataParaBR(documento.dataDocumento);
+  row.querySelector("[name='dataDocumento']").value = normalizeDateForInput(documento.dataDocumento);
   row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
   row.querySelector("[name='paginasDocumento']").value = asText(documento.paginasDocumento || documento.paginas);
   row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
