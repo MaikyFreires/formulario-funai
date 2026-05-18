@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-17";
+const APP_VERSION = "20260518-18";
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -981,6 +981,33 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
   actionButton.textContent = loadingText;
 
   try {
+    console.log("payload enviado", payload);
+
+    console.log(
+      "FormularioJson parseado",
+      JSON.parse(payload.formularioJson)
+    );
+
+    console.log(
+      "mapasCartograficos",
+      JSON.parse(payload.formularioJson).caracterizacaoArea.mapasCartograficos
+    );
+
+    console.log(
+      "outrasAcoesJudiciaisComunidade",
+      JSON.parse(payload.formularioJson).ocupacaoIndigena.outrasAcoesJudiciaisComunidade
+    );
+
+    console.log(
+      "descricaoOutrasAcoesJudiciaisComunidade",
+      JSON.parse(payload.formularioJson).ocupacaoIndigena.descricaoOutrasAcoesJudiciaisComunidade
+    );
+
+    console.log(
+      "processosAnalisados",
+      JSON.parse(payload.formularioJson).reivindicacao.processosAnalisados
+    );
+
     const response = await fetch(POWER_AUTOMATE_URL, {
       method: "POST",
       headers: {
