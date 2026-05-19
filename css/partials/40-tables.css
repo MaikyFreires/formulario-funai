@@ -169,6 +169,60 @@ section.coordinate-table-section.is-visible {
   table-layout: fixed;
 }
 
+/* Tabelas e linhas dinâmicas com escala mais compacta. */
+.process-list,
+.document-table-section,
+.coordinate-table-section {
+  gap: 18px;
+}
+
+.process-item {
+  grid-template-columns: minmax(190px, 0.72fr) minmax(300px, 1.28fr) 76px;
+  gap: 8px 10px;
+}
+
+.process-item-actions .icon-button {
+  min-height: 38px;
+  font-size: 1.65rem;
+}
+
+.table-heading {
+  grid-template-columns: minmax(210px, 0.28fr) minmax(340px, 0.72fr);
+  gap: 28px;
+}
+
+.table-heading h3 {
+  font-size: 1.05rem;
+}
+
+.table-heading p,
+.coordinate-examples {
+  font-size: 0.96rem;
+  line-height: 1.35;
+}
+
+.document-table,
+.coordinate-table,
+.map-table {
+  border-spacing: 8px;
+}
+
+.document-table {
+  min-width: 1080px;
+}
+
+.coordinate-table {
+  min-width: 1040px;
+}
+
+.coordinate-table .coord-col-value {
+  width: 230px;
+}
+
+.coordinate-table .coord-col-direction {
+  width: 135px;
+}
+
 .coordinate-table .coord-col-value {
   width: 260px;
 }

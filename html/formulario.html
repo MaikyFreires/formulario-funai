@@ -356,19 +356,19 @@
               </fieldset>
 
               <div class="conditional wide status-details" id="judicializadoDetalhes">
-                <label class="wide">
-                  Motivação
-                  <textarea name="motivacaoJudicializacao" rows="3" placeholder="Descreva a motivação da ação judicial"></textarea>
-                </label>
-
                 <fieldset class="wide" data-required-group="tiposAcaoJudicial">
-                  <legend>Tipo de ação</legend>
+                  <legend>Motivação</legend>
                   <div class="check-grid">
                     <label><input type="checkbox" name="tiposAcaoJudicial" value="Qualificação"> Qualificação</label>
                     <label><input type="checkbox" name="tiposAcaoJudicial" value="Constituição de GT"> Constituição de GT</label>
                     <label><input type="checkbox" name="tiposAcaoJudicial" value="Outros"> Outros</label>
                   </div>
                 </fieldset>
+
+                <label class="conditional wide" id="classificacaoJudicializacaoOutrosWrap">
+                  Qual outra motivação?
+                  <input name="classificacaoJudicializacaoOutros" type="text" placeholder="Descreva a outra motivação">
+                </label>
 
                 <div class="judicial-action-list" id="acoesJudiciaisDetalhadas" aria-live="polite"></div>
               </div>

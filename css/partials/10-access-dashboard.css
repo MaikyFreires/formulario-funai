@@ -233,3 +233,63 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+
+/* Entrada e dashboard mais limpos e institucionais. */
+.access-card {
+  margin-top: 8vh;
+  padding: 30px;
+}
+
+.access-brand {
+  grid-template-columns: 74px minmax(0, 1fr);
+  gap: 18px;
+}
+
+.access-brand img {
+  width: 66px;
+  height: 96px;
+}
+
+.access-card h1 {
+  font-size: 1.72rem;
+}
+
+.dashboard-shell {
+  width: min(1180px, calc(100% - 72px));
+}
+
+.dashboard-header {
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 18px;
+  padding: 24px 28px;
+}
+
+.dashboard-logo {
+  width: 66px;
+  height: 96px;
+}
+
+.dashboard-header h1 {
+  font-size: 1.88rem;
+}
+
+.dashboard-actions {
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.dashboard-action,
+.report-list-item {
+  min-height: 96px;
+  gap: 6px;
+  padding: 18px 20px;
+}
+
+.report-list-panel {
+  margin-top: 18px;
+  padding: 20px;
+}
+
+.report-list-row {
+  padding: 12px 14px;
+}

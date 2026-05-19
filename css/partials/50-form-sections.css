@@ -213,3 +213,89 @@
   max-width: 370px;
   margin-top: 8px;
 }
+
+/* Organização visual dos blocos específicos. */
+.status-process-grid {
+  row-gap: 24px;
+}
+
+.status-details {
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid rgba(139, 61, 24, 0.12);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--surface-strong) 76%, transparent);
+}
+
+.action-grid {
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 14px 18px;
+}
+
+.judicial-action-list {
+  gap: 16px;
+}
+
+.judicial-action-card {
+  gap: 14px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--surface-strong) 78%, transparent);
+}
+
+.judicial-action-card h3 {
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(139, 61, 24, 0.14);
+  font-size: 1rem;
+}
+
+.overlap-options.is-visible {
+  gap: 16px;
+}
+
+.overlap-grid {
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 24px;
+}
+
+.overlap-column {
+  gap: 12px;
+}
+
+.overlap-item {
+  gap: 10px;
+  font-size: 0.98rem;
+}
+
+.overlap-item.has-detail {
+  grid-template-columns: 28px minmax(110px, 0.9fr) minmax(120px, 1fr);
+}
+
+.overlap-item input[type="checkbox"] {
+  width: 24px;
+  height: 24px;
+  min-height: 24px;
+}
+
+.area-block {
+  padding: 14px 0;
+}
+
+.area-details-grid {
+  grid-template-columns: minmax(300px, 1fr) minmax(300px, 1fr);
+  gap: 22px 34px;
+}
+
+.area-card {
+  min-height: 0;
+  padding: 14px;
+  background: color-mix(in srgb, var(--surface-strong) 72%, transparent);
+}
+
+.bioma-block .check-grid {
+  gap: 14px 28px;
+}
+
+.field-help {
+  max-width: 680px;
+  font-size: 0.92rem;
+}

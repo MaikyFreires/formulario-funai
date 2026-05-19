@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const THEME_STORAGE_KEY = "funaiTemaVisual";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-04";
+const APP_VERSION = "20260519-07";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -515,6 +515,11 @@ function handleInfoToggleClick(event) {
 }
 
 function showStep(index) {
+  if (activeFormMode === "sent") {
+    renderSentFullView();
+    return;
+  }
+
   currentStep = index;
 
   steps.forEach((step, stepIndex) => {
@@ -540,7 +545,9 @@ function showStep(index) {
 
 function setFormViewMode(mode = "edit") {
   const isSentView = mode === "sent";
+  activeFormMode = mode;
   formApp.dataset.mode = mode;
+  formApp.classList.toggle("sent-full-view", isSentView);
   form.querySelectorAll("input, select, textarea").forEach((field) => {
     if (field.name === "consultorEmail") {
       field.readOnly = true;
@@ -549,6 +556,23 @@ function setFormViewMode(mode = "edit") {
 
     field.disabled = isSentView;
   });
+
+  if (isSentView) renderSentFullView();
+}
+
+function renderSentFullView() {
+  currentStep = 0;
+  steps.forEach((step) => step.classList.add("is-active"));
+
+  progressBar.style.width = "100%";
+  progressTitle.textContent = "Relatório enviado";
+  stepCounter.textContent = "Visualização completa";
+
+  prevBtn.hidden = true;
+  nextBtn.hidden = true;
+  submitBtn.hidden = true;
+  saveDraftBtn.hidden = true;
+  savePdfBtn.hidden = false;
 }
 
 function goToNextStep() {
@@ -603,6 +627,7 @@ function updateConditionals() {
     form.elements.dataRoteiro.value = converterDataParaBR(getTodayDate());
   }
   setConditional("judicializadoDetalhes", getValue("estaJudicializado") === "Sim");
+  setConditional("classificacaoJudicializacaoOutrosWrap", getCheckedValues("tiposAcaoJudicial").includes("Outros"));
   renderAcoesJudiciaisDetalhadas();
   setConditional("coordenadasWrap", getValue("temCoordenadas") === "Sim");
   setConditional("mapasCartograficosWrap", getValue("temMapaCartografico") === "Sim");
@@ -673,8 +698,8 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
     { fieldId: "temRetomada", label: "Tem retomada", isValid: () => hasChecked("temRetomada") },
     { fieldId: "estaJudicializado", label: "Há ações judiciais contra a FUNAI", isValid: () => hasChecked("estaJudicializado") },
-    { fieldId: "motivacaoJudicializacao", label: "Motivação", isValid: () => getValue("estaJudicializado") !== "Sim" || hasValue("motivacaoJudicializacao") },
-    { fieldId: "tiposAcaoJudicial", label: "Tipo de ação", isValid: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0 },
+    { fieldId: "tiposAcaoJudicial", label: "Motivação", isValid: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0 },
+    { fieldId: "classificacaoJudicializacaoOutros", label: "Outra motivação", isValid: () => !getCheckedValues("tiposAcaoJudicial").includes("Outros") || hasValue("classificacaoJudicializacaoOutros") },
     { fieldId: "detalhesRetomada", label: "Detalhes da retomada", isValid: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada") },
     { fieldId: "descricaoAcao", label: "Descrição da ação judicial", isValid: () => !getCheckedValues("acoesJudiciais").includes("Outros") || hasValue("descricaoAcao") },
     { fieldId: "detalheOutrasSobreposicoes", label: "Detalhe de outras sobreposições", isValid: () => !getCheckedValues("tiposSobreposicao").includes("Outros") || hasValue("detalheOutrasSobreposicoes") },
@@ -868,8 +893,8 @@ function isRequiredFieldResolved(fieldId) {
     temRetomada: () => hasChecked("temRetomada"),
     detalhesRetomada: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada"),
     estaJudicializado: () => hasChecked("estaJudicializado"),
-    motivacaoJudicializacao: () => getValue("estaJudicializado") !== "Sim" || hasValue("motivacaoJudicializacao"),
     tiposAcaoJudicial: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0,
+    classificacaoJudicializacaoOutros: () => !getCheckedValues("tiposAcaoJudicial").includes("Outros") || hasValue("classificacaoJudicializacaoOutros"),
     descricaoReivindicacao: () => hasValue("descricaoReivindicacao"),
     coordenadas: () => areCoordenadasValid()
   };
@@ -901,6 +926,16 @@ function getAcoesJudiciaisDetalhadas() {
       detalhesDecisao: asText(card.querySelector("[data-acao-detalhes-decisao]")?.value)
     }))
     .filter((item) => item.tipo);
+}
+
+function getMotivacaoJudicializacao() {
+  const tipos = getCheckedValues("tiposAcaoJudicial");
+  if (!tipos.length) return "";
+
+  const outraMotivacao = asText(getValue("classificacaoJudicializacaoOutros"));
+  return tipos
+    .map((tipo) => tipo === "Outros" && outraMotivacao ? `Outros: ${outraMotivacao}` : tipo)
+    .join(", ");
 }
 
 function renderAcoesJudiciaisDetalhadas(existingDetails) {
@@ -1000,11 +1035,17 @@ function restoreAcoesJudiciaisDetalhadas(values) {
   const fallbackDetails = details.length ? details : normalizeLegacyAcoesJudiciais(values);
   const selectedTipos = fallbackDetails.length
     ? fallbackDetails.map((item) => item.tipo).filter(Boolean)
-    : asListOrSplit(values.tiposAcaoJudicial || values.classificacaoJudicializacao || values.acoesJudiciais).filter((tipo) => TIPOS_ACAO_JUDICIAL.includes(tipo));
+    : normalizeTiposAcaoJudicial(values.tiposAcaoJudicial || values.classificacaoJudicializacao || values.acoesJudiciais || values.motivacaoJudicializacao);
 
   form.querySelectorAll('input[name="tiposAcaoJudicial"]').forEach((field) => {
     field.checked = selectedTipos.includes(field.value);
   });
+
+  const outroInput = form.elements.classificacaoJudicializacaoOutros;
+  if (outroInput) {
+    const outroDetalhado = fallbackDetails.find((item) => item.tipo === "Outros")?.acpOutros;
+    outroInput.value = asText(values.classificacaoJudicializacaoOutros || outroDetalhado || extractOutraMotivacao(values.motivacaoJudicializacao));
+  }
 
   renderAcoesJudiciaisDetalhadas(fallbackDetails);
 }
@@ -1036,9 +1077,7 @@ function normalizeAcoesJudiciaisDetalhadas(value) {
 }
 
 function normalizeLegacyAcoesJudiciais(values = {}) {
-  const tipos = asListOrSplit(values.tiposAcaoJudicial || values.classificacaoJudicializacao || values.acoesJudiciais)
-    .map((tipo) => TIPOS_ACAO_JUDICIAL.includes(tipo) ? tipo : "")
-    .filter(Boolean);
+  const tipos = normalizeTiposAcaoJudicial(values.tiposAcaoJudicial || values.classificacaoJudicializacao || values.acoesJudiciais || values.motivacaoJudicializacao);
   const tipo = tipos[0] || "";
   if (!tipo) return [];
 
@@ -1052,6 +1091,18 @@ function normalizeLegacyAcoesJudiciais(values = {}) {
     temDecisaoJudicial: asText(values.temDecisao),
     detalhesDecisao: asText(values.detalhesDecisao)
   }];
+}
+
+function normalizeTiposAcaoJudicial(value) {
+  return asListOrSplit(value)
+    .map((tipo) => tipo.startsWith("Outros:") ? "Outros" : tipo)
+    .map((tipo) => TIPOS_ACAO_JUDICIAL.includes(tipo) ? tipo : "")
+    .filter(Boolean);
+}
+
+function extractOutraMotivacao(value) {
+  const item = asListOrSplit(value).find((tipo) => tipo.startsWith("Outros:"));
+  return item ? item.replace(/^Outros:\s*/, "") : "";
 }
 
 function normalizeEstaJudicializado(value) {
@@ -1226,11 +1277,11 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     },
     statusProcesso: {
       estaJudicializado: asText(getValue("estaJudicializado")),
-      motivacaoJudicializacao: asText(getValue("motivacaoJudicializacao")),
+      motivacaoJudicializacao: asText(getMotivacaoJudicializacao()),
       tiposAcaoJudicial,
       acoesJudiciaisDetalhadas,
       classificacaoJudicializacao: asText(primeiraAcaoJudicial.tipo),
-      classificacaoJudicializacaoOutros: asText(primeiraAcaoJudicial.tipo === "Outros" ? primeiraAcaoJudicial.acpOutros : ""),
+      classificacaoJudicializacaoOutros: tiposAcaoJudicial.includes("Outros") ? asText(getValue("classificacaoJudicializacaoOutros")) : "",
       acoesJudiciais: tiposAcaoJudicial,
       descricaoAcao: asText(primeiraAcaoJudicial.acpOutros),
       parteAutoraAcao: "",
@@ -1561,7 +1612,11 @@ async function carregarFormulario(formularioId, mode = "draft") {
     preencherFormulario(relatorio);
     setFormViewMode(mode === "sent" ? "sent" : "edit");
     updateConditionals();
-    showStep(getFormularioStep(relatorio));
+    if (mode === "sent") {
+      renderSentFullView();
+    } else {
+      showStep(getFormularioStep(relatorio));
+    }
   } catch (error) {
     showReportListMessage("Nao foi possivel abrir o relatorio.", "error");
   }
@@ -1875,7 +1930,7 @@ function flattenDraft(draft) {
     eventosAssuntos: draft.resumoProcesso?.eventosAssuntos,
     estaJudicializado: normalizeEstaJudicializado(draft.statusProcesso?.estaJudicializado),
     motivacaoJudicializacao: draft.statusProcesso?.motivacaoJudicializacao,
-    tiposAcaoJudicial: asListOrSplit(draft.statusProcesso?.tiposAcaoJudicial || draft.statusProcesso?.classificacaoJudicializacao || draft.statusProcesso?.acoesJudiciais),
+    tiposAcaoJudicial: normalizeTiposAcaoJudicial(draft.statusProcesso?.tiposAcaoJudicial || draft.statusProcesso?.classificacaoJudicializacao || draft.statusProcesso?.acoesJudiciais || draft.statusProcesso?.motivacaoJudicializacao),
     acoesJudiciaisDetalhadas: normalizeAcoesJudiciaisDetalhadas(draft.statusProcesso?.acoesJudiciaisDetalhadas),
     classificacaoJudicializacao: draft.statusProcesso?.classificacaoJudicializacao,
     classificacaoJudicializacaoOutros: draft.statusProcesso?.classificacaoJudicializacaoOutros,

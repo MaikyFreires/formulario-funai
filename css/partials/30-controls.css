@@ -153,3 +153,58 @@ input[readonly] {
   background: #d8edff;
   color: #16496d;
 }
+
+/* Campos mais leves e consistentes para uso longo. */
+label,
+fieldset {
+  gap: 8px;
+  font-size: 1.02rem;
+  line-height: 1.32;
+}
+
+legend {
+  padding-bottom: 10px;
+}
+
+input,
+select,
+textarea {
+  min-height: 43px;
+  border-color: color-mix(in srgb, var(--line) 78%, var(--terracotta));
+  border-radius: 7px;
+  padding: 9px 12px;
+}
+
+textarea {
+  min-height: 76px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: color-mix(in srgb, var(--muted) 82%, transparent);
+  font-weight: 600;
+}
+
+select {
+  background-position:
+    calc(100% - 20px) 17px,
+    calc(100% - 11px) 17px,
+    0 0;
+}
+
+.multi-autocomplete,
+.chips {
+  gap: 8px;
+}
+
+.chip {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+.form-shell[data-mode="sent"] input:disabled,
+.form-shell[data-mode="sent"] select:disabled,
+.form-shell[data-mode="sent"] textarea:disabled {
+  border-color: color-mix(in srgb, var(--line) 76%, transparent);
+  background: color-mix(in srgb, var(--surface-soft) 72%, transparent);
+}

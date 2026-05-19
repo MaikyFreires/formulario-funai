@@ -1,10 +1,10 @@
 ﻿.hero {
   display: grid;
-  grid-template-columns: 150px 9px minmax(360px, 1fr);
+  grid-template-columns: 118px 7px minmax(320px, 1fr);
   align-items: center;
-  gap: 28px;
-  min-height: 188px;
-  padding: 0 48px 0 52px;
+  gap: 24px;
+  min-height: 154px;
+  padding: 18px 38px;
   border: 1px solid rgba(139, 61, 24, 0.22);
   border-top: 8px solid var(--terracotta);
   border-radius: 8px;
@@ -15,23 +15,23 @@
 }
 
 .brand-logo {
-  width: 122px;
-  height: 178px;
+  width: 96px;
+  height: 136px;
   object-fit: contain;
 }
 
 .hero-divider {
-  width: 9px;
-  height: 144px;
+  width: 7px;
+  height: 112px;
   background: linear-gradient(var(--green), var(--gold), var(--terracotta));
   border-radius: 999px;
 }
 
 .hero-copy h1 {
   max-width: 720px;
-  margin: 0 0 4px;
+  margin: 0 0 8px;
   color: var(--green);
-  font-size: 2.45rem;
+  font-size: 2.05rem;
   line-height: 1.12;
   font-weight: 800;
   letter-spacing: 0;
@@ -41,9 +41,9 @@
   max-width: 830px;
   margin: 0;
   color: var(--muted);
-  font-size: 1.28rem;
-  line-height: 1.25;
-  font-weight: 650;
+  font-size: 1.08rem;
+  line-height: 1.38;
+  font-weight: 620;
 }
 
 .progress-wrap {
@@ -266,6 +266,40 @@
   display: block;
 }
 
+.form-shell.sent-full-view {
+  width: min(1540px, calc(100% - 48px));
+}
+
+.form-shell.sent-full-view .progress-wrap {
+  display: none;
+}
+
+.form-shell.sent-full-view #funaiForm {
+  display: grid;
+  width: 100%;
+  gap: 26px;
+}
+
+.form-shell.sent-full-view .step {
+  display: block;
+  min-height: auto;
+  animation: none;
+  break-inside: avoid;
+}
+
+.form-shell.sent-full-view .form-actions {
+  position: sticky;
+  bottom: 14px;
+  z-index: 8;
+  width: min(720px, 100%);
+  margin-left: auto;
+  padding: 12px;
+  border: 1px solid rgba(139, 61, 24, 0.18);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow-soft);
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
@@ -342,4 +376,108 @@
 .field-grid.compact {
   column-gap: 42px;
   row-gap: 18px;
+}
+
+/* Refinamento visual: reduz excesso de altura e organiza a leitura do formulário. */
+.progress-wrap {
+  margin: 24px auto 12px;
+}
+
+.step {
+  min-height: 390px;
+  padding: 28px 32px 38px;
+}
+
+.step[data-step="2"] {
+  min-height: 640px;
+}
+
+.step[data-step="6"] {
+  min-height: 620px;
+}
+
+.step[data-step="6"] .section-heading {
+  margin-bottom: 24px;
+}
+
+.step[data-step="6"] .field-grid {
+  column-gap: 46px;
+  row-gap: 26px;
+}
+
+.step[data-step="6"] fieldset.wide .check-grid {
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  gap: 16px 22px;
+}
+
+.occupation-list {
+  gap: 20px;
+}
+
+.occupation-item {
+  padding-bottom: 20px;
+}
+
+.occupation-content {
+  gap: 14px;
+}
+
+.occupation-subgrid {
+  gap: 14px 20px;
+  padding-left: 18px;
+}
+
+.occupation-community-group {
+  gap: 16px;
+  padding: 16px;
+}
+
+.community-grid {
+  gap: 12px 18px;
+}
+
+.vulnerability-grid,
+.step[data-step="6"] .vulnerability-grid {
+  gap: 14px 22px;
+}
+
+.section-heading {
+  margin-bottom: 22px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(139, 61, 24, 0.14);
+}
+
+.section-heading h2 {
+  margin-bottom: 8px;
+  font-size: 1.52rem;
+}
+
+.section-heading p {
+  font-size: 1.02rem;
+  line-height: 1.4;
+  font-weight: 650;
+}
+
+.field-grid,
+.nested-grid {
+  column-gap: 42px;
+  row-gap: 18px;
+}
+
+.step-sections {
+  gap: 22px;
+}
+
+.field-section {
+  gap: 14px;
+  padding-top: 18px;
+}
+
+.field-section h3 {
+  font-size: 1rem;
+}
+
+.field-grid.compact {
+  column-gap: 32px;
+  row-gap: 14px;
 }
