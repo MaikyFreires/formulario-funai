@@ -40,7 +40,7 @@ body {
       rgba(245, 234, 211, 0.78),
       rgba(245, 234, 211, 0.82)
     ),
-    url("../assets/funai-form-bg.png");
+    url("../../assets/funai-form-bg.png");
 
   background-position: center top;
   background-repeat: no-repeat;
