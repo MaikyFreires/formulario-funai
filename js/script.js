@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-25";
+const APP_VERSION = "20260518-26";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -998,6 +998,13 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
   console.log(isUpdate ? "modo update" : "modo create");
   console.log("payload enviado", payload);
   console.log("payload normalizado", payload);
+  console.log("TIPOS DO PAYLOAD", {
+    consultor: typeof payload.consultor,
+    reivindicacao: typeof payload.reivindicacao,
+    etniasEhArray: Array.isArray(payload.reivindicacao?.etnias),
+    tipoDemandaEhArray: Array.isArray(payload.reivindicacao?.tipoDemanda),
+    mapasEhArray: Array.isArray(payload.caracterizacaoArea?.mapasCartograficos)
+  });
 
   saveDraftBtn.disabled = true;
   submitBtn.disabled = true;
@@ -1617,8 +1624,8 @@ function asText(value) {
 
 function normalizarTextoParaPowerAutomate(valor) {
   if (valor === null || valor === undefined) return "";
-  if (Array.isArray(valor)) return valor.join(", ");
-  if (typeof valor === "object") return JSON.stringify(valor);
+  if (Array.isArray(valor)) return valor;
+  if (typeof valor === "object") return valor;
   return String(valor);
 }
 
@@ -1642,8 +1649,6 @@ function normalizarPayloadParaPowerAutomate(payload) {
     ["statusProcesso", "detalhesDecisao"],
     ["caracterizacaoArea", "localizacaoDemanda"],
     ["caracterizacaoArea", "detalhesRetomada"],
-    ["ocupacaoIndigena", "detalhesVulnerabilidades"],
-    ["ocupacaoIndigena", "detalhesComunidadesTradicionais"],
     ["ocupacaoIndigena", "motivoConflitoInteretnico"],
     ["ocupacaoIndigena", "descricaoReintegracaoPosse"],
     ["ocupacaoIndigena", "descricaoOutrasAcoesJudiciaisComunidade"],
