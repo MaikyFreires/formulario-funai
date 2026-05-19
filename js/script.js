@@ -7,10 +7,9 @@ const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
 const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
 const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
-const THEME_STORAGE_KEY = "funaiTemaVisual";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-07";
+const APP_VERSION = "20260519-08";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -132,14 +131,12 @@ let currentReportListMode = "draft";
 let activeFormMode = "edit";
 let activePersistenceMode = "create";
 
-applyStoredTheme();
 init();
 
 // Bootstrap
 async function init() {
   await loadHtmlPartials();
   cacheDomElements();
-  bindThemeToggle();
   bindAccessEvents();
 
   const authorizedEmail = getStoredAuthorizedEmail();
@@ -334,55 +331,6 @@ async function novoRelatorio() {
   await openForm({ reset: true, mode: "edit" });
   currentFormularioId = createFormularioId();
   sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
-}
-
-function applyStoredTheme() {
-  applyTheme(readStoredTheme());
-}
-
-function bindThemeToggle() {
-  const themeToggle = document.querySelector("#themeToggle");
-  if (!themeToggle) return;
-
-  themeToggle.addEventListener("click", () => {
-    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    saveStoredTheme(nextTheme);
-    applyTheme(nextTheme);
-  });
-
-  updateThemeToggle(themeToggle);
-}
-
-function readStoredTheme() {
-  try {
-    return localStorage.getItem(THEME_STORAGE_KEY) || "light";
-  } catch (error) {
-    return "light";
-  }
-}
-
-function saveStoredTheme(theme) {
-  try {
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  } catch (error) {
-    // A preferência visual continua funcionando na aba atual mesmo sem armazenamento.
-  }
-}
-
-function applyTheme(theme) {
-  const normalizedTheme = theme === "dark" ? "dark" : "light";
-  document.documentElement.dataset.theme = normalizedTheme;
-  updateThemeToggle(document.querySelector("#themeToggle"));
-}
-
-function updateThemeToggle(themeToggle) {
-  if (!themeToggle) return;
-
-  const isDark = document.documentElement.dataset.theme === "dark";
-  themeToggle.setAttribute("aria-pressed", String(isDark));
-  themeToggle.setAttribute("aria-label", isDark ? "Alternar para modo claro" : "Alternar para modo escuro");
-  themeToggle.querySelector(".theme-toggle__icon").textContent = isDark ? "☾" : "☀";
-  themeToggle.querySelector(".theme-toggle__text").textContent = isDark ? "Modo claro" : "Modo escuro";
 }
 
 async function startNewReport() {

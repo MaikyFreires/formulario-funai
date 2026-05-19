@@ -24,14 +24,6 @@
 }
 
 @media (max-width: 760px) {
-  .theme-toggle {
-    top: 18px;
-    right: 14px;
-    min-height: 38px;
-    padding: 7px 10px;
-    font-size: 0.82rem;
-  }
-
   .app-shell {
     padding-top: 12px;
   }
