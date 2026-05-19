@@ -151,7 +151,7 @@
                       <label><input type="radio" name="temRoteiro" value="Não"> Não</label>
                     </div>
                     <label class="conditional inline-date" id="dataRoteiroWrap">
-                      Data do roteiro*
+                      Data do roteiro
                       <input name="dataRoteiro" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
                     </label>
                     <label class="conditional inline-date" id="numeroSeiQualificacaoWrap">
@@ -402,13 +402,16 @@
                 <div class="table-heading compact-heading">
                   <h3 id="coordenadasTitle">Coordenadas geográficas</h3>
                   <div class="coordinate-examples">
-                    <p>Informe as coordenadas no formato disponível no processo.</p>
-                    <p><strong>Formato GMS (Graus, Minutos e Segundos):</strong></p>
-                    <p>Latitude: 15° 47' 39" S</p>
-                    <p>Longitude: 47° 52' 56" O</p>
-                    <p><strong>Formato em graus decimais:</strong></p>
-                    <p>Latitude: -15.7942</p>
-                    <p>Longitude: -47.8822</p>
+                    <article class="coordinate-example-card">
+                      <h4>Formato GMS (Graus, Minutos e Segundos)</h4>
+                      <p>Latitude: 15° 47' 39" S</p>
+                      <p>Longitude: 47° 52' 56" O</p>
+                    </article>
+                    <article class="coordinate-example-card">
+                      <h4>Formato em graus decimais</h4>
+                      <p>Latitude: -15.7942</p>
+                      <p>Longitude: -47.8822</p>
+                    </article>
                   </div>
                 </div>
                 <div class="table-scroll">
@@ -807,6 +810,24 @@
                     </fieldset>
                     <div class="conflict-detail-list wide" id="detalhesConflitos" aria-live="polite"></div>
                   </div>
+                </div>
+              </section>
+
+              <section class="occupation-item">
+                <div class="occupation-content">
+                  <h3>Povos isolados?</h3>
+                  <fieldset>
+                    Há indício de povos isolados?
+                    <div class="check-grid">
+                      <label><input type="radio" name="povosIsolados" value="Sim"> Sim</label>
+                      <label><input type="radio" name="povosIsolados" value="Não"> Não</label>
+                    </div>
+                  </fieldset>
+
+                  <label class="conditional" id="povosIsoladosWrap">
+                    Detalhar indícios de povos isolados
+                    <textarea name="detalhesPovosIsolados" rows="3" placeholder="Detalhar indícios de povos isolados"></textarea>
+                  </label>
                 </div>
               </section>
 

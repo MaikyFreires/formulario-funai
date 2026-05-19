@@ -8,9 +8,15 @@
   border: 1px solid rgba(139, 61, 24, 0.22);
   border-top: 8px solid var(--terracotta);
   border-radius: 8px;
+
   background:
-    linear-gradient(90deg, rgba(255, 250, 240, 0.98), rgba(255, 250, 240, 0.9)),
-    url("../assets/funai-form-bg.png") center / cover no-repeat;
+    linear-gradient(
+      90deg,
+      rgba(255, 250, 240, 0.96),
+      rgba(255, 250, 240, 0.88)
+    ),
+    url("../assets/funai-form-bg.png") center center / cover no-repeat;
+
   box-shadow: var(--shadow);
 }
 

@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-10";
+const APP_VERSION = "20260519-11";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -429,10 +429,14 @@ function bindEvents() {
   homeBtn.addEventListener("click", confirmReturnHome);
 }
 
-function handleFormChange() {
+function handleFormChange(event) {
   clearMessage();
-  updateConditionals();
+  updateConditionals({ renderDynamic: isChoiceInput(event?.target) });
   clearResolvedValidationErrors();
+}
+
+function isChoiceInput(field) {
+  return field?.matches?.('input[type="radio"], input[type="checkbox"], select') ?? false;
 }
 
 function handleDateMaskInput(event) {
@@ -571,17 +575,14 @@ function showReturnHomeDialog() {
   document.body.append(overlay);
 }
 
-function updateConditionals() {
+function updateConditionals({ renderDynamic = true } = {}) {
   setConditional("outrosNomesDetalhe", getValue("outrosNomes") === "Sim");
-  setConditional("dataRoteiroWrap", getValue("temRoteiro") === "Sim", ["dataRoteiro"]);
+  setConditional("dataRoteiroWrap", getValue("temRoteiro") === "Sim");
   setConditional("numeroSeiQualificacaoWrap", getValue("temRoteiro") === "Sim");
   setConditional("outraEtniaWrap", selectedEtnias.includes("Outros"));
-  if (getValue("temRoteiro") === "Sim" && !getValue("dataRoteiro")) {
-    form.elements.dataRoteiro.value = converterDataParaBR(getTodayDate());
-  }
   setConditional("judicializadoDetalhes", getValue("estaJudicializado") === "Sim");
   setConditional("classificacaoJudicializacaoOutrosWrap", getCheckedValues("tiposAcaoJudicial").includes("Outros"));
-  renderAcoesJudiciaisDetalhadas();
+  if (renderDynamic) renderAcoesJudiciaisDetalhadas();
   setConditional("coordenadasWrap", getValue("temCoordenadas") === "Sim");
   setConditional("mapasCartograficosWrap", getValue("temMapaCartografico") === "Sim");
   setConditional("sobreposicoesWrap", getValue("sobreposicoes") === "Sim");
@@ -592,7 +593,8 @@ function updateConditionals() {
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
   setConditional("outrasComunidadesTradicionaisWrap", selectedComunidadesTradicionais.includes("Outros"));
   setConditional("conflitoInteretnicoWrap", getValue("conflitoInteretnico") === "Sim");
-  renderDetalhesConflitos();
+  if (renderDynamic) renderDetalhesConflitos();
+  setConditional("povosIsoladosWrap", getValue("povosIsolados") === "Sim");
   setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
   setConditional("outrasAcoesJudiciaisComunidadeWrap", getValue("outrasAcoesJudiciaisComunidade") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
@@ -641,7 +643,6 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "nomeReivindicacao", label: "Nome da reivindicação", isValid: () => hasValue("nomeReivindicacao") },
     { fieldId: "outrosNomesTexto", label: "Outros nomes da reivindicação", isValid: () => getValue("outrosNomes") !== "Sim" || hasValue("outrosNomesTexto") },
     { fieldId: "temRoteiro", label: "Roteiro de qualificação", isValid: () => hasChecked("temRoteiro") },
-    { fieldId: "dataRoteiro", label: "Data do roteiro", isValid: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro") },
     { fieldId: "etnias", label: "Etnia", isValid: () => selectedEtnias.length > 0 },
     { fieldId: "outraEtnia", label: "Outra etnia", isValid: () => !selectedEtnias.includes("Outros") || selectedOutrasEtnias.length > 0 },
     { fieldId: "tipoDemanda", label: "Tipo da demanda", isValid: () => demandas.length > 0 },
@@ -649,8 +650,13 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "temJustificativaRevisao", label: "Há justificativa para a demanda por revisão de limites", isValid: () => !hasDemand(demandas, "Revisão de limites") || hasChecked("temJustificativaRevisao") },
     { fieldId: "justificativaRevisao", label: "Justificativa da Revisão", isValid: () => getValue("temJustificativaRevisao") !== "Sim" || hasValue("justificativaRevisao") },
     { fieldId: "estados", label: "Estado", isValid: () => selectedEstados.length > 0 },
-    { fieldId: "municipios", label: "Município", isValid: () => selectedMunicipios.length > 0 },
     { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
+    { fieldId: "temCoordenadas", label: "Coordenadas geográficas", isValid: () => hasChecked("temCoordenadas") },
+    { fieldId: "temMapaCartografico", label: "Mapa e material cartográfico", isValid: () => hasChecked("temMapaCartografico") },
+    { fieldId: "citaAldeiasComunidades", label: "Aldeias ou comunidades", isValid: () => hasChecked("citaAldeiasComunidades") },
+    { fieldId: "contextoUrbano", label: "Contexto urbano", isValid: () => hasChecked("contextoUrbano") },
+    { fieldId: "faixaFronteira", label: "Faixa de fronteira", isValid: () => hasChecked("faixaFronteira") },
+    { fieldId: "sobreposicoes", label: "Sobreposições", isValid: () => hasChecked("sobreposicoes") },
     { fieldId: "temRetomada", label: "Ação de retomada do território", isValid: () => hasChecked("temRetomada") },
     { fieldId: "estaJudicializado", label: "Há ações judiciais contra a FUNAI", isValid: () => hasChecked("estaJudicializado") },
     { fieldId: "tiposAcaoJudicial", label: "Motivação", isValid: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0 },
@@ -659,6 +665,13 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "descricaoAcao", label: "Descrição da ação judicial", isValid: () => !getCheckedValues("acoesJudiciais").includes("Outros") || hasValue("descricaoAcao") },
     { fieldId: "detalheOutrasSobreposicoes", label: "Detalhe de outras sobreposições", isValid: () => !getCheckedValues("tiposSobreposicao").includes("Outros") || hasValue("detalheOutrasSobreposicoes") },
     { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") },
+    { fieldId: "indigenasArea", label: "Indígenas na área reivindicada", isValid: () => hasChecked("indigenasArea") },
+    { fieldId: "comunidadesTradicionais", label: "Comunidades tradicionais", isValid: () => hasChecked("comunidadesTradicionais") },
+    { fieldId: "conflitoInteretnico", label: "Conflito na área reivindicada", isValid: () => hasChecked("conflitoInteretnico") },
+    { fieldId: "povosIsolados", label: "Povos isolados", isValid: () => hasChecked("povosIsolados") },
+    { fieldId: "detalhesPovosIsolados", label: "Detalhes de povos isolados", isValid: () => getValue("povosIsolados") !== "Sim" || hasValue("detalhesPovosIsolados") },
+    { fieldId: "reintegracaoPosse", label: "Reintegração de posse", isValid: () => hasChecked("reintegracaoPosse") },
+    { fieldId: "outrasAcoesJudiciaisComunidade", label: "Outras ações judiciais envolvendo a comunidade", isValid: () => hasChecked("outrasAcoesJudiciaisComunidade") },
     { fieldId: "outroCriterioVulnerabilidade", label: "Outro critério de vulnerabilidade", isValid: () => !getCheckedValues("vulnerabilidades").includes("Outros") || hasValue("outroCriterioVulnerabilidade") },
     { fieldId: "descricaoComunidadeTradicional", label: "Outra comunidade tradicional", isValid: () => !selectedComunidadesTradicionais.includes("Outros") || hasValue("descricaoComunidadeTradicional") },
     { fieldId: "outroTipoConflito", label: "Outro tipo de conflito", isValid: () => !getCheckedValues("tiposConflito").includes("Outro") || getDetalhesConflitos().some((item) => item.tipo === "Outro" && item.outroTipoConflito) },
@@ -667,7 +680,7 @@ function validateRequiredFields(isDraftSave = false) {
 
   requiredRules.forEach((rule) => {
     if (rule.isValid()) return;
-    const error = showFieldError(rule.fieldId, "Campo obrigatório");
+    const error = showFieldError(rule.fieldId, rule.message || getRequiredFieldMessage(rule.fieldId));
     errors.push({
       fieldId: rule.fieldId,
       label: rule.label,
@@ -690,7 +703,7 @@ function validateRequiredFields(isDraftSave = false) {
       }
 
       if (!acao.temDecisaoJudicial) {
-        const error = showFieldError(`${prefix}-decisao`, "Campo obrigatório");
+        const error = showFieldError(`${prefix}-decisao`, "Selecione uma opção para continuar.");
         errors.push({
           fieldId: `${prefix}-decisao`,
           label: `${acao.tipo}: decisão judicial`,
@@ -712,6 +725,16 @@ function validateRequiredFields(isDraftSave = false) {
   }
 
   return errors;
+}
+
+function getRequiredFieldMessage(fieldId) {
+  return isRadioOptionGroup(fieldId) ? "Selecione uma opção para continuar." : "Campo obrigatório.";
+}
+
+function isRadioOptionGroup(fieldId) {
+  const element = form.elements[fieldId];
+  const controls = element instanceof RadioNodeList ? Array.from(element) : [element].filter(Boolean);
+  return controls.some((field) => field?.type === "radio");
 }
 
 function clearValidationErrors() {
@@ -839,7 +862,6 @@ function isRequiredFieldResolved(fieldId) {
     nomeReivindicacao: () => hasValue("nomeReivindicacao"),
     outrosNomesTexto: () => getValue("outrosNomes") !== "Sim" || hasValue("outrosNomesTexto"),
     temRoteiro: () => hasChecked("temRoteiro"),
-    dataRoteiro: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro"),
     etnias: () => selectedEtnias.length > 0,
     outraEtnia: () => !selectedEtnias.includes("Outros") || selectedOutrasEtnias.length > 0,
     tipoDemanda: () => demandas.length > 0,
@@ -847,14 +869,26 @@ function isRequiredFieldResolved(fieldId) {
     temJustificativaRevisao: () => !hasDemand(demandas, "Revisão de limites") || hasChecked("temJustificativaRevisao"),
     justificativaRevisao: () => getValue("temJustificativaRevisao") !== "Sim" || hasValue("justificativaRevisao"),
     estados: () => selectedEstados.length > 0,
-    municipios: () => selectedMunicipios.length > 0,
     coordenacaoRegional: () => hasValue("coordenacaoRegional"),
+    temCoordenadas: () => hasChecked("temCoordenadas"),
+    temMapaCartografico: () => hasChecked("temMapaCartografico"),
+    citaAldeiasComunidades: () => hasChecked("citaAldeiasComunidades"),
+    contextoUrbano: () => hasChecked("contextoUrbano"),
+    faixaFronteira: () => hasChecked("faixaFronteira"),
+    sobreposicoes: () => hasChecked("sobreposicoes"),
     temRetomada: () => hasChecked("temRetomada"),
     detalhesRetomada: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada"),
     estaJudicializado: () => hasChecked("estaJudicializado"),
     tiposAcaoJudicial: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0,
     classificacaoJudicializacaoOutros: () => !getCheckedValues("tiposAcaoJudicial").includes("Outros") || hasValue("classificacaoJudicializacaoOutros"),
     descricaoReivindicacao: () => hasValue("descricaoReivindicacao"),
+    indigenasArea: () => hasChecked("indigenasArea"),
+    comunidadesTradicionais: () => hasChecked("comunidadesTradicionais"),
+    conflitoInteretnico: () => hasChecked("conflitoInteretnico"),
+    povosIsolados: () => hasChecked("povosIsolados"),
+    detalhesPovosIsolados: () => getValue("povosIsolados") !== "Sim" || hasValue("detalhesPovosIsolados"),
+    reintegracaoPosse: () => hasChecked("reintegracaoPosse"),
+    outrasAcoesJudiciaisComunidade: () => hasChecked("outrasAcoesJudiciaisComunidade"),
     coordenadas: () => areCoordenadasValid()
   };
 
@@ -1320,6 +1354,8 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       etniaConflitoInteretnico: asText(primeiroConflito.etniaRelacionada),
       dataReferenciaConflitoInteretnico: asText(primeiroConflito.dataReferencia),
       fonteConflito: asText(primeiroConflito.fonte),
+      povosIsolados: asText(getValue("povosIsolados")),
+      detalhesPovosIsolados: asText(getValue("detalhesPovosIsolados")),
       reintegracaoPosse: asText(getValue("reintegracaoPosse")),
       descricaoReintegracaoPosse: asText(getValue("descricaoReintegracaoPosse")),
       outrasAcoesJudiciaisComunidade: asText(getValue("outrasAcoesJudiciaisComunidade")),
@@ -1978,6 +2014,8 @@ function flattenDraft(draft) {
     etniaConflitoInteretnico: draft.ocupacaoIndigena?.etniaConflitoInteretnico,
     dataReferenciaConflitoInteretnico: draft.ocupacaoIndigena?.dataReferenciaConflitoInteretnico,
     fonteConflito: draft.ocupacaoIndigena?.fonteConflito,
+    povosIsolados: draft.ocupacaoIndigena?.povosIsolados,
+    detalhesPovosIsolados: draft.ocupacaoIndigena?.detalhesPovosIsolados,
     reintegracaoPosse: draft.ocupacaoIndigena?.reintegracaoPosse,
     descricaoReintegracaoPosse: draft.ocupacaoIndigena?.descricaoReintegracaoPosse,
     outrasAcoesJudiciaisComunidade: draft.ocupacaoIndigena?.outrasAcoesJudiciaisComunidade,
