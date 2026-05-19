@@ -9,7 +9,11 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-12";
+const APP_VERSION = "20260519-15";
+const FORMULARIO_JSON_SIZE_LIMIT = 63999;
+const FORMULARIO_JSON_BLOCK_LIMIT = 63000;
+const FORMULARIO_JSON_YELLOW_WARNING = 40000;
+const FORMULARIO_JSON_RED_WARNING = 55000;
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -20,6 +24,14 @@ const DATE_BR_FIELD_NAMES = new Set([
   "dataVulnerabilidadeItem",
   "dataComunidadeTradicional"
 ]);
+const REQUIRED_FORMULARIO_JSON_BLOCKS = [
+  "consultor",
+  "reivindicacao",
+  "resumoProcesso",
+  "statusProcesso",
+  "caracterizacaoArea",
+  "ocupacaoIndigena"
+];
 const TIPOS_ACAO_JUDICIAL = ["Qualificação", "Constituição de GT", "Outros"];
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
@@ -87,6 +99,7 @@ let saveDraftBtn;
 let savePdfBtn;
 let homeBtn;
 let messageBox;
+let formSizeMeter;
 let etniaInput;
 let etniaOptions;
 let etniaChips;
@@ -198,6 +211,7 @@ function cacheDomElements() {
   savePdfBtn = document.querySelector("#savePdfBtn");
   homeBtn = document.querySelector("#homeBtn");
   messageBox = document.querySelector("#formMessage");
+  formSizeMeter = document.querySelector("#formSizeMeter");
   etniaInput = document.querySelector("#etniaInput");
   etniaOptions = document.querySelector("#etniaOptions");
   etniaChips = document.querySelector("#etniaChips");
@@ -324,6 +338,7 @@ async function initializeForm() {
   populateComunidadeTradicionalOptions();
   bindEvents();
   updateConditionals();
+  updateFormularioJsonSizeMeter();
   showStep(0);
 }
 
@@ -386,6 +401,7 @@ function limparFormulario() {
   clearMessage();
   clearValidationErrors();
   updateConditionals();
+  updateFormularioJsonSizeMeter();
 }
 
 function setAuthorizedEmail(email) {
@@ -436,6 +452,7 @@ function handleFormChange(event) {
   clearMessage();
   updateConditionals({ renderDynamic: isChoiceInput(event?.target) });
   clearResolvedValidationErrors();
+  updateFormularioJsonSizeMeter();
 }
 
 function isChoiceInput(field) {
@@ -1285,6 +1302,82 @@ function garantirArray(valor) {
   return Array.isArray(valor) ? valor : [];
 }
 
+function validarFormularioJsonAntesDoEnvio(payload) {
+  const formularioJsonTexto = asText(payload?.formularioJson);
+  let formularioJson = {};
+  let parseError = null;
+
+  try {
+    formularioJson = formularioJsonTexto ? JSON.parse(formularioJsonTexto) : {};
+  } catch (error) {
+    parseError = error;
+  }
+
+  const camposAusentes = parseError
+    ? REQUIRED_FORMULARIO_JSON_BLOCKS
+    : REQUIRED_FORMULARIO_JSON_BLOCKS.filter((campo) => !garantirObjeto(formularioJson[campo]) || Object.keys(formularioJson[campo]).length === 0);
+
+  console.log("FormularioJson tamanho caracteres", formularioJsonTexto.length);
+  console.log("FormularioJson campos ausentes", camposAusentes);
+  if (parseError) console.error("FormularioJson inválido", parseError);
+
+  return {
+    isValid: !parseError && camposAusentes.length === 0,
+    tamanho: formularioJsonTexto.length,
+    camposAusentes,
+    parseError
+  };
+}
+
+function calcularTamanhoFormularioJson(payload) {
+  const formularioJson = JSON.stringify(payload);
+  const tamanhoFormulario = formularioJson.length;
+  const percentualUsado = ((tamanhoFormulario / FORMULARIO_JSON_SIZE_LIMIT) * 100).toFixed(2);
+  return {
+    formularioJson,
+    tamanhoFormulario,
+    percentualUsado
+  };
+}
+
+function validarTamanhoFormularioJson(payload) {
+  const resultado = calcularTamanhoFormularioJson(payload);
+  const { tamanhoFormulario, percentualUsado } = resultado;
+
+  console.log("Tamanho FormularioJson:", tamanhoFormulario, "caracteres");
+  console.log("Percentual usado:", `${percentualUsado}%`);
+
+  if (tamanhoFormulario > FORMULARIO_JSON_BLOCK_LIMIT) {
+    console.error("%cFormularioJson acima de 63 mil caracteres. Envio bloqueado.", "color: #9f2b1f; font-weight: 800;");
+  } else if (tamanhoFormulario > FORMULARIO_JSON_RED_WARNING) {
+    console.warn("%cFormularioJson acima de 55 mil caracteres.", "color: #9f2b1f; font-weight: 800;");
+  } else if (tamanhoFormulario > FORMULARIO_JSON_YELLOW_WARNING) {
+    console.warn("%cFormularioJson acima de 40 mil caracteres.", "color: #9a6a00; font-weight: 800;");
+  }
+
+  return {
+    ...resultado,
+    isValid: tamanhoFormulario <= FORMULARIO_JSON_BLOCK_LIMIT
+  };
+}
+
+function updateFormularioJsonSizeMeter() {
+  if (!formSizeMeter || !form) return;
+
+  try {
+    const payload = normalizarPayloadParaPowerAutomate(buildPayload(activeFormMode === "sent" ? "Enviado" : "Rascunho"));
+    const { tamanhoFormulario, percentualUsado } = calcularTamanhoFormularioJson(payload);
+    formSizeMeter.textContent = `Espa\u00e7o utilizado do formul\u00e1rio: ${percentualUsado}%`;
+    formSizeMeter.title = `${tamanhoFormulario} de ${FORMULARIO_JSON_SIZE_LIMIT} caracteres`;
+    formSizeMeter.classList.toggle("is-warning", tamanhoFormulario > FORMULARIO_JSON_YELLOW_WARNING && tamanhoFormulario <= FORMULARIO_JSON_RED_WARNING);
+    formSizeMeter.classList.toggle("is-danger", tamanhoFormulario > FORMULARIO_JSON_RED_WARNING && tamanhoFormulario <= FORMULARIO_JSON_BLOCK_LIMIT);
+    formSizeMeter.classList.toggle("is-blocked", tamanhoFormulario > FORMULARIO_JSON_BLOCK_LIMIT);
+  } catch (error) {
+    formSizeMeter.textContent = "Espa\u00e7o utilizado do formul\u00e1rio: --";
+    formSizeMeter.classList.remove("is-warning", "is-danger", "is-blocked");
+  }
+}
+
 function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().toISOString()) {
   const etnias = asList(getSelectedEtnias());
   const outrasEtnias = asList(getSelectedOutrasEtnias());
@@ -1466,6 +1559,18 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
 
   const isUpdate = activePersistenceMode === "update";
   const payload = normalizarPayloadParaPowerAutomate(buildPayload(statusFormulario));
+  const formularioJsonValidation = validarFormularioJsonAntesDoEnvio(payload);
+  const tamanhoFormularioValidation = validarTamanhoFormularioJson(payload);
+  updateFormularioJsonSizeMeter();
+  if (!isDraft && !formularioJsonValidation.isValid) {
+    showMessage(`Não foi possível enviar: FormularioJson incompleto. Blocos ausentes: ${formularioJsonValidation.camposAusentes.join(", ") || "JSON inválido"}.`, "error");
+    return;
+  }
+  if (!tamanhoFormularioValidation.isValid) {
+    showMessage(`N\u00e3o foi poss\u00edvel ${isDraft ? "salvar" : "enviar"}: o FormularioJson tem ${tamanhoFormularioValidation.tamanhoFormulario} caracteres e ultrapassa o limite de 63 mil.`, "error");
+    return;
+  }
+
   console.log(isUpdate ? "modo update" : "modo create");
   console.log("payload enviado", payload);
   console.log("payload normalizado", payload);
@@ -1577,8 +1682,215 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
 }
 
 function salvarPdf() {
-  updateConditionals();
+  gerarPdfFormulario();
+}
+
+function gerarPdfFormulario() {
+  prepararImpressaoPdf();
   window.print();
+}
+
+function prepararImpressaoPdf() {
+  document.querySelector(".pdf-print-root")?.remove();
+
+  const payload = normalizarPayloadParaPowerAutomate(buildPayload("Enviado"));
+  const dados = JSON.parse(payload.formularioJson);
+  const root = el("section", "pdf-print-root");
+  const title = el("header", "pdf-cover pdf-section");
+  title.append(
+    el("h1", "", "Formulário - Resumo dos processos de reivindicação"),
+    el("p", "pdf-footer-line", "CGID/DIDEM/FUNAI | 2026")
+  );
+  root.append(title);
+
+  root.append(
+    criarPdfSecao("1. Dados do consultor", [
+      pdfField("Nome", dados.consultor?.nome),
+      pdfField("E-mail", dados.consultor?.email),
+      pdfField("Área de estudo", dados.consultor?.areaEstudo)
+    ]),
+    criarPdfSecao("2. Reivindicação", [
+      pdfField("ID", dados.reivindicacao?.id),
+      pdfField("Nome da reivindicação", dados.reivindicacao?.nome),
+      pdfRadio("Há outros nomes da reivindicação citados no processo?", dados.reivindicacao?.outrosNomes, ["Sim", "Não"]),
+      pdfField("Outros nomes", dados.reivindicacao?.outrosNomesTexto),
+      pdfTabela("Processos analisados", ["Número SEI", "Descrição"], asList(dados.reivindicacao?.processosAnalisados).map((item) => [item.numeroSei, item.descricao])),
+      pdfRadio("Há roteiro de qualificação ou material semelhante?", dados.reivindicacao?.temRoteiro, ["Sim", "Não"]),
+      pdfField("Data do roteiro", formatarDataPdf(dados.reivindicacao?.dataRoteiro)),
+      pdfField("Número SEI do documento de qualificação", dados.reivindicacao?.numeroSeiQualificacao),
+      pdfField("Etnia", asList(dados.reivindicacao?.etnias).join(", ")),
+      pdfField("Outras etnias", asList(dados.reivindicacao?.outrasEtnias).join(", ")),
+      pdfField("Tipo da demanda", asList(dados.reivindicacao?.tipoDemanda).join(", ")),
+      pdfField("Modalidade de constituição", dados.reivindicacao?.modalidadeConstituicao),
+      pdfRadio("Há justificativa para revisão de limites?", dados.reivindicacao?.temJustificativaRevisao, ["Sim", "Não", "Sem informação"]),
+      pdfField("Justificativa da revisão", dados.reivindicacao?.justificativaRevisao),
+      pdfField("Estado", asList(dados.reivindicacao?.estados).join(", ") || dados.reivindicacao?.estado),
+      pdfField("Município", asList(dados.reivindicacao?.municipios).join(", ") || dados.reivindicacao?.municipio),
+      pdfField("Coordenação Regional", dados.reivindicacao?.coordenacaoRegional),
+      pdfRadio("Ação de retomada do território?", dados.reivindicacao?.temRetomada, ["Sim", "Não", "Sem informação"]),
+      pdfField("Detalhes da retomada", dados.reivindicacao?.detalhesRetomada)
+    ]),
+    criarPdfSecao("3. Resumo do processo", [
+      pdfField("Descrição da reivindicação", dados.resumoProcesso?.descricao),
+      pdfTabela("Documentos", ["Data", "Tipo", "Páginas", "Assunto", "Nº SEI", "Nº do processo"], asList(dados.resumoProcesso?.documentos).map((item) => [
+        formatarDataPdf(item.dataDocumento),
+        item.tipoDocumento,
+        item.paginasDocumento,
+        item.eventosAssuntos,
+        item.numeroSei,
+        item.numeroProcessoDocumento
+      ]))
+    ]),
+    criarPdfSecao("4. Status do processo", [
+      pdfRadio("Está judicializado?", dados.statusProcesso?.estaJudicializado, ["Sim", "Não", "Sem informação"]),
+      pdfField("Motivação da judicialização", dados.statusProcesso?.motivacaoJudicializacao),
+      pdfField("Tipos de ação judicial", asList(dados.statusProcesso?.tiposAcaoJudicial).join(", ")),
+      pdfTabela("Ações judiciais", ["Tipo", "Nº processo SEI", "Nº ação", "Data", "Detalhes", "Decisão", "Detalhes da decisão"], asList(dados.statusProcesso?.acoesJudiciaisDetalhadas).map((item) => [
+        item.tipo,
+        item.numeroProcessoSei,
+        item.numeroAcao,
+        formatarDataPdf(item.data),
+        item.detalhesJudicializacao,
+        item.temDecisaoJudicial,
+        item.detalhesDecisao
+      ]))
+    ]),
+    criarPdfSecao("5. Caracterização da área", [
+      pdfField("Localização da demanda", dados.caracterizacaoArea?.localizacaoDemanda),
+      pdfRadio("Há identificação de coordenadas geográficas?", dados.caracterizacaoArea?.temCoordenadas, ["Sim", "Não", "Sem informação"]),
+      pdfTabela("Coordenadas", ["Latitude", "Longitude", "Sede do município?", "Comentário"], asList(dados.caracterizacaoArea?.coordenadasDetalhadas).map((item) => [
+        item.latitude,
+        item.longitude,
+        item.coordenadaSedeMunicipio,
+        item.comentarioCoordenada
+      ])),
+      pdfRadio("Há mapa e material cartográfico nos processos?", dados.caracterizacaoArea?.temMapaCartografico, ["Sim", "Não", "Sem informação"]),
+      pdfTabela("Mapas cartográficos", ["Nº SEI", "Página"], asList(dados.caracterizacaoArea?.mapasCartograficos).map((item) => [item.numeroSei, item.pagina])),
+      pdfField("Bioma", asList(dados.caracterizacaoArea?.bioma).join(", ")),
+      pdfRadio("Cita aldeias ou comunidades?", dados.caracterizacaoArea?.citaAldeiasComunidades, ["Sim", "Não", "Sem informação"]),
+      pdfField("Aldeias/comunidades", asList(dados.caracterizacaoArea?.aldeiasComunidadesLista).join(", ") || dados.caracterizacaoArea?.aldeiasComunidades),
+      pdfRadio("Contexto urbano?", dados.caracterizacaoArea?.contextoUrbano, ["Sim", "Não", "Sem informação"]),
+      pdfField("Detalhes do contexto urbano", dados.caracterizacaoArea?.detalhesContextoUrbano),
+      pdfRadio("Faixa de fronteira?", dados.caracterizacaoArea?.faixaFronteira, ["Sim", "Não", "Sem informação"]),
+      pdfField("Detalhes da faixa de fronteira", dados.caracterizacaoArea?.detalhesFaixaFronteira),
+      pdfRadio("Sobreposições?", dados.caracterizacaoArea?.sobreposicoes, ["Sim", "Não", "Sem informação"]),
+      pdfField("Tipos de sobreposição", asList(dados.caracterizacaoArea?.tiposSobreposicao).join(", "))
+    ]),
+    criarPdfSecao("6. Situação da ocupação indígena", [
+      pdfRadio("Indígenas estão na área reivindicada?", dados.ocupacaoIndigena?.indigenasArea, ["Sim", "Não", "Sem informação"]),
+      pdfField("Tempo de ocupação", dados.ocupacaoIndigena?.tempoOcupacao),
+      pdfField("Data do dado da ocupação", formatarDataPdf(dados.ocupacaoIndigena?.dataReferenciaOcupacao)),
+      pdfField("Vulnerabilidades", asList(dados.ocupacaoIndigena?.vulnerabilidades).join(", ")),
+      pdfField("Outro critério de vulnerabilidade", dados.ocupacaoIndigena?.outroCriterioVulnerabilidade),
+      pdfTabela("Detalhes de vulnerabilidades", ["Critério", "Fonte", "Data"], asList(dados.ocupacaoIndigena?.detalhesVulnerabilidades).map((item) => [
+        item.criterioDescricao ? `${item.criterio}: ${item.criterioDescricao}` : item.criterio,
+        item.fonte,
+        formatarDataPdf(item.dataReferencia)
+      ])),
+      pdfRadio("Há presença de outras comunidades tradicionais?", dados.ocupacaoIndigena?.comunidadesTradicionais, ["Sim", "Não", "Sem informação"]),
+      pdfField("Tipos de comunidade tradicional", asList(dados.ocupacaoIndigena?.tiposComunidadeTradicional).join(", ")),
+      pdfTabela("Comunidades tradicionais", ["Tipo", "Fonte", "Data"], asList(dados.ocupacaoIndigena?.detalhesComunidadesTradicionais).map((item) => [
+        item.tipo,
+        item.fonte,
+        formatarDataPdf(item.dataReferencia)
+      ])),
+      pdfRadio("Há conflito na área reivindicada?", dados.ocupacaoIndigena?.conflitoInteretnico, ["Sim", "Não", "Sem informação"]),
+      pdfField("Tipos de conflito", asList(dados.ocupacaoIndigena?.tiposConflito).join(", ")),
+      pdfTabela("Conflitos", ["Tipo", "Descrição", "Data", "Envolvidos", "Etnia", "Fonte"], asList(dados.ocupacaoIndigena?.detalhesConflitos).map((item) => [
+        item.outroTipoConflito ? `${item.tipo}: ${item.outroTipoConflito}` : item.tipo,
+        item.descricao,
+        formatarDataPdf(item.dataReferencia),
+        item.envolvidos,
+        item.etniaRelacionada,
+        item.fonte
+      ])),
+      pdfRadio("Há indício de povos isolados?", dados.ocupacaoIndigena?.povosIsolados, ["Sim", "Não"]),
+      pdfField("Detalhes de povos isolados", dados.ocupacaoIndigena?.detalhesPovosIsolados),
+      pdfRadio("Há reintegração de posse?", dados.ocupacaoIndigena?.reintegracaoPosse, ["Sim", "Não", "Sem informação"]),
+      pdfField("Descrição da reintegração de posse", dados.ocupacaoIndigena?.descricaoReintegracaoPosse),
+      pdfRadio("Há outras ações judiciais envolvendo a comunidade?", dados.ocupacaoIndigena?.outrasAcoesJudiciaisComunidade, ["Sim", "Não", "Sem informação"]),
+      pdfField("Descrição de outras ações judiciais", dados.ocupacaoIndigena?.descricaoOutrasAcoesJudiciaisComunidade),
+      pdfField("Informações adicionais", dados.ocupacaoIndigena?.informacoesAdicionais)
+    ]),
+    criarAssinaturaGovPdf()
+  );
+
+  document.body.append(root);
+  window.addEventListener("afterprint", () => root.remove(), { once: true });
+}
+
+function criarPdfSecao(titulo, items) {
+  const content = items.filter(Boolean);
+  if (!content.length) return document.createDocumentFragment();
+  const section = el("section", "pdf-section");
+  section.append(el("h2", "", titulo), ...content);
+  return section;
+}
+
+function pdfField(label, value) {
+  const text = asText(value);
+  if (!text) return null;
+  const row = el("div", "pdf-field");
+  row.append(el("strong", "", `${label}: `), document.createTextNode(text));
+  return row;
+}
+
+function pdfRadio(label, value, options) {
+  const selected = asText(value);
+  if (!selected) return null;
+  const row = el("div", "pdf-field pdf-radio");
+  row.append(el("strong", "", `${label}: `));
+  options.forEach((option) => {
+    row.append(el("span", "pdf-radio-option", `( ${selected === option ? "X" : " "} ) ${option}`));
+  });
+  return row;
+}
+
+function pdfTabela(title, headers, rows) {
+  const cleanRows = rows
+    .map((row) => row.map((cell) => asText(cell)))
+    .filter((row) => row.some(Boolean));
+  if (!cleanRows.length) return null;
+
+  const wrapper = el("div", "pdf-table-wrap");
+  const table = el("table", "pdf-table");
+  const thead = document.createElement("thead");
+  const headerRow = document.createElement("tr");
+  headers.forEach((header) => headerRow.append(el("th", "", header)));
+  thead.append(headerRow);
+
+  const tbody = document.createElement("tbody");
+  cleanRows.forEach((row) => {
+    const tr = document.createElement("tr");
+    row.forEach((cell) => tr.append(el("td", "", cell)));
+    tbody.append(tr);
+  });
+
+  table.append(thead, tbody);
+  wrapper.append(el("h3", "", title), table);
+  return wrapper;
+}
+
+function criarAssinaturaGovPdf() {
+  const section = el("section", "pdf-section pdf-signature");
+  section.append(
+    el("h2", "", "ASSINATURA GOV.BR"),
+    el("div", "pdf-signature-line", ""),
+    el("p", "", "Assinatura eletrônica"),
+    el("footer", "pdf-footer-line", "CGID/DIDEM/FUNAI | 2026")
+  );
+  return section;
+}
+
+function formatarDataPdf(value) {
+  return converterDataParaBR(value);
+}
+
+function el(tagName, className = "", text = "") {
+  const element = document.createElement(tagName);
+  if (className) element.className = className;
+  if (text) element.textContent = text;
+  return element;
 }
 
 async function saveDraft() {
@@ -2858,6 +3170,7 @@ function renderChips(container, values, dataName, ariaPrefix) {
     chip.append(removeButton);
     container.append(chip);
   });
+  updateFormularioJsonSizeMeter();
 }
 
 function handleDocumentoTableClick(event) {
@@ -2888,6 +3201,7 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
   `;
   documentosTableBody.append(row);
   setDocumentoRowValues(row, documento);
+  updateFormularioJsonSizeMeter();
   if (shouldFocus) row.querySelector("input, textarea")?.focus();
 }
 
@@ -2896,10 +3210,12 @@ function removeDocumentoRow(row) {
   const rows = Array.from(documentosTableBody.querySelectorAll(".document-row"));
   if (rows.length > 1) {
     row.remove();
+    updateFormularioJsonSizeMeter();
     return;
   }
 
   setDocumentoRowValues(row, {});
+  updateFormularioJsonSizeMeter();
 }
 
 function resetDocumentoRows() {
@@ -3024,6 +3340,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
   `;
   coordenadasTableBody.append(row);
   setCoordenadaRowValues(row, coordenada);
+  updateFormularioJsonSizeMeter();
   if (shouldFocus) row.querySelector("input, select")?.focus();
 }
 
@@ -3032,10 +3349,12 @@ function removeCoordenadaRow(row) {
   const rows = Array.from(coordenadasTableBody.querySelectorAll(".coordinate-row"));
   if (rows.length > 1) {
     row.remove();
+    updateFormularioJsonSizeMeter();
     return;
   }
 
   setCoordenadaRowValues(row, {});
+  updateFormularioJsonSizeMeter();
 }
 
 function resetCoordenadaRows() {
@@ -3134,6 +3453,7 @@ function addMapaRow(mapa = {}, shouldFocus = true) {
   `;
   mapasTableBody.append(row);
   setMapaRowValues(row, mapa);
+  updateFormularioJsonSizeMeter();
   if (shouldFocus) row.querySelector("input")?.focus();
 }
 
@@ -3142,10 +3462,12 @@ function removeMapaRow(row) {
   const rows = Array.from(mapasTableBody.querySelectorAll(".map-row"));
   if (rows.length > 1) {
     row.remove();
+    updateFormularioJsonSizeMeter();
     return;
   }
 
   setMapaRowValues(row, {});
+  updateFormularioJsonSizeMeter();
 }
 
 function resetMapaRows() {
@@ -3365,6 +3687,7 @@ function adicionarProcessoAnalisado(processo = {}, shouldFocus = true) {
   item.append(numeroLabel, descricaoLabel, actions);
   processList.append(item);
 
+  updateFormularioJsonSizeMeter();
   if (shouldFocus) numeroInput.focus();
 }
 
@@ -3375,6 +3698,7 @@ function removerProcessoAnalisado(item) {
   if (items.length > 1) {
     const previousItem = item.previousElementSibling || item.nextElementSibling;
     item.remove();
+    updateFormularioJsonSizeMeter();
     previousItem?.querySelector("input, textarea")?.focus();
     return;
   }
@@ -3382,6 +3706,7 @@ function removerProcessoAnalisado(item) {
   item.querySelectorAll("input, textarea").forEach((field) => {
     field.value = "";
   });
+  updateFormularioJsonSizeMeter();
   item.querySelector("input")?.focus();
 }
 
@@ -3391,6 +3716,7 @@ function carregarProcessosAnalisados(processos = []) {
 
   processList.innerHTML = "";
   registros.forEach((processo) => adicionarProcessoAnalisado(processo, false));
+  updateFormularioJsonSizeMeter();
 }
 
 function getProcessosAnalisados() {

@@ -87,6 +87,10 @@ textarea {
 .app-footer {
   position: relative;
   z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
   width: min(1420px, calc(100% - 72px));
   margin: -28px auto 38px;
   color: var(--green);
@@ -94,6 +98,22 @@ textarea {
   font-weight: 800;
   letter-spacing: 0.06em;
   text-align: center;
+}
+
+.form-size-meter {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.form-size-meter.is-warning {
+  color: #9a6a00;
+}
+
+.form-size-meter.is-danger,
+.form-size-meter.is-blocked {
+  color: var(--danger);
 }
 
 .form-shell {

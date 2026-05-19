@@ -1,40 +1,166 @@
-﻿@media print {
-  body {
-    background: #fff;
-  }
+.pdf-print-root {
+  display: none;
+}
 
+@page {
+  margin: 18mm;
+}
+
+@media print {
+  .no-print,
+  button,
+  .btn,
+  .actions,
+  .add-btn,
+  .remove-btn,
+  .nav,
+  .footer-buttons,
   .access-gate,
   .dashboard-shell,
+  .form-shell,
+  .app-shell,
   .progress-wrap,
   .form-actions,
-  .message {
+  .message,
+  .app-footer {
     display: none !important;
   }
 
-  .form-shell,
-  #funaiForm,
-  .step {
-    width: 100%;
-    max-width: none;
-    box-shadow: none;
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
   }
 
-  #funaiForm {
-    display: block !important;
-  }
-
-  .step {
-    display: block !important;
+  html,
+  body {
+    width: auto !important;
     min-height: auto !important;
-    margin: 0 0 18px !important;
-    padding: 18px 0 !important;
-    border: 0 !important;
-    page-break-inside: avoid;
+    margin: 0 !important;
+    background: white !important;
+    color: #111 !important;
   }
 
-  .conditional.is-visible,
-  div.conditional.is-visible,
-  fieldset.conditional.is-visible {
+  body::before,
+  body::after {
+    display: none !important;
+  }
+
+  .pdf-print-root {
     display: block !important;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 12px;
+    line-height: 1.35;
+    color: #111;
+  }
+
+  .pdf-cover {
+    margin-bottom: 12mm;
+    border-bottom: 2px solid #263a1f;
+    padding-bottom: 6mm;
+  }
+
+  .pdf-cover h1 {
+    margin: 0 0 6mm;
+    color: #263a1f;
+    font-size: 20px;
+    line-height: 1.25;
+  }
+
+  .pdf-section {
+    margin: 0 0 8mm;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .pdf-section h2 {
+    margin: 0 0 4mm;
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #263a1f;
+    font-size: 15px;
+    line-height: 1.2;
+    border-bottom: 1px solid #b8b8b8;
+    padding-bottom: 2mm;
+  }
+
+  .pdf-section h3 {
+    margin: 4mm 0 2mm;
+    page-break-after: avoid;
+    break-after: avoid;
+    color: #333;
+    font-size: 12.5px;
+  }
+
+  .pdf-field {
+    margin: 0 0 2.5mm;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    white-space: pre-wrap;
+  }
+
+  .pdf-radio {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3mm 5mm;
+    align-items: baseline;
+  }
+
+  .pdf-radio strong {
+    flex: 1 0 100%;
+  }
+
+  .pdf-radio-option {
+    white-space: nowrap;
+  }
+
+  .pdf-table-wrap {
+    margin: 0 0 5mm;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .pdf-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+  }
+
+  .pdf-table th,
+  .pdf-table td {
+    border: 1px solid #ccc;
+    padding: 6px;
+    font-size: 12px;
+    vertical-align: top;
+    overflow-wrap: anywhere;
+  }
+
+  .pdf-table th {
+    background: #f0f0f0;
+    color: #111;
+    font-weight: 700;
+  }
+
+  .pdf-signature {
+    margin-top: 14mm;
+    text-align: center;
+  }
+
+  .pdf-signature h2 {
+    border-bottom: 0;
+    color: #111;
+  }
+
+  .pdf-signature-line {
+    width: 82mm;
+    margin: 18mm auto 2mm;
+    border-top: 1px solid #111;
+  }
+
+  .pdf-footer-line {
+    margin-top: 8mm;
+    color: #333;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
   }
 }
