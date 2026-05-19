@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-24";
+const APP_VERSION = "20260518-25";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -994,9 +994,10 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
   }
 
   const isUpdate = activePersistenceMode === "update";
-  const payload = buildPayload(statusFormulario);
+  const payload = normalizarPayloadParaPowerAutomate(buildPayload(statusFormulario));
   console.log(isUpdate ? "modo update" : "modo create");
   console.log("payload enviado", payload);
+  console.log("payload normalizado", payload);
 
   saveDraftBtn.disabled = true;
   submitBtn.disabled = true;
@@ -1612,6 +1613,49 @@ function createFormularioId() {
 
 function asText(value) {
   return value == null ? "" : String(value);
+}
+
+function normalizarTextoParaPowerAutomate(valor) {
+  if (valor === null || valor === undefined) return "";
+  if (Array.isArray(valor)) return valor.join(", ");
+  if (typeof valor === "object") return JSON.stringify(valor);
+  return String(valor);
+}
+
+function normalizarPayloadParaPowerAutomate(payload) {
+  const normalizado = {
+    ...payload,
+    reivindicacao: { ...(payload.reivindicacao || {}) },
+    resumoProcesso: { ...(payload.resumoProcesso || {}) },
+    statusProcesso: { ...(payload.statusProcesso || {}) },
+    caracterizacaoArea: { ...(payload.caracterizacaoArea || {}) },
+    ocupacaoIndigena: { ...(payload.ocupacaoIndigena || {}) }
+  };
+
+  const camposTexto = [
+    ["reivindicacao", "descricaoProcessosAnalisados"],
+    ["resumoProcesso", "descricao"],
+    ["resumoProcesso", "descricaoReivindicacao"],
+    ["statusProcesso", "motivacaoJudicializacao"],
+    ["statusProcesso", "descricaoAcao"],
+    ["statusProcesso", "detalhesJudicializacao"],
+    ["statusProcesso", "detalhesDecisao"],
+    ["caracterizacaoArea", "localizacaoDemanda"],
+    ["caracterizacaoArea", "detalhesRetomada"],
+    ["ocupacaoIndigena", "detalhesVulnerabilidades"],
+    ["ocupacaoIndigena", "detalhesComunidadesTradicionais"],
+    ["ocupacaoIndigena", "motivoConflitoInteretnico"],
+    ["ocupacaoIndigena", "descricaoReintegracaoPosse"],
+    ["ocupacaoIndigena", "descricaoOutrasAcoesJudiciaisComunidade"],
+    ["ocupacaoIndigena", "informacoesAdicionais"]
+  ];
+
+  camposTexto.forEach(([bloco, campo]) => {
+    if (!normalizado[bloco] || !(campo in normalizado[bloco])) return;
+    normalizado[bloco][campo] = normalizarTextoParaPowerAutomate(normalizado[bloco][campo]);
+  });
+
+  return normalizado;
 }
 
 function asList(value) {
