@@ -351,7 +351,6 @@
                 Há ações judiciais contra a FUNAI?
                 <div class="check-grid">
                   <label><input type="radio" name="estaJudicializado" value="Sim"> Sim</label>
-                  <label><input type="radio" name="estaJudicializado" value="Não"> Não</label>
                   <label><input type="radio" name="estaJudicializado" value="Sem informação"> Sem informação</label>
                 </div>
               </fieldset>
@@ -362,90 +361,16 @@
                   <textarea name="motivacaoJudicializacao" rows="3" placeholder="Descreva a motivação da ação judicial"></textarea>
                 </label>
 
-                <div class="field-grid compact">
-                  <label>
-                    Qualificação/constituição de GT/Outros
-                    <select name="classificacaoJudicializacao">
-                      <option value="">Selecione</option>
-                      <option>Qualificação</option>
-                      <option>Constituição de GT</option>
-                      <option>Outros</option>
-                    </select>
-                  </label>
-
-                  <label class="conditional" id="classificacaoJudicializacaoOutrosWrap">
-                    <span class="sr-only">Descreva a classificação</span>
-                    <input name="classificacaoJudicializacaoOutros" type="text" placeholder="Descreva">
-                  </label>
-                </div>
-
-                <fieldset class="wide">
-                  <legend>Qual a ação?</legend>
+                <fieldset class="wide" data-required-group="tiposAcaoJudicial">
+                  <legend>Tipo de ação</legend>
                   <div class="check-grid">
-                    <label><input type="checkbox" name="acoesJudiciais" value="Ação Civil Pública"> Ação Civil Pública</label>
-                    <label><input type="checkbox" name="acoesJudiciais" value="Outros"> Outros</label>
+                    <label><input type="checkbox" name="tiposAcaoJudicial" value="Qualificação"> Qualificação</label>
+                    <label><input type="checkbox" name="tiposAcaoJudicial" value="Constituição de GT"> Constituição de GT</label>
+                    <label><input type="checkbox" name="tiposAcaoJudicial" value="Outros"> Outros</label>
                   </div>
                 </fieldset>
 
-                <label class="conditional" id="descricaoAcaoWrap">
-                  <span class="sr-only">Descreva a ação</span>
-                  <input name="descricaoAcao" type="text" placeholder="Descreva a ação">
-                </label>
-
-                <div class="decision-grid action-grid">
-                  <label>
-                    Apelante/parte autora
-                    <input name="parteAutoraAcao" type="text" placeholder="Informe a parte autora">
-                  </label>
-                  <label>
-                    Número do processo SEI
-                    <input name="numeroProcessoSeiJudicial" type="text" placeholder="Número do processo SEI">
-                  </label>
-                  <label>
-                    Número da ação
-                    <input name="numeroAcaoJudicial" type="text" placeholder="Número da ação">
-                  </label>
-                  <label>
-                    Data
-                    <input name="dataAcaoJudicial" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
-                  </label>
-                  <label class="wide">
-                    Detalhes sobre a judicialização
-                    <textarea name="detalhesJudicializacao" rows="3" placeholder="Detalhe sobre a judicialização"></textarea>
-                  </label>
-                </div>
-
-                <fieldset class="wide">
-                  Tem decisão judicial?
-                  <div class="check-grid">
-                    <label><input type="radio" name="temDecisao" value="Sim"> Sim</label>
-                    <label><input type="radio" name="temDecisao" value="Não"> Não</label>
-                    <label><input type="radio" name="temDecisao" value="Sem informação"> Sem informação</label>
-                  </div>
-                </fieldset>
-
-                <div class="conditional decision-grid" id="decisaoDetalhes">
-                  <label>
-                    <span class="sr-only">Número</span>
-                    <input name="numeroDecisao" type="text" placeholder="Número">
-                  </label>
-                  <label>
-                    <span class="sr-only">Data da decisão</span>
-                    <input name="dataDecisao" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
-                  </label>
-                  <label>
-                    <span class="sr-only">Sentença</span>
-                    <input name="sentenca" type="text" placeholder="Sentença">
-                  </label>
-                  <label>
-                    <span class="sr-only">Detalhes da decisão</span>
-                    <input name="detalhesDecisao" type="text" placeholder="Detalhe sobre a decisão">
-                  </label>
-                  <label>
-                    <span class="sr-only">Nº do processo judicial</span>
-                    <input name="numeroProcessoJudicial" type="text" placeholder="Nº do processo">
-                  </label>
-                </div>
+                <div class="judicial-action-list" id="acoesJudiciaisDetalhadas" aria-live="polite"></div>
               </div>
             </div>
           </section>
@@ -729,7 +654,7 @@
                     </label>
                     <label>
                       De quando é o dado da ocupação?
-                      <input name="dataReferenciaOcupacao" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataReferenciaOcupacao" type="text" placeholder="Informe a referência do dado">
                     </label>
                   </div>
                 </div>
@@ -767,42 +692,42 @@
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Garimpo">
                       <span>Garimpo</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Garimpo" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Garimpo" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Garimpo" type="text" placeholder="Informe a referência do dado">
                     </div>
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Empreendimento de grande porte">
                       <span>Empreendimento de grande porte</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Empreendimento de grande porte" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Empreendimento de grande porte" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Empreendimento de grande porte" type="text" placeholder="Informe a referência do dado">
                     </div>
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Conflito deflagrado">
                       <span>Conflito deflagrado</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Conflito deflagrado" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Conflito deflagrado" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Conflito deflagrado" type="text" placeholder="Informe a referência do dado">
                     </div>
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Conflito latente">
                       <span>Conflito latente</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Conflito latente" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Conflito latente" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Conflito latente" type="text" placeholder="Informe a referência do dado">
                     </div>
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Danos ambientais">
                       <span>Danos ambientais</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Danos ambientais" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Danos ambientais" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Danos ambientais" type="text" placeholder="Informe a referência do dado">
                     </div>
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Inacessibilidade a políticas públicas">
                       <span>Inacessibilidade a políticas públicas</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Inacessibilidade a políticas públicas" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Inacessibilidade a políticas públicas" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Inacessibilidade a políticas públicas" type="text" placeholder="Informe a referência do dado">
                     </div>
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Risco habitacional">
                       <span>Risco habitacional</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Risco habitacional" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Risco habitacional" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Risco habitacional" type="text" placeholder="Informe a referência do dado">
                     </div>
                     <div class="vulnerability-detail-row" data-vulnerability-detail="Outros">
                       <span>Outros</span>
                       <input name="fonteVulnerabilidadeItem" data-vulnerability-source="Outros" type="text" placeholder="Documento de origem">
-                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Outros" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataVulnerabilidadeItem" data-vulnerability-date="Outros" type="text" placeholder="Informe a referência do dado">
                     </div>
                   </div>
                 </div>
@@ -878,7 +803,7 @@
                     </label>
                     <label>
                       De quando é o dado?
-                      <input name="dataReferenciaConflitoInteretnico" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+                      <input name="dataReferenciaConflitoInteretnico" type="text" placeholder="Informe a referência do dado">
                     </label>
                     <label>
                       Fonte do dado

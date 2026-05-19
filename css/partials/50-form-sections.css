@@ -36,6 +36,34 @@
   grid-column: 1 / -1;
 }
 
+.judicial-action-list {
+  display: grid;
+  gap: 22px;
+}
+
+.judicial-action-card {
+  display: grid;
+  gap: 18px;
+  padding: 18px;
+  border: 1px solid rgba(139, 61, 24, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.68);
+}
+
+.judicial-action-card h3 {
+  margin: 0;
+  color: var(--green);
+  font-size: 1.1rem;
+}
+
+.judicial-decision-details {
+  display: none;
+}
+
+.judicial-decision-details.is-visible {
+  display: grid;
+}
+
 .overlap-question {
   gap: 24px;
 }

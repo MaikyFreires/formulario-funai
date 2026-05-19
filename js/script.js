@@ -7,21 +7,18 @@ const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
 const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
 const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
+const THEME_STORAGE_KEY = "funaiTemaVisual";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-30";
+const APP_VERSION = "20260519-04";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
   "dataAcaoJudicial",
   "dataDecisao",
-  "dataReferenciaOcupacao",
-  "dataReferenciaVulnerabilidade",
-  "dataReferenciaComunidadeTradicional",
-  "dataReferenciaConflitoInteretnico",
-  "dataVulnerabilidadeItem",
-  "dataComunidadeTradicional"
+  "dataAcaoJudicialDetalhada"
 ]);
+const TIPOS_ACAO_JUDICIAL = ["Qualificação", "Constituição de GT", "Outros"];
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
   "Quilombolas",
@@ -67,6 +64,7 @@ let accessSubmitBtn;
 let accessMessage;
 let consultorDashboard;
 let dashboardEmail;
+let dashboardMessage;
 let newReportBtn;
 let draftReportsBtn;
 let sentReportsBtn;
@@ -134,12 +132,14 @@ let currentReportListMode = "draft";
 let activeFormMode = "edit";
 let activePersistenceMode = "create";
 
+applyStoredTheme();
 init();
 
 // Bootstrap
 async function init() {
   await loadHtmlPartials();
   cacheDomElements();
+  bindThemeToggle();
   bindAccessEvents();
 
   const authorizedEmail = getStoredAuthorizedEmail();
@@ -177,6 +177,7 @@ function cacheDomElements() {
   accessMessage = document.querySelector("#accessMessage");
   consultorDashboard = document.querySelector("#consultorDashboard");
   dashboardEmail = document.querySelector("#dashboardEmail");
+  dashboardMessage = document.querySelector("#dashboardMessage");
   newReportBtn = document.querySelector("#newReportBtn");
   draftReportsBtn = document.querySelector("#draftReportsBtn");
   sentReportsBtn = document.querySelector("#sentReportsBtn");
@@ -292,7 +293,7 @@ async function handleAccessSubmit(event) {
   }
 }
 
-function showDashboard(email = getAuthorizedEmail()) {
+function showDashboard(email = getAuthorizedEmail(), message = "") {
   if (!hasActiveSession()) {
     showAccessScreen();
     return;
@@ -303,6 +304,7 @@ function showDashboard(email = getAuthorizedEmail()) {
   formApp.hidden = true;
   dashboardEmail.textContent = email;
   hideReportList();
+  showDashboardMessage(message, message ? "success" : "");
 }
 
 function showAccessScreen() {
@@ -332,6 +334,55 @@ async function novoRelatorio() {
   await openForm({ reset: true, mode: "edit" });
   currentFormularioId = createFormularioId();
   sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+}
+
+function applyStoredTheme() {
+  applyTheme(readStoredTheme());
+}
+
+function bindThemeToggle() {
+  const themeToggle = document.querySelector("#themeToggle");
+  if (!themeToggle) return;
+
+  themeToggle.addEventListener("click", () => {
+    const nextTheme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+    saveStoredTheme(nextTheme);
+    applyTheme(nextTheme);
+  });
+
+  updateThemeToggle(themeToggle);
+}
+
+function readStoredTheme() {
+  try {
+    return localStorage.getItem(THEME_STORAGE_KEY) || "light";
+  } catch (error) {
+    return "light";
+  }
+}
+
+function saveStoredTheme(theme) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch (error) {
+    // A preferência visual continua funcionando na aba atual mesmo sem armazenamento.
+  }
+}
+
+function applyTheme(theme) {
+  const normalizedTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.dataset.theme = normalizedTheme;
+  updateThemeToggle(document.querySelector("#themeToggle"));
+}
+
+function updateThemeToggle(themeToggle) {
+  if (!themeToggle) return;
+
+  const isDark = document.documentElement.dataset.theme === "dark";
+  themeToggle.setAttribute("aria-pressed", String(isDark));
+  themeToggle.setAttribute("aria-label", isDark ? "Alternar para modo claro" : "Alternar para modo escuro");
+  themeToggle.querySelector(".theme-toggle__icon").textContent = isDark ? "☾" : "☀";
+  themeToggle.querySelector(".theme-toggle__text").textContent = isDark ? "Modo claro" : "Modo escuro";
 }
 
 async function startNewReport() {
@@ -377,6 +428,7 @@ function limparFormulario() {
   renderComunidadeTradicionalChips();
   renderAldeiaChips();
   renderComunidadeTradicionalDetalhes();
+  renderAcoesJudiciaisDetalhadas([]);
   populateEstadoOptions();
   populateMunicipioOptions();
   populateComunidadeTradicionalOptions();
@@ -551,8 +603,7 @@ function updateConditionals() {
     form.elements.dataRoteiro.value = converterDataParaBR(getTodayDate());
   }
   setConditional("judicializadoDetalhes", getValue("estaJudicializado") === "Sim");
-  setConditional("decisaoDetalhes", getValue("temDecisao") === "Sim");
-  setConditional("classificacaoJudicializacaoOutrosWrap", getValue("classificacaoJudicializacao") === "Outros");
+  renderAcoesJudiciaisDetalhadas();
   setConditional("coordenadasWrap", getValue("temCoordenadas") === "Sim");
   setConditional("mapasCartograficosWrap", getValue("temMapaCartografico") === "Sim");
   setConditional("sobreposicoesWrap", getValue("sobreposicoes") === "Sim");
@@ -565,7 +616,6 @@ function updateConditionals() {
   setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
   setConditional("outrasAcoesJudiciaisComunidadeWrap", getValue("outrasAcoesJudiciaisComunidade") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
-  setConditional("descricaoAcaoWrap", getCheckedValues("acoesJudiciais").includes("Outros"));
   setConditional("outroVulnerabilidadeWrap", getCheckedValues("vulnerabilidades").includes("Outros"));
   updateVulnerabilityDetails();
   updateCoordinateFormatDetails();
@@ -622,6 +672,9 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "municipios", label: "Município", isValid: () => selectedMunicipios.length > 0 },
     { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
     { fieldId: "temRetomada", label: "Tem retomada", isValid: () => hasChecked("temRetomada") },
+    { fieldId: "estaJudicializado", label: "Há ações judiciais contra a FUNAI", isValid: () => hasChecked("estaJudicializado") },
+    { fieldId: "motivacaoJudicializacao", label: "Motivação", isValid: () => getValue("estaJudicializado") !== "Sim" || hasValue("motivacaoJudicializacao") },
+    { fieldId: "tiposAcaoJudicial", label: "Tipo de ação", isValid: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0 },
     { fieldId: "detalhesRetomada", label: "Detalhes da retomada", isValid: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada") },
     { fieldId: "descricaoAcao", label: "Descrição da ação judicial", isValid: () => !getCheckedValues("acoesJudiciais").includes("Outros") || hasValue("descricaoAcao") },
     { fieldId: "detalheOutrasSobreposicoes", label: "Detalhe de outras sobreposições", isValid: () => !getCheckedValues("tiposSobreposicao").includes("Outros") || hasValue("detalheOutrasSobreposicoes") },
@@ -642,6 +695,41 @@ function validateRequiredFields(isDraftSave = false) {
       target: error.target
     });
   });
+
+  if (getValue("estaJudicializado") === "Sim") {
+    getAcoesJudiciaisDetalhadas().forEach((acao, index) => {
+      const prefix = `acaoJudicialDetalhada-${index}`;
+      if (!acao.numeroProcessoSei && !acao.numeroAcao) {
+        const error = showFieldError(`${prefix}-numero`, "Informe o número da ação ou do processo SEI");
+        errors.push({
+          fieldId: `${prefix}-numero`,
+          label: `${acao.tipo}: número da ação ou processo SEI`,
+          stepIndex: error.stepIndex,
+          target: error.target
+        });
+      }
+
+      if (!acao.temDecisaoJudicial) {
+        const error = showFieldError(`${prefix}-decisao`, "Campo obrigatório");
+        errors.push({
+          fieldId: `${prefix}-decisao`,
+          label: `${acao.tipo}: tem decisão judicial`,
+          stepIndex: error.stepIndex,
+          target: error.target
+        });
+      }
+
+      if (acao.temDecisaoJudicial === "Sim" && !acao.detalhesDecisao) {
+        const error = showFieldError(`${prefix}-detalhesDecisao`, "Campo obrigatório");
+        errors.push({
+          fieldId: `${prefix}-detalhesDecisao`,
+          label: `${acao.tipo}: detalhes sobre a decisão`,
+          stepIndex: error.stepIndex,
+          target: error.target
+        });
+      }
+    });
+  }
 
   return errors;
 }
@@ -726,8 +814,22 @@ function getFieldErrorTarget(fieldId) {
     tipoDemanda: () => {
       const group = form.querySelector("[data-required-group='tipoDemanda']");
       return { container: group?.closest("fieldset") || group, control: group };
+    },
+    tiposAcaoJudicial: () => {
+      const group = form.querySelector("[data-required-group='tiposAcaoJudicial']");
+      return { container: group, control: group?.querySelector(".check-grid") || group };
     }
   };
+
+  if (fieldId.startsWith("acaoJudicialDetalhada-")) {
+    const [, index, field] = fieldId.split("-");
+    const card = form.querySelector(`[data-acao-judicial-index="${index}"]`);
+    let control = card;
+    if (field === "numero") control = card?.querySelector("[data-acao-numero-sei]") || card?.querySelector("[data-acao-numero-acao]");
+    if (field === "decisao") control = card?.querySelector(".judicial-decision-fieldset");
+    if (field === "detalhesDecisao") control = card?.querySelector("[data-acao-detalhes-decisao]");
+    return { container: control?.closest("label, fieldset, .judicial-action-card") || card, control };
+  }
 
   if (customTargets[fieldId]) return customTargets[fieldId]();
 
@@ -765,11 +867,196 @@ function isRequiredFieldResolved(fieldId) {
     coordenacaoRegional: () => hasValue("coordenacaoRegional"),
     temRetomada: () => hasChecked("temRetomada"),
     detalhesRetomada: () => getValue("temRetomada") !== "Sim" || hasValue("detalhesRetomada"),
+    estaJudicializado: () => hasChecked("estaJudicializado"),
+    motivacaoJudicializacao: () => getValue("estaJudicializado") !== "Sim" || hasValue("motivacaoJudicializacao"),
+    tiposAcaoJudicial: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0,
     descricaoReivindicacao: () => hasValue("descricaoReivindicacao"),
     coordenadas: () => areCoordenadasValid()
   };
 
+  if (fieldId.startsWith("acaoJudicialDetalhada-")) return isAcaoJudicialDetalhadaResolved(fieldId);
+
   return resolved[fieldId]?.() ?? true;
+}
+
+function isAcaoJudicialDetalhadaResolved(fieldId) {
+  const [, rawIndex, field] = fieldId.split("-");
+  const acao = getAcoesJudiciaisDetalhadas()[Number(rawIndex)] || {};
+  if (field === "numero") return Boolean(acao.numeroProcessoSei || acao.numeroAcao);
+  if (field === "decisao") return Boolean(acao.temDecisaoJudicial);
+  if (field === "detalhesDecisao") return acao.temDecisaoJudicial !== "Sim" || Boolean(acao.detalhesDecisao);
+  return true;
+}
+
+function getAcoesJudiciaisDetalhadas() {
+  return Array.from(form.querySelectorAll("[data-acao-judicial-card]"))
+    .map((card) => ({
+      tipo: asText(card.dataset.acaoJudicialTipo),
+      acpOutros: asText(card.querySelector("[data-acao-acp-outros]")?.value),
+      numeroProcessoSei: asText(card.querySelector("[data-acao-numero-sei]")?.value),
+      numeroAcao: asText(card.querySelector("[data-acao-numero-acao]")?.value),
+      detalhesJudicializacao: asText(card.querySelector("[data-acao-detalhes]")?.value),
+      data: prepararDataParaPayload(card.querySelector("[data-acao-data]")?.value),
+      temDecisaoJudicial: asText(card.querySelector("input[type='radio']:checked")?.value),
+      detalhesDecisao: asText(card.querySelector("[data-acao-detalhes-decisao]")?.value)
+    }))
+    .filter((item) => item.tipo);
+}
+
+function renderAcoesJudiciaisDetalhadas(existingDetails) {
+  const container = document.getElementById("acoesJudiciaisDetalhadas");
+  if (!container) return;
+
+  const currentDetails = existingDetails || getAcoesJudiciaisDetalhadas();
+  const selected = existingDetails
+    ? (normalizeAcoesJudiciaisDetalhadas(currentDetails).map((item) => item.tipo).filter(Boolean).length
+      ? normalizeAcoesJudiciaisDetalhadas(currentDetails).map((item) => item.tipo).filter(Boolean)
+      : getCheckedValues("tiposAcaoJudicial"))
+    : (getValue("estaJudicializado") === "Sim" ? getCheckedValues("tiposAcaoJudicial") : []);
+  const detailMap = new Map(normalizeAcoesJudiciaisDetalhadas(currentDetails).map((item) => [item.tipo, item]));
+  const previousSignature = container.dataset.selectedTipos || "";
+  const nextSignature = selected.join("|");
+
+  if (!existingDetails && previousSignature === nextSignature) {
+    updateAcoesJudiciaisDecisaoVisibility();
+    return;
+  }
+
+  container.dataset.selectedTipos = nextSignature;
+  container.innerHTML = "";
+
+  selected.forEach((tipo, index) => {
+    const detail = detailMap.get(tipo) || { tipo };
+    const card = document.createElement("section");
+    card.className = "judicial-action-card";
+    card.dataset.acaoJudicialCard = "true";
+    card.dataset.acaoJudicialTipo = tipo;
+    card.dataset.acaoJudicialIndex = String(index);
+    card.innerHTML = `
+      <h3>${tipo}</h3>
+      <div class="action-grid">
+        <label>
+          Qual ação? / ACP ou outros
+          <input type="text" data-acao-acp-outros placeholder="Descreva a ação">
+        </label>
+        <label>
+          Número do processo SEI
+          <input type="text" data-acao-numero-sei placeholder="Número do processo SEI">
+        </label>
+        <label>
+          Número da ação
+          <input type="text" data-acao-numero-acao placeholder="Número da ação">
+        </label>
+        <label>
+          Data
+          <input name="dataAcaoJudicialDetalhada" type="text" inputmode="numeric" data-acao-data placeholder="dd/mm/aaaa">
+        </label>
+        <label class="wide">
+          Detalhes sobre a judicialização
+          <textarea rows="3" data-acao-detalhes placeholder="Detalhe sobre a judicialização"></textarea>
+        </label>
+      </div>
+      <fieldset class="judicial-decision-fieldset">
+        Tem decisão judicial?
+        <div class="check-grid">
+          <label><input type="radio" name="temDecisaoJudicial_${index}" value="Sim"> Sim</label>
+          <label><input type="radio" name="temDecisaoJudicial_${index}" value="Não"> Não</label>
+          <label><input type="radio" name="temDecisaoJudicial_${index}" value="Sem informação"> Sem informação</label>
+        </div>
+      </fieldset>
+      <label class="conditional judicial-decision-details">
+        Detalhes sobre a decisão
+        <textarea rows="3" data-acao-detalhes-decisao placeholder="Detalhe sobre a decisão"></textarea>
+      </label>
+    `;
+
+    card.querySelector("[data-acao-acp-outros]").value = asText(detail.acpOutros);
+    card.querySelector("[data-acao-numero-sei]").value = asText(detail.numeroProcessoSei);
+    card.querySelector("[data-acao-numero-acao]").value = asText(detail.numeroAcao);
+    card.querySelector("[data-acao-data]").value = converterDataParaBR(detail.data);
+    card.querySelector("[data-acao-detalhes]").value = asText(detail.detalhesJudicializacao);
+    card.querySelector("[data-acao-detalhes-decisao]").value = asText(detail.detalhesDecisao);
+    const decisao = asText(detail.temDecisaoJudicial);
+    if (decisao) {
+      const radio = Array.from(card.querySelectorAll("input[type='radio']")).find((field) => field.value === decisao);
+      if (radio) radio.checked = true;
+    }
+
+    container.append(card);
+  });
+
+  updateAcoesJudiciaisDecisaoVisibility();
+}
+
+function updateAcoesJudiciaisDecisaoVisibility() {
+  form.querySelectorAll("[data-acao-judicial-card]").forEach((card) => {
+    const decisao = asText(card.querySelector("input[type='radio']:checked")?.value);
+    card.querySelector(".judicial-decision-details")?.classList.toggle("is-visible", decisao === "Sim");
+  });
+}
+
+function restoreAcoesJudiciaisDetalhadas(values) {
+  const details = normalizeAcoesJudiciaisDetalhadas(values.acoesJudiciaisDetalhadas);
+  const fallbackDetails = details.length ? details : normalizeLegacyAcoesJudiciais(values);
+  const selectedTipos = fallbackDetails.length
+    ? fallbackDetails.map((item) => item.tipo).filter(Boolean)
+    : asListOrSplit(values.tiposAcaoJudicial || values.classificacaoJudicializacao || values.acoesJudiciais).filter((tipo) => TIPOS_ACAO_JUDICIAL.includes(tipo));
+
+  form.querySelectorAll('input[name="tiposAcaoJudicial"]').forEach((field) => {
+    field.checked = selectedTipos.includes(field.value);
+  });
+
+  renderAcoesJudiciaisDetalhadas(fallbackDetails);
+}
+
+function normalizeAcoesJudiciaisDetalhadas(value) {
+  let items = value;
+  if (typeof value === "string") {
+    try {
+      items = JSON.parse(value);
+    } catch (error) {
+      items = [];
+    }
+  }
+
+  if (!Array.isArray(items)) return [];
+
+  return items
+    .map((item) => ({
+      tipo: asText(item?.tipo),
+      acpOutros: asText(item?.acpOutros),
+      numeroProcessoSei: asText(item?.numeroProcessoSei),
+      numeroAcao: asText(item?.numeroAcao),
+      detalhesJudicializacao: asText(item?.detalhesJudicializacao),
+      data: prepararDataParaPayload(item?.data),
+      temDecisaoJudicial: asText(item?.temDecisaoJudicial),
+      detalhesDecisao: asText(item?.detalhesDecisao)
+    }))
+    .filter((item) => item.tipo);
+}
+
+function normalizeLegacyAcoesJudiciais(values = {}) {
+  const tipos = asListOrSplit(values.tiposAcaoJudicial || values.classificacaoJudicializacao || values.acoesJudiciais)
+    .map((tipo) => TIPOS_ACAO_JUDICIAL.includes(tipo) ? tipo : "")
+    .filter(Boolean);
+  const tipo = tipos[0] || "";
+  if (!tipo) return [];
+
+  return [{
+    tipo,
+    acpOutros: asText(values.descricaoAcao || values.classificacaoJudicializacaoOutros),
+    numeroProcessoSei: asText(values.numeroProcessoSeiJudicial),
+    numeroAcao: asText(values.numeroAcaoJudicial || values.numeroProcessoJudicial),
+    detalhesJudicializacao: asText(values.detalhesJudicializacao),
+    data: prepararDataParaPayload(values.dataAcaoJudicial),
+    temDecisaoJudicial: asText(values.temDecisao),
+    detalhesDecisao: asText(values.detalhesDecisao)
+  }];
+}
+
+function normalizeEstaJudicializado(value) {
+  const text = asText(value);
+  return text === "Não" ? "Sem informação" : text;
 }
 
 function hasValue(name) {
@@ -847,6 +1134,8 @@ function garantirTiposPayload(payload) {
 
   normalizado.reivindicacao.processosAnalisados = garantirArray(normalizado.reivindicacao.processosAnalisados);
   normalizado.resumoProcesso.documentos = garantirArray(normalizado.resumoProcesso.documentos);
+  normalizado.statusProcesso.tiposAcaoJudicial = garantirArray(normalizado.statusProcesso.tiposAcaoJudicial);
+  normalizado.statusProcesso.acoesJudiciaisDetalhadas = garantirArray(normalizado.statusProcesso.acoesJudiciaisDetalhadas);
   normalizado.caracterizacaoArea.coordenadas = garantirArray(normalizado.caracterizacaoArea.coordenadas);
   normalizado.caracterizacaoArea.coordenadasDetalhadas = garantirArray(normalizado.caracterizacaoArea.coordenadasDetalhadas);
   normalizado.caracterizacaoArea.mapasCartograficos = garantirArray(normalizado.caracterizacaoArea.mapasCartograficos);
@@ -883,6 +1172,9 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
   const primeiraCoordenada = coordenadasDetalhadas[0] || {};
   const mapasCartograficos = asList(getMapasCartograficos());
   const processosAnalisados = asList(getProcessosAnalisados());
+  const tiposAcaoJudicial = asList(getCheckedValues("tiposAcaoJudicial"));
+  const acoesJudiciaisDetalhadas = asList(getAcoesJudiciaisDetalhadas());
+  const primeiraAcaoJudicial = acoesJudiciaisDetalhadas[0] || {};
 
   return {
     formularioId: asText(getCurrentFormularioId()),
@@ -935,21 +1227,23 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     statusProcesso: {
       estaJudicializado: asText(getValue("estaJudicializado")),
       motivacaoJudicializacao: asText(getValue("motivacaoJudicializacao")),
-      classificacaoJudicializacao: asText(getValue("classificacaoJudicializacao")),
-      classificacaoJudicializacaoOutros: asText(getValue("classificacaoJudicializacaoOutros")),
-      acoesJudiciais: asList(getCheckedValues("acoesJudiciais")),
-      descricaoAcao: asText(getValue("descricaoAcao")),
-      parteAutoraAcao: asText(getValue("parteAutoraAcao")),
-      numeroProcessoSeiJudicial: asText(getValue("numeroProcessoSeiJudicial")),
-      numeroAcaoJudicial: asText(getValue("numeroAcaoJudicial")),
-      dataAcaoJudicial: prepararDataParaPayload(getValue("dataAcaoJudicial")),
-      detalhesJudicializacao: asText(getValue("detalhesJudicializacao")),
-      temDecisao: asText(getValue("temDecisao")),
-      numeroDecisao: asText(getValue("numeroDecisao")),
-      dataDecisao: prepararDataParaPayload(getValue("dataDecisao")),
-      sentenca: asText(getValue("sentenca")),
-      detalhesDecisao: asText(getValue("detalhesDecisao")),
-      numeroProcessoJudicial: asText(getValue("numeroProcessoJudicial"))
+      tiposAcaoJudicial,
+      acoesJudiciaisDetalhadas,
+      classificacaoJudicializacao: asText(primeiraAcaoJudicial.tipo),
+      classificacaoJudicializacaoOutros: asText(primeiraAcaoJudicial.tipo === "Outros" ? primeiraAcaoJudicial.acpOutros : ""),
+      acoesJudiciais: tiposAcaoJudicial,
+      descricaoAcao: asText(primeiraAcaoJudicial.acpOutros),
+      parteAutoraAcao: "",
+      numeroProcessoSeiJudicial: asText(primeiraAcaoJudicial.numeroProcessoSei),
+      numeroAcaoJudicial: asText(primeiraAcaoJudicial.numeroAcao),
+      dataAcaoJudicial: asText(primeiraAcaoJudicial.data),
+      detalhesJudicializacao: asText(primeiraAcaoJudicial.detalhesJudicializacao),
+      temDecisao: asText(primeiraAcaoJudicial.temDecisaoJudicial),
+      numeroDecisao: "",
+      dataDecisao: "",
+      sentenca: "",
+      detalhesDecisao: asText(primeiraAcaoJudicial.detalhesDecisao),
+      numeroProcessoJudicial: asText(primeiraAcaoJudicial.numeroAcao)
     },
     caracterizacaoArea: {
       localizacaoDemanda: asText(getValue("localizacaoDemanda")),
@@ -991,24 +1285,24 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     ocupacaoIndigena: {
       indigenasArea: asText(getValue("indigenasArea")),
       tempoOcupacao: asText(getValue("tempoOcupacao")),
-      dataReferenciaOcupacao: prepararDataParaPayload(getValue("dataReferenciaOcupacao")),
+      dataReferenciaOcupacao: asText(getValue("dataReferenciaOcupacao")),
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
       outroCriterioVulnerabilidade: asText(getValue("outroCriterioVulnerabilidade")),
       detalhesVulnerabilidades: asList(getDetalhesVulnerabilidades()),
       fonteVulnerabilidade: asText(getValue("fonteVulnerabilidade")),
-      dataReferenciaVulnerabilidade: prepararDataParaPayload(getPrimeiroDetalheVulnerabilidade().dataReferencia || getValue("dataReferenciaVulnerabilidade")),
+      dataReferenciaVulnerabilidade: asText(getPrimeiroDetalheVulnerabilidade().dataReferencia || getValue("dataReferenciaVulnerabilidade")),
       comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
       tiposComunidadeTradicional: asList(getSelectedComunidadesTradicionais()),
       detalhesComunidadesTradicionais: asList(getDetalhesComunidadesTradicionais()),
       descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
-      dataReferenciaComunidadeTradicional: prepararDataParaPayload(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
+      dataReferenciaComunidadeTradicional: asText(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
       tiposConflito: asList(getCheckedValues("tiposConflito")),
       outroTipoConflito: asText(getValue("outroTipoConflito")),
       envolvidosConflito: asText(getValue("envolvidosConflito")),
       motivoConflitoInteretnico: asText(getValue("motivoConflitoInteretnico")),
       etniaConflitoInteretnico: asText(getValue("etniaConflitoInteretnico")),
-      dataReferenciaConflitoInteretnico: prepararDataParaPayload(getValue("dataReferenciaConflitoInteretnico")),
+      dataReferenciaConflitoInteretnico: asText(getValue("dataReferenciaConflitoInteretnico")),
       fonteConflito: asText(getValue("fonteConflito")),
       reintegracaoPosse: asText(getValue("reintegracaoPosse")),
       descricaoReintegracaoPosse: asText(getValue("descricaoReintegracaoPosse")),
@@ -1124,9 +1418,8 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
       sessionStorage.setItem(ACTIVE_FORM_ID_KEY, payload.formularioId);
 
       if (!isDraft) {
-        showMessage("Formulário enviado com sucesso.", "success");
         sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
-        showDashboard(getAuthorizedEmail());
+        showDashboard(getAuthorizedEmail(), "Seu formulário foi enviado com sucesso.");
         return;
       }
 
@@ -1370,6 +1663,12 @@ function showReportListMessage(text, type) {
   reportListMessage.className = `message is-visible ${type}`;
 }
 
+function showDashboardMessage(text, type) {
+  if (!dashboardMessage) return;
+  dashboardMessage.textContent = text;
+  dashboardMessage.className = text ? `message is-visible ${type}` : "message";
+}
+
 function normalizarListaRelatorios(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.relatorios)) return data.relatorios;
@@ -1498,11 +1797,12 @@ function restoreValues(values) {
   restoreCoordenadaRows(coordenadas);
   if (!coordenadas.length) restoreLegacyCoordenadaRow(values);
   restoreMapaRows(values.mapasCartograficos);
+  restoreAcoesJudiciaisDetalhadas(values);
   restoreDetalhesVulnerabilidades(values.detalhesVulnerabilidades);
   renderComunidadeTradicionalDetalhes(values.detalhesComunidadesTradicionais);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "processosAnalisados", "numerosProcesso", "descricaoProcessosAnalisados", "numeroSeiProcessoAnalisado", "descricaoProcessoAnalisado", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "mapasCartograficos", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada", "numeroSeiMapa", "paginaMapa"].includes(name)) return;
+    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "tiposAcaoJudicial", "acoesJudiciaisDetalhadas", "acoesJudiciais", "classificacaoJudicializacao", "classificacaoJudicializacaoOutros", "descricaoAcao", "numeroProcessoSeiJudicial", "numeroAcaoJudicial", "dataAcaoJudicial", "detalhesJudicializacao", "temDecisao", "numeroDecisao", "dataDecisao", "sentenca", "detalhesDecisao", "numeroProcessoJudicial", "processosAnalisados", "numerosProcesso", "descricaoProcessosAnalisados", "numeroSeiProcessoAnalisado", "descricaoProcessoAnalisado", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "mapasCartograficos", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada", "numeroSeiMapa", "paginaMapa"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1531,11 +1831,7 @@ function shouldDisplayDateAsBrazil(name) {
   return [
     "dataRoteiro",
     "dataAcaoJudicial",
-    "dataDecisao",
-    "dataReferenciaOcupacao",
-    "dataReferenciaVulnerabilidade",
-    "dataReferenciaComunidadeTradicional",
-    "dataReferenciaConflitoInteretnico"
+    "dataDecisao"
   ].includes(name);
 }
 
@@ -1577,8 +1873,10 @@ function flattenDraft(draft) {
     paginasDocumento: draft.resumoProcesso?.paginas,
     numeroSei: draft.resumoProcesso?.numeroSei,
     eventosAssuntos: draft.resumoProcesso?.eventosAssuntos,
-    estaJudicializado: draft.statusProcesso?.estaJudicializado,
+    estaJudicializado: normalizeEstaJudicializado(draft.statusProcesso?.estaJudicializado),
     motivacaoJudicializacao: draft.statusProcesso?.motivacaoJudicializacao,
+    tiposAcaoJudicial: asListOrSplit(draft.statusProcesso?.tiposAcaoJudicial || draft.statusProcesso?.classificacaoJudicializacao || draft.statusProcesso?.acoesJudiciais),
+    acoesJudiciaisDetalhadas: normalizeAcoesJudiciaisDetalhadas(draft.statusProcesso?.acoesJudiciaisDetalhadas),
     classificacaoJudicializacao: draft.statusProcesso?.classificacaoJudicializacao,
     classificacaoJudicializacaoOutros: draft.statusProcesso?.classificacaoJudicializacaoOutros,
     acoesJudiciais: draft.statusProcesso?.acoesJudiciais,
@@ -2243,10 +2541,10 @@ function renderComunidadeTradicionalDetalhes(existingDetails = []) {
     row.innerHTML = `
       <span>${tipo}</span>
       <input name="fonteComunidadeTradicional" data-community-source="${tipo}" type="text" placeholder="Documento de origem">
-      <input name="dataComunidadeTradicional" data-community-date="${tipo}" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
+      <input name="dataComunidadeTradicional" data-community-date="${tipo}" type="text" placeholder="Informe a referência do dado">
     `;
     row.querySelector("[data-community-source]").value = asText(detail.fonte);
-    row.querySelector("[data-community-date]").value = converterDataParaBR(detail.dataReferencia);
+    row.querySelector("[data-community-date]").value = asText(detail.dataReferencia);
     comunidadeTradicionalDetalhes.append(row);
   });
 }
@@ -2256,7 +2554,7 @@ function getDetalhesComunidadesTradicionais() {
     .map((row) => {
       const tipo = row.dataset.communityDetail;
       const fonte = asText(row.querySelector("[data-community-source]")?.value);
-      const dataReferencia = prepararDataParaPayload(row.querySelector("[data-community-date]")?.value);
+      const dataReferencia = asText(row.querySelector("[data-community-date]")?.value);
       return { tipo, fonte, dataReferencia };
     })
     .filter((item) => item.tipo);
@@ -2657,7 +2955,7 @@ function getDetalhesVulnerabilidades() {
       const criterio = row.dataset.vulnerabilityDetail;
       const criterioDescricao = criterio === "Outros" ? asText(getValue("outroCriterioVulnerabilidade")) : "";
       const fonte = asText(row.querySelector("[data-vulnerability-source]")?.value);
-      const dataReferencia = prepararDataParaPayload(row.querySelector("[data-vulnerability-date]")?.value);
+      const dataReferencia = asText(row.querySelector("[data-vulnerability-date]")?.value);
       return { criterio, criterioDescricao, fonte, dataReferencia };
     })
     .filter((item) => item.criterioDescricao || item.fonte || item.dataReferencia);
@@ -2675,7 +2973,7 @@ function restoreDetalhesVulnerabilidades(detalhes = []) {
     const source = row.querySelector("[data-vulnerability-source]");
     const date = row.querySelector("[data-vulnerability-date]");
     if (source) source.value = asText(item.fonte);
-    if (date) date.value = converterDataParaBR(item.dataReferencia);
+    if (date) date.value = asText(item.dataReferencia);
   });
 }
 
