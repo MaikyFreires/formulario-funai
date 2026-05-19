@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-08";
+const APP_VERSION = "20260519-09";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -533,6 +533,11 @@ function goToPreviousStep() {
 }
 
 function confirmReturnHome() {
+  if (activeFormMode === "sent") {
+    showDashboard(getAuthorizedEmail());
+    return;
+  }
+
   showReturnHomeDialog();
 }
 
