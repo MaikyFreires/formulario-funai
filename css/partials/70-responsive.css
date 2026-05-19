@@ -81,6 +81,24 @@
     gap: 6px;
   }
 
+  .report-list-row.sent-report-row {
+    grid-template-columns: 1fr;
+  }
+
+  .report-list-header {
+    display: none;
+  }
+
+  .sent-report-row > [data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 2px;
+    color: var(--green);
+    font-size: 0.78rem;
+    font-weight: 850;
+    text-decoration: none;
+  }
+
   .confirm-actions {
     flex-direction: column;
   }

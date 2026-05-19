@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-15";
+const APP_VERSION = "20260519-17";
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
 const FORMULARIO_JSON_BLOCK_LIMIT = 63000;
 const FORMULARIO_JSON_YELLOW_WARNING = 40000;
@@ -86,6 +86,8 @@ let reportListPanel;
 let reportListTitle;
 let reportListMessage;
 let reportList;
+let reportListControls;
+let reportIdSearch;
 let closeReportListBtn;
 let form;
 let steps = [];
@@ -198,6 +200,8 @@ function cacheDomElements() {
   reportListTitle = document.querySelector("#reportListTitle");
   reportListMessage = document.querySelector("#reportListMessage");
   reportList = document.querySelector("#reportList");
+  reportListControls = document.querySelector("#reportListControls");
+  reportIdSearch = document.querySelector("#reportIdSearch");
   closeReportListBtn = document.querySelector("#closeReportListBtn");
   form = document.querySelector("#funaiForm");
   steps = Array.from(document.querySelectorAll(".step"));
@@ -248,6 +252,7 @@ function bindAccessEvents() {
   newReportBtn.addEventListener("click", novoRelatorio);
   draftReportsBtn.addEventListener("click", () => listarRascunhos());
   sentReportsBtn.addEventListener("click", () => listarEnviados());
+  reportIdSearch?.addEventListener("input", handleSentReportSearch);
   closeReportListBtn.addEventListener("click", hideReportList);
 }
 
@@ -2096,12 +2101,16 @@ function showReportList(title, message = "") {
   reportListPanel.hidden = false;
   reportListTitle.textContent = title;
   reportList.innerHTML = "";
+  if (reportListControls) reportListControls.hidden = currentReportListMode !== "sent";
+  if (reportIdSearch) reportIdSearch.value = "";
   if (message) showReportListMessage(message, "success");
 }
 
 function hideReportList() {
   reportListPanel.hidden = true;
   reportList.innerHTML = "";
+  if (reportListControls) reportListControls.hidden = true;
+  if (reportIdSearch) reportIdSearch.value = "";
   reportListMessage.textContent = "";
   reportListMessage.className = "message";
 }
@@ -2128,6 +2137,11 @@ function normalizarListaRelatorios(data) {
 function renderReportList(relatorios, emptyMessage) {
   cachedReports = relatorios;
   reportList.innerHTML = "";
+
+  if (currentReportListMode === "sent") {
+    renderSentReportList(relatorios, emptyMessage);
+    return;
+  }
 
   if (!relatorios.length) {
     showReportListMessage(emptyMessage, "success");
@@ -2171,6 +2185,97 @@ function renderReportList(relatorios, emptyMessage) {
   });
 }
 
+function handleSentReportSearch() {
+  if (currentReportListMode !== "sent") return;
+  renderSentReportList(getFilteredSentReports(), "Nenhum relatório enviado encontrado.");
+}
+
+function getFilteredSentReports() {
+  const query = normalizeText(reportIdSearch?.value || "");
+  if (!query) return cachedReports;
+  return cachedReports.filter((relatorio) => normalizeText(getReportReivindicacaoId(relatorio)).includes(query));
+}
+
+function renderSentReportList(relatorios, emptyMessage) {
+  reportList.innerHTML = "";
+
+  if (!cachedReports.length) {
+    showReportListMessage(emptyMessage, "success");
+    return;
+  }
+
+  if (!relatorios.length) {
+    showReportListMessage("Nenhum relatório encontrado para esse ID.", "error");
+    return;
+  }
+
+  reportListMessage.textContent = "";
+  reportListMessage.className = "message";
+  reportList.append(createSentReportHeader());
+
+  relatorios.forEach((relatorio) => {
+    const formularioId = getReportFormularioId(relatorio);
+    const reivindicacaoId = getReportReivindicacaoId(relatorio) || "Sem ID";
+    const nomeReivindicacao = getReportNomeReivindicacao(relatorio) || "Sem nome";
+    const areaEstudo = getReportAreaEstudo(relatorio) || "Sem informação";
+    const enviadoEm = getReportEnviadoEm(relatorio);
+    const status = getReportStatus(relatorio) || "Enviado";
+    const row = document.createElement("div");
+    const idButton = createReportOpenButton(reivindicacaoId, formularioId);
+    const name = document.createElement("span");
+    const area = document.createElement("span");
+    const date = document.createElement("span");
+    const statusText = document.createElement("span");
+    const action = document.createElement("button");
+
+    row.className = "report-list-row sent-report-row";
+    name.textContent = nomeReivindicacao;
+    area.textContent = areaEstudo;
+    date.textContent = enviadoEm;
+    statusText.textContent = status;
+    action.type = "button";
+    action.className = "report-open-action";
+    action.textContent = "Abrir";
+    action.disabled = !formularioId;
+    action.addEventListener("click", () => abrirRelatorioEnviado(formularioId));
+
+    [
+      [idButton, "ID"],
+      [name, "Nome da reivindicação"],
+      [area, "Área de estudo"],
+      [date, "Data de envio"],
+      [statusText, "Status"],
+      [action, "Ação"]
+    ].forEach(([element, label]) => {
+      element.dataset.label = label;
+    });
+
+    row.append(idButton, name, area, date, statusText, action);
+    reportList.append(row);
+  });
+}
+
+function createSentReportHeader() {
+  const header = document.createElement("div");
+  header.className = "report-list-row report-list-header sent-report-row";
+  ["ID", "Nome da reivindicação", "Área de estudo", "Data de envio", "Status", "Ação"].forEach((label) => {
+    const item = document.createElement("strong");
+    item.textContent = label;
+    header.append(item);
+  });
+  return header;
+}
+
+function createReportOpenButton(label, formularioId) {
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = "report-link";
+  button.textContent = label;
+  button.disabled = !formularioId;
+  button.addEventListener("click", () => abrirRelatorioEnviado(formularioId));
+  return button;
+}
+
 function getCachedReport(id) {
   return cachedReports.find((relatorio) => {
     const formId = getReportFormularioId(relatorio);
@@ -2185,15 +2290,32 @@ function getReportFormularioId(relatorio) {
 }
 
 function getReportReivindicacaoId(relatorio) {
-  return asText(relatorio.reivindicacao?.id || relatorio.ReivindicacaoId || relatorio.field_2 || relatorio.reivindicacaoId);
+  const formularioJson = extrairFormularioJson(relatorio);
+  return asText(formularioJson?.reivindicacao?.id || relatorio.reivindicacao?.id || relatorio.ReivindicacaoId || relatorio.field_2 || relatorio.reivindicacaoId);
 }
 
 function getReportNomeReivindicacao(relatorio) {
-  return asText(relatorio.reivindicacao?.nome || relatorio.NomeReivindicacao || relatorio.field_3 || relatorio.nomeReivindicacao || relatorio.titulo);
+  const formularioJson = extrairFormularioJson(relatorio);
+  return asText(formularioJson?.reivindicacao?.nome || relatorio.reivindicacao?.nome || relatorio.NomeReivindicacao || relatorio.field_3 || relatorio.nomeReivindicacao || relatorio.titulo);
 }
 
 function getReportAtualizadoEm(relatorio) {
   return asText(relatorio.Modified || relatorio.AtualizadoEm || relatorio.enviadoEm || relatorio.EnviadoEm || relatorio.atualizadoEm || relatorio.modificadoEm);
+}
+
+function getReportAreaEstudo(relatorio) {
+  const formularioJson = extrairFormularioJson(relatorio);
+  return asText(formularioJson?.consultor?.areaEstudo || relatorio.consultor?.areaEstudo || relatorio.AreaEstudo || relatorio.field_1 || relatorio.areaEstudo);
+}
+
+function getReportEnviadoEm(relatorio) {
+  const formularioJson = extrairFormularioJson(relatorio);
+  return asText(relatorio.EnviadoEm || relatorio.enviadoEm || formularioJson?.enviadoEm || relatorio.Modified || relatorio.AtualizadoEm || relatorio.atualizadoEm);
+}
+
+function getReportStatus(relatorio) {
+  const formularioJson = extrairFormularioJson(relatorio);
+  return asText(relatorio.statusFormulario || relatorio.StatusFormulario || formularioJson?.statusFormulario);
 }
 
 function restoreValues(values) {
