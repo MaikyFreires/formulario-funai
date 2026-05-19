@@ -9,13 +9,16 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-11";
+const APP_VERSION = "20260519-12";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
   "dataAcaoJudicial",
   "dataDecisao",
-  "dataAcaoJudicialDetalhada"
+  "dataAcaoJudicialDetalhada",
+  "dataReferenciaOcupacao",
+  "dataVulnerabilidadeItem",
+  "dataComunidadeTradicional"
 ]);
 const TIPOS_ACAO_JUDICIAL = ["Qualificação", "Constituição de GT", "Outros"];
 const COMUNIDADES_TRADICIONAIS = [
@@ -442,9 +445,17 @@ function isChoiceInput(field) {
 function handleDateMaskInput(event) {
   const field = event.target;
   if (!field || field.tagName !== "INPUT" || field.type !== "text") return;
-  if (!DATE_BR_FIELD_NAMES.has(field.name)) return;
+  if (!isBrazilianDateField(field)) return;
 
   field.value = formatDateInputValue(field.value);
+  if (!field.value || isBrazilianDateCompleteAndValid(field.value)) clearControlError(field);
+}
+
+function isBrazilianDateField(field) {
+  return Boolean(field) && (
+    DATE_BR_FIELD_NAMES.has(field.name) ||
+    field.matches?.("[data-date-field], [data-acao-data], [data-vulnerability-date], [data-community-date], [data-conflict-reference]")
+  );
 }
 
 function formatDateInputValue(value) {
@@ -452,6 +463,11 @@ function formatDateInputValue(value) {
   if (digits.length <= 2) return digits;
   if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
   return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function isBrazilianDateCompleteAndValid(value) {
+  const text = asText(value).trim();
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(text) && isDataValida(text);
 }
 
 function handleInfoToggleClick(event) {
@@ -690,6 +706,16 @@ function validateRequiredFields(isDraftSave = false) {
     });
   });
 
+  getInvalidDateFields().forEach((field, index) => {
+    const error = showControlError(field, `dateField-${index}`, "Informe uma data válida no formato dd/mm/aaaa.");
+    errors.push({
+      fieldId: `dateField-${index}`,
+      label: getDateFieldLabel(field),
+      stepIndex: error.stepIndex,
+      target: error.target
+    });
+  });
+
   if (getValue("estaJudicializado") === "Sim") {
     getAcoesJudiciaisDetalhadas().forEach((acao, index) => {
       const prefix = `acaoJudicialDetalhada-${index}`;
@@ -736,6 +762,15 @@ function isRadioOptionGroup(fieldId) {
   const element = form.elements[fieldId];
   const controls = element instanceof RadioNodeList ? Array.from(element) : [element].filter(Boolean);
   return controls.some((field) => field?.type === "radio");
+}
+
+function getInvalidDateFields() {
+  return Array.from(form.querySelectorAll("input[type='text']"))
+    .filter((field) => isBrazilianDateField(field) && isFieldVisible(field) && field.value.trim() && !isBrazilianDateCompleteAndValid(field.value));
+}
+
+function getDateFieldLabel(field) {
+  return asText(field.closest("label")?.textContent || field.getAttribute("aria-label") || "Data").replace(/\s+/g, " ");
 }
 
 function clearValidationErrors() {
@@ -897,6 +932,49 @@ function isRequiredFieldResolved(fieldId) {
   if (fieldId.startsWith("acaoJudicialDetalhada-")) return isAcaoJudicialDetalhadaResolved(fieldId);
 
   return resolved[fieldId]?.() ?? true;
+}
+
+function clearControlError(control) {
+  if (!control) return;
+  const container = control.closest("label, td, fieldset, .vulnerability-detail-row, .community-detail-row, .conflict-detail-card");
+  const fieldId = control.dataset.errorField;
+  control.classList.remove("field-error", "invalid");
+  if (fieldId) delete control.dataset.errorField;
+
+  if (!container) return;
+  if (fieldId) {
+    container.querySelectorAll(`.field-error-message[data-error-for="${fieldId}"]`).forEach((element) => element.remove());
+  }
+  if (!container.querySelector(".field-error, .invalid")) {
+    container.classList.remove("field-error");
+    if (container.dataset.errorField === fieldId) delete container.dataset.errorField;
+  }
+}
+
+function showControlError(control, fieldId, message) {
+  const container = control.closest("label, td, fieldset, .vulnerability-detail-row, .community-detail-row, .conflict-detail-card");
+  const step = container?.closest(".step") || control.closest(".step");
+  const stepIndex = steps.indexOf(step);
+
+  control.classList.add("field-error");
+  control.dataset.errorField = fieldId;
+  if (container) {
+    container.classList.add("field-error");
+    container.dataset.errorField = fieldId;
+  }
+
+  if (container && !container.querySelector(`.field-error-message[data-error-for="${fieldId}"]`)) {
+    const errorMessage = document.createElement("small");
+    errorMessage.className = "field-error-message";
+    errorMessage.dataset.errorFor = fieldId;
+    errorMessage.textContent = message;
+    container.append(errorMessage);
+  }
+
+  return {
+    target: container || control,
+    stepIndex: stepIndex >= 0 ? stepIndex : 0
+  };
 }
 
 function isAcaoJudicialDetalhadaResolved(fieldId) {
@@ -1336,17 +1414,17 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     ocupacaoIndigena: {
       indigenasArea: asText(getValue("indigenasArea")),
       tempoOcupacao: asText(getValue("tempoOcupacao")),
-      dataReferenciaOcupacao: asText(getValue("dataReferenciaOcupacao")),
+      dataReferenciaOcupacao: prepararDataParaPayload(getValue("dataReferenciaOcupacao")),
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
       outroCriterioVulnerabilidade: asText(getValue("outroCriterioVulnerabilidade")),
       detalhesVulnerabilidades: asList(getDetalhesVulnerabilidades()),
       fonteVulnerabilidade: asText(getValue("fonteVulnerabilidade")),
-      dataReferenciaVulnerabilidade: asText(getPrimeiroDetalheVulnerabilidade().dataReferencia || getValue("dataReferenciaVulnerabilidade")),
+      dataReferenciaVulnerabilidade: prepararDataParaPayload(getPrimeiroDetalheVulnerabilidade().dataReferencia || getValue("dataReferenciaVulnerabilidade")),
       comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
       tiposComunidadeTradicional: asList(getSelectedComunidadesTradicionais()),
       detalhesComunidadesTradicionais: asList(getDetalhesComunidadesTradicionais()),
       descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
-      dataReferenciaComunidadeTradicional: asText(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
+      dataReferenciaComunidadeTradicional: prepararDataParaPayload(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
       tiposConflito: asList(getCheckedValues("tiposConflito")),
       detalhesConflitos,
@@ -1354,7 +1432,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       envolvidosConflito: asText(primeiroConflito.envolvidos),
       motivoConflitoInteretnico: asText(primeiroConflito.descricao),
       etniaConflitoInteretnico: asText(primeiroConflito.etniaRelacionada),
-      dataReferenciaConflitoInteretnico: asText(primeiroConflito.dataReferencia),
+      dataReferenciaConflitoInteretnico: prepararDataParaPayload(primeiroConflito.dataReferencia),
       fonteConflito: asText(primeiroConflito.fonte),
       povosIsolados: asText(getValue("povosIsolados")),
       detalhesPovosIsolados: asText(getValue("detalhesPovosIsolados")),
@@ -1899,7 +1977,10 @@ function shouldDisplayDateAsBrazil(name) {
   return [
     "dataRoteiro",
     "dataAcaoJudicial",
-    "dataDecisao"
+    "dataDecisao",
+    "dataReferenciaOcupacao",
+    "dataVulnerabilidadeItem",
+    "dataComunidadeTradicional"
   ].includes(name);
 }
 
@@ -2620,10 +2701,10 @@ function renderComunidadeTradicionalDetalhes(existingDetails = []) {
     row.innerHTML = `
       <span>${tipo}</span>
       <input name="fonteComunidadeTradicional" data-community-source="${tipo}" type="text" placeholder="Documento de origem">
-      <input name="dataComunidadeTradicional" data-community-date="${tipo}" type="text" placeholder="Informe a referência do dado">
+      <input name="dataComunidadeTradicional" data-community-date="${tipo}" type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
     `;
     row.querySelector("[data-community-source]").value = asText(detail.fonte);
-    row.querySelector("[data-community-date]").value = asText(detail.dataReferencia);
+    row.querySelector("[data-community-date]").value = converterDataParaBR(detail.dataReferencia);
     comunidadeTradicionalDetalhes.append(row);
   });
 }
@@ -2633,7 +2714,7 @@ function getDetalhesComunidadesTradicionais() {
     .map((row) => {
       const tipo = row.dataset.communityDetail;
       const fonte = asText(row.querySelector("[data-community-source]")?.value);
-      const dataReferencia = asText(row.querySelector("[data-community-date]")?.value);
+      const dataReferencia = prepararDataParaPayload(row.querySelector("[data-community-date]")?.value);
       return { tipo, fonte, dataReferencia };
     })
     .filter((item) => item.tipo);
@@ -2672,7 +2753,7 @@ function renderDetalhesConflitos(existingDetails = []) {
         </label>
         <label>
           De quando é o dado?
-          <input data-conflict-reference type="text" placeholder="Informe a referência do dado">
+          <input data-conflict-reference type="text" inputmode="numeric" placeholder="dd/mm/aaaa">
         </label>
         <label>
           Envolvidos
@@ -2692,7 +2773,7 @@ function renderDetalhesConflitos(existingDetails = []) {
     card.querySelector(".conflict-other-type").classList.toggle("is-visible", tipo === "Outro");
     card.querySelector("[data-conflict-other-type]").value = asText(detail.outroTipoConflito);
     card.querySelector("[data-conflict-description]").value = asText(detail.descricao);
-    card.querySelector("[data-conflict-reference]").value = asText(detail.dataReferencia);
+    card.querySelector("[data-conflict-reference]").value = converterDataParaBR(detail.dataReferencia);
     card.querySelector("[data-conflict-involved]").value = asText(detail.envolvidos);
     card.querySelector("[data-conflict-ethnicity]").value = asText(detail.etniaRelacionada);
     card.querySelector("[data-conflict-source]").value = asText(detail.fonte);
@@ -2706,7 +2787,7 @@ function getDetalhesConflitos() {
       tipo: asText(card.dataset.conflictDetail),
       outroTipoConflito: asText(card.querySelector("[data-conflict-other-type]")?.value),
       descricao: asText(card.querySelector("[data-conflict-description]")?.value),
-      dataReferencia: asText(card.querySelector("[data-conflict-reference]")?.value),
+      dataReferencia: prepararDataParaPayload(card.querySelector("[data-conflict-reference]")?.value),
       envolvidos: asText(card.querySelector("[data-conflict-involved]")?.value),
       etniaRelacionada: asText(card.querySelector("[data-conflict-ethnicity]")?.value),
       fonte: asText(card.querySelector("[data-conflict-source]")?.value)
@@ -2733,7 +2814,7 @@ function normalizeDetalhesConflitos(value, legacy = {}) {
       tipo: asText(item?.tipo),
       outroTipoConflito: asText(item?.outroTipoConflito || item?.outroTipo || item?.tipoOutro),
       descricao: asText(item?.descricao || item?.motivoConflitoInteretnico),
-      dataReferencia: asText(item?.dataReferencia || item?.dataReferenciaConflitoInteretnico),
+      dataReferencia: prepararDataParaPayload(item?.dataReferencia || item?.dataReferenciaConflitoInteretnico),
       envolvidos: asText(item?.envolvidos || item?.envolvidosConflito),
       etniaRelacionada: asText(item?.etniaRelacionada || item?.etniaConflitoInteretnico),
       fonte: asText(item?.fonte || item?.fonteConflito)
@@ -2749,7 +2830,7 @@ function normalizeDetalhesConflitos(value, legacy = {}) {
     tipo,
     outroTipoConflito: tipo === "Outro" ? asText(legacy.outroTipoConflito) : "",
     descricao: index === 0 ? asText(legacy.motivoConflitoInteretnico) : "",
-    dataReferencia: index === 0 ? asText(legacy.dataReferenciaConflitoInteretnico) : "",
+    dataReferencia: index === 0 ? prepararDataParaPayload(legacy.dataReferenciaConflitoInteretnico) : "",
     envolvidos: index === 0 ? asText(legacy.envolvidosConflito) : "",
     etniaRelacionada: index === 0 ? asText(legacy.etniaConflitoInteretnico) : "",
     fonte: index === 0 ? asText(legacy.fonteConflito) : ""
@@ -3147,7 +3228,7 @@ function getDetalhesVulnerabilidades() {
       const criterio = row.dataset.vulnerabilityDetail;
       const criterioDescricao = criterio === "Outros" ? asText(getValue("outroCriterioVulnerabilidade")) : "";
       const fonte = asText(row.querySelector("[data-vulnerability-source]")?.value);
-      const dataReferencia = asText(row.querySelector("[data-vulnerability-date]")?.value);
+      const dataReferencia = prepararDataParaPayload(row.querySelector("[data-vulnerability-date]")?.value);
       return { criterio, criterioDescricao, fonte, dataReferencia };
     })
     .filter((item) => item.criterioDescricao || item.fonte || item.dataReferencia);
@@ -3165,7 +3246,7 @@ function restoreDetalhesVulnerabilidades(detalhes = []) {
     const source = row.querySelector("[data-vulnerability-source]");
     const date = row.querySelector("[data-vulnerability-date]");
     if (source) source.value = asText(item.fonte);
-    if (date) date.value = asText(item.dataReferencia);
+    if (date) date.value = converterDataParaBR(item.dataReferencia);
   });
 }
 
