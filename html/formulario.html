@@ -3,7 +3,7 @@
           <img class="brand-logo" src="assets/funai-header.png" alt="FUNAI">
           <div class="hero-divider" aria-hidden="true"></div>
           <div class="hero-copy">
-            <h1>Formulário - Resumo processos de reivindicação</h1>
+            <h1>Formulário - Resumo dos processos de reivindicação</h1>
             <p>Os campos abaixo são para serem preenchidos com dados extraídos dos processos de reivindicação associados a cada ID de reivindicação.</p>
           </div>
         </header>
@@ -92,7 +92,7 @@
                 <h3>Povos e nomes citados</h3>
                 <div class="field-grid compact">
                   <div class="multi-autocomplete">
-                    <label for="etniaInput">Etnia/as:</label>
+                    <label for="etniaInput">Etnias:</label>
                     <div class="autocomplete-row">
                       <input id="etniaInput" type="text" list="etniaOptions" placeholder="Localizar itens">
                       <button type="button" class="icon-button" id="addEtniaBtn" aria-label="Adicionar etnia">+</button>
@@ -130,11 +130,11 @@
                   <div class="process-list wide" id="processList">
                     <div class="process-item">
                       <label class="process-field">
-                        Número SEI dos processos analisados
+                        Número SEI do processo analisado
                         <input name="numeroSeiProcessoAnalisado" type="text" placeholder="Número SEI dos processos analisados">
                       </label>
                       <label class="process-field">
-                        Descrição dos processos analisados
+                        Descrição do processo analisado
                         <textarea name="descricaoProcessoAnalisado" rows="1" placeholder="Descreva o tema principal dos processos analisados"></textarea>
                       </label>
                       <div class="process-item-actions">
@@ -297,7 +297,7 @@
               <section class="wide document-table-section" aria-labelledby="documentosTitle">
                 <div class="table-heading">
                   <h3 id="documentosTitle">Linha do tempo: documentos mais importantes</h3>
-                  <p>Sistematização dos documentos. Identifique os principais documentos do processo e suas informações. Certifique-se que os documentos citados no resumo (acima) estejam incluídos nessa tabela.</p>
+                  <p>Sistematização dos documentos. Identifique os principais documentos do processo e suas informações. Certifique-se de que os documentos citados no resumo (acima) estejam incluídos nessa tabela.</p>
                 </div>
                 <div class="table-scroll">
                   <table class="document-table">
@@ -406,7 +406,7 @@
                     <p><strong>Formato GMS (Graus, Minutos e Segundos):</strong></p>
                     <p>Latitude: 15° 47' 39" S</p>
                     <p>Longitude: 47° 52' 56" O</p>
-                    <p><strong>Formato Coordenadas em Graus Decimais:</strong></p>
+                    <p><strong>Formato em coordenadas de graus decimais:</strong></p>
                     <p>Latitude: -15.7942</p>
                     <p>Longitude: -47.8822</p>
                   </div>
@@ -520,15 +520,17 @@
                 </div>
 
                 <fieldset class="area-card">
-                  Contexto urbano
+                  Contexto urbano?
                   <div class="check-grid">
                     <label><input type="radio" name="contextoUrbano" value="Sim"> Sim</label>
                     <label><input type="radio" name="contextoUrbano" value="Não"> Não</label>
+                    <label><input type="radio" name="contextoUrbano" value="Sem informação">Sem informação</label>
+
                   </div>
                 </fieldset>
 
                 <fieldset class="area-card">
-                  Faixa de fronteira
+                  Faixa de fronteira?
                   <div class="check-grid">
                     <label><input type="radio" name="faixaFronteira" value="Sim"> Sim</label>
                     <label><input type="radio" name="faixaFronteira" value="Não"> Não</label>

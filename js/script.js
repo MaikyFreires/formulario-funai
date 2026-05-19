@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-09";
+const APP_VERSION = "20260519-10";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -153,7 +153,7 @@ async function loadHtmlPartials() {
   const partials = await Promise.all(
     HTML_PARTIALS.map(async (path) => {
       const response = await fetch(withCacheBust(path));
-      if (!response.ok) throw new Error(`Nao foi possivel carregar ${path}`);
+      if (!response.ok) throw new Error(`Não foi possível carregar ${path}`);
       return response.text();
     })
   );
@@ -1470,9 +1470,9 @@ async function listarRascunhos(email = getAuthorizedEmail()) {
 
 async function listarEnviados() {
   await listarRelatorios({
-    title: "Relatorios enviados",
+    title: "Relatórios enviados",
     url: LIST_SENT_URL,
-    emptyMessage: "Nenhum relatorio enviado encontrado.",
+    emptyMessage: "Nenhum relatório enviado encontrado.",
     mode: "sent"
   });
 }
@@ -1500,13 +1500,13 @@ async function listarRelatorios({ title, url, emptyMessage, mode = "draft", emai
     });
     console.log(response.status, response.statusText);
 
-    if (!response.ok) throw new Error(`Falha ao listar relatorios: ${response.status}`);
+    if (!response.ok) throw new Error(`Falha ao listar relatórios: ${response.status}`);
 
     const data = await readJsonIfAvailable(response);
     const relatorios = normalizarListaRelatorios(data);
     renderReportList(relatorios, emptyMessage);
   } catch (error) {
-    showReportListMessage("Nao foi possivel carregar a lista.", "error");
+    showReportListMessage("Não foi possível carregar a lista.", "error");
   }
 }
 
@@ -1525,7 +1525,7 @@ async function abrirRelatorio(formularioId, mode = "draft") {
 async function carregarFormulario(formularioId, mode = "draft") {
   const resumo = getCachedReport(formularioId);
   if (!resumo) {
-    showReportListMessage("Relatorio nao encontrado nesta lista.", "error");
+    showReportListMessage("Relatório não encontrado nesta lista.", "error");
     return;
   }
 
@@ -1536,7 +1536,7 @@ async function carregarFormulario(formularioId, mode = "draft") {
   }
 
   try {
-    showReportListMessage(mode === "sent" ? "Carregando relatorio enviado..." : "Carregando rascunho...", "success");
+    showReportListMessage(mode === "sent" ? "Carregando relatório enviado..." : "Carregando rascunho...", "success");
     const response = await fetch(LOAD_DRAFT_URL, {
       method: "POST",
       headers: {
@@ -1551,12 +1551,12 @@ async function carregarFormulario(formularioId, mode = "draft") {
     });
     console.log(response.status, response.statusText);
 
-    if (!response.ok) throw new Error(`Falha ao carregar relatorio: ${response.status}`);
+    if (!response.ok) throw new Error(`Falha ao carregar relatório: ${response.status}`);
 
     const data = await readJsonIfAvailable(response);
     console.log("rascunho carregado", data);
     const relatorio = normalizarRascunhoCarregado(data, resumo);
-    console.log(mode === "sent" ? "relatorio enviado carregado" : "rascunho carregado", relatorio);
+    console.log(mode === "sent" ? "relatório enviado carregado" : "rascunho carregado", relatorio);
 
     currentFormularioId = getReportFormularioId(relatorio) || id;
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
@@ -1571,7 +1571,7 @@ async function carregarFormulario(formularioId, mode = "draft") {
       showStep(getFormularioStep(relatorio));
     }
   } catch (error) {
-    showReportListMessage("Nao foi possivel abrir o relatorio.", "error");
+    showReportListMessage("Não foi possível abrir o relatório.", "error");
   }
 }
 
@@ -1627,7 +1627,7 @@ function extrairFormularioJson(item) {
   try {
     return JSON.parse(raw);
   } catch (error) {
-    console.warn("FormularioJson invalido.", error);
+    console.warn("FormularioJson inválido.", error);
     return null;
   }
 }
@@ -1990,7 +1990,7 @@ function getAuthorizedEmail() {
 
 function getCurrentFormularioId() {
   if (!currentFormularioId) currentFormularioId = sessionStorage.getItem(ACTIVE_FORM_ID_KEY) || "";
-  if (!currentFormularioId) throw new Error("Formulario sem formularioId ativo.");
+  if (!currentFormularioId) throw new Error("Formulário sem formularioId ativo.");
   sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
   return currentFormularioId;
 }
@@ -2745,7 +2745,7 @@ function addCoordenadaRow(coordenada = {}, shouldFocus = true) {
       </select>
     </td>
     <td>
-      <select name="coordenadaSedeMunicipio" aria-label="Coordenada localizada na sede do municipio">
+      <select name="coordenadaSedeMunicipio" aria-label="Coordenada localizada na sede do município">
         <option value="">Escolha</option>
         <option>Sim</option>
         <option>Não</option>
