@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-26";
+const APP_VERSION = "20260518-28";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -820,10 +820,49 @@ async function handleSubmit(event) {
 function buildPayload(statusFormulario = "Enviado") {
   const now = new Date().toISOString();
   const formularioJson = montarFormularioJson(statusFormulario, now);
-  return {
+  const payload = {
     ...formularioJson,
     formularioJson: JSON.stringify(formularioJson)
   };
+  return garantirTiposPayload(payload);
+}
+
+function garantirTiposPayload(payload) {
+  const normalizado = {
+    ...payload,
+    formularioJson: normalizarTextoParaPowerAutomate(payload.formularioJson),
+    consultor: garantirObjeto(payload.consultor),
+    reivindicacao: garantirObjeto(payload.reivindicacao),
+    resumoProcesso: garantirObjeto(payload.resumoProcesso),
+    statusProcesso: garantirObjeto(payload.statusProcesso),
+    caracterizacaoArea: garantirObjeto(payload.caracterizacaoArea),
+    ocupacaoIndigena: garantirObjeto(payload.ocupacaoIndigena)
+  };
+
+  normalizado.reivindicacao.processosAnalisados = garantirArray(normalizado.reivindicacao.processosAnalisados);
+  normalizado.resumoProcesso.documentos = garantirArray(normalizado.resumoProcesso.documentos);
+  normalizado.caracterizacaoArea.coordenadas = garantirArray(normalizado.caracterizacaoArea.coordenadas);
+  normalizado.caracterizacaoArea.coordenadasDetalhadas = garantirArray(normalizado.caracterizacaoArea.coordenadasDetalhadas);
+  normalizado.caracterizacaoArea.mapasCartograficos = garantirArray(normalizado.caracterizacaoArea.mapasCartograficos);
+  normalizado.ocupacaoIndigena.detalhesVulnerabilidades = garantirArray(normalizado.ocupacaoIndigena.detalhesVulnerabilidades);
+  normalizado.ocupacaoIndigena.detalhesComunidadesTradicionais = garantirArray(normalizado.ocupacaoIndigena.detalhesComunidadesTradicionais);
+
+  ["detalhesDecisao", "motivacaoJudicializacao", "detalhesJudicializacao"].forEach((campo) => {
+    const valor = normalizado.statusProcesso[campo];
+    if (valor && typeof valor === "object") {
+      normalizado.statusProcesso[campo] = JSON.stringify(valor);
+    }
+  });
+
+  return normalizado;
+}
+
+function garantirObjeto(valor) {
+  return valor && typeof valor === "object" && !Array.isArray(valor) ? valor : {};
+}
+
+function garantirArray(valor) {
+  return Array.isArray(valor) ? valor : [];
 }
 
 function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().toISOString()) {
@@ -1004,6 +1043,33 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
     etniasEhArray: Array.isArray(payload.reivindicacao?.etnias),
     tipoDemandaEhArray: Array.isArray(payload.reivindicacao?.tipoDemanda),
     mapasEhArray: Array.isArray(payload.caracterizacaoArea?.mapasCartograficos)
+  });
+  console.log("DEBUG TIPOS COMPLETO", {
+    formularioJson: typeof payload.formularioJson,
+
+    consultor: typeof payload.consultor,
+    reivindicacao: typeof payload.reivindicacao,
+    resumoProcesso: typeof payload.resumoProcesso,
+    statusProcesso: typeof payload.statusProcesso,
+    caracterizacaoArea: typeof payload.caracterizacaoArea,
+    ocupacaoIndigena: typeof payload.ocupacaoIndigena,
+
+    processosAnalisadosEhArray: Array.isArray(payload.reivindicacao?.processosAnalisados),
+    documentosEhArray: Array.isArray(payload.resumoProcesso?.documentos),
+    coordenadasEhArray: Array.isArray(payload.caracterizacaoArea?.coordenadas),
+    coordenadasDetalhadasEhArray: Array.isArray(payload.caracterizacaoArea?.coordenadasDetalhadas),
+    mapasCartograficosEhArray: Array.isArray(payload.caracterizacaoArea?.mapasCartograficos),
+    detalhesVulnerabilidadesEhArray: Array.isArray(payload.ocupacaoIndigena?.detalhesVulnerabilidades),
+    detalhesComunidadesEhArray: Array.isArray(payload.ocupacaoIndigena?.detalhesComunidadesTradicionais),
+
+    detalhesDecisao: {
+      tipo: typeof payload.statusProcesso?.detalhesDecisao,
+      valor: payload.statusProcesso?.detalhesDecisao
+    },
+    motivacaoJudicializacao: {
+      tipo: typeof payload.statusProcesso?.motivacaoJudicializacao,
+      valor: payload.statusProcesso?.motivacaoJudicializacao
+    }
   });
 
   saveDraftBtn.disabled = true;
