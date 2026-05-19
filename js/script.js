@@ -9,16 +9,12 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-23";
+const APP_VERSION = "20260518-24";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
   "dataAcaoJudicial",
-  "dataDecisao",
-  "dataReferenciaOcupacao",
-  "dataReferenciaVulnerabilidade",
-  "dataReferenciaComunidadeTradicional",
-  "dataReferenciaConflitoInteretnico"
+  "dataDecisao"
 ]);
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
@@ -950,24 +946,24 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     ocupacaoIndigena: {
       indigenasArea: asText(getValue("indigenasArea")),
       tempoOcupacao: asText(getValue("tempoOcupacao")),
-      dataReferenciaOcupacao: converterDataParaISO(getValue("dataReferenciaOcupacao")),
+      dataReferenciaOcupacao: asText(getValue("dataReferenciaOcupacao")),
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
       outroCriterioVulnerabilidade: asText(getValue("outroCriterioVulnerabilidade")),
       detalhesVulnerabilidades: asList(getDetalhesVulnerabilidades()),
       fonteVulnerabilidade: asText(getValue("fonteVulnerabilidade")),
-      dataReferenciaVulnerabilidade: converterDataParaISO(getValue("dataReferenciaVulnerabilidade")),
+      dataReferenciaVulnerabilidade: asText(getValue("dataReferenciaVulnerabilidade")),
       comunidadesTradicionais: asText(getValue("comunidadesTradicionais")),
       tiposComunidadeTradicional: asList(getSelectedComunidadesTradicionais()),
       detalhesComunidadesTradicionais: asList(getDetalhesComunidadesTradicionais()),
       descricaoComunidadeTradicional: asText(getValue("descricaoComunidadeTradicional")),
-      dataReferenciaComunidadeTradicional: converterDataParaISO(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
+      dataReferenciaComunidadeTradicional: asText(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
       tiposConflito: asList(getCheckedValues("tiposConflito")),
       outroTipoConflito: asText(getValue("outroTipoConflito")),
       envolvidosConflito: asText(getValue("envolvidosConflito")),
       motivoConflitoInteretnico: asText(getValue("motivoConflitoInteretnico")),
       etniaConflitoInteretnico: asText(getValue("etniaConflitoInteretnico")),
-      dataReferenciaConflitoInteretnico: converterDataParaISO(getValue("dataReferenciaConflitoInteretnico")),
+      dataReferenciaConflitoInteretnico: asText(getValue("dataReferenciaConflitoInteretnico")),
       fonteConflito: asText(getValue("fonteConflito")),
       reintegracaoPosse: asText(getValue("reintegracaoPosse")),
       descricaoReintegracaoPosse: asText(getValue("descricaoReintegracaoPosse")),
@@ -1455,11 +1451,7 @@ function shouldDisplayDateAsBrazil(name) {
   return [
     "dataRoteiro",
     "dataAcaoJudicial",
-    "dataDecisao",
-    "dataReferenciaOcupacao",
-    "dataReferenciaVulnerabilidade",
-    "dataReferenciaComunidadeTradicional",
-    "dataReferenciaConflitoInteretnico"
+    "dataDecisao"
   ].includes(name);
 }
 
@@ -2115,7 +2107,7 @@ function renderComunidadeTradicionalDetalhes(existingDetails = []) {
       <input name="dataComunidadeTradicional" data-community-date="${tipo}" type="text" placeholder="Referência do dado">
     `;
     row.querySelector("[data-community-source]").value = asText(detail.fonte);
-    row.querySelector("[data-community-date]").value = converterDataParaBR(detail.dataReferencia);
+    row.querySelector("[data-community-date]").value = asText(detail.dataReferencia);
     comunidadeTradicionalDetalhes.append(row);
   });
 }
@@ -2125,7 +2117,7 @@ function getDetalhesComunidadesTradicionais() {
     .map((row) => {
       const tipo = row.dataset.communityDetail;
       const fonte = asText(row.querySelector("[data-community-source]")?.value);
-      const dataReferencia = converterDataParaISO(row.querySelector("[data-community-date]")?.value);
+      const dataReferencia = asText(row.querySelector("[data-community-date]")?.value);
       return { tipo, fonte, dataReferencia };
     })
     .filter((item) => item.tipo);
@@ -2526,7 +2518,7 @@ function getDetalhesVulnerabilidades() {
       const criterio = row.dataset.vulnerabilityDetail;
       const criterioDescricao = criterio === "Outros" ? asText(getValue("outroCriterioVulnerabilidade")) : "";
       const fonte = asText(row.querySelector("[data-vulnerability-source]")?.value);
-      const dataReferencia = converterDataParaISO(row.querySelector("[data-vulnerability-date]")?.value);
+      const dataReferencia = asText(row.querySelector("[data-vulnerability-date]")?.value);
       return { criterio, criterioDescricao, fonte, dataReferencia };
     })
     .filter((item) => item.criterioDescricao || item.fonte || item.dataReferencia);
@@ -2540,7 +2532,7 @@ function restoreDetalhesVulnerabilidades(detalhes = []) {
     const source = row.querySelector("[data-vulnerability-source]");
     const date = row.querySelector("[data-vulnerability-date]");
     if (source) source.value = asText(item.fonte);
-    if (date) date.value = converterDataParaBR(item.dataReferencia);
+    if (date) date.value = asText(item.dataReferencia);
   });
 }
 
