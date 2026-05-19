@@ -9,12 +9,13 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260518-28";
+const APP_VERSION = "20260518-29";
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
   "dataAcaoJudicial",
-  "dataDecisao"
+  "dataDecisao",
+  "dataReferenciaOcupacao"
 ]);
 const COMUNIDADES_TRADICIONAIS = [
   "Indígenas",
@@ -985,7 +986,7 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
     ocupacaoIndigena: {
       indigenasArea: asText(getValue("indigenasArea")),
       tempoOcupacao: asText(getValue("tempoOcupacao")),
-      dataReferenciaOcupacao: asText(getValue("dataReferenciaOcupacao")),
+      dataReferenciaOcupacao: converterDataParaISO(getValue("dataReferenciaOcupacao")),
       vulnerabilidades: asList(getCheckedValues("vulnerabilidades")),
       outroCriterioVulnerabilidade: asText(getValue("outroCriterioVulnerabilidade")),
       detalhesVulnerabilidades: asList(getDetalhesVulnerabilidades()),
@@ -1525,7 +1526,8 @@ function shouldDisplayDateAsBrazil(name) {
   return [
     "dataRoteiro",
     "dataAcaoJudicial",
-    "dataDecisao"
+    "dataDecisao",
+    "dataReferenciaOcupacao"
   ].includes(name);
 }
 
