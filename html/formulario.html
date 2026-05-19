@@ -4,7 +4,7 @@
           <div class="hero-divider" aria-hidden="true"></div>
           <div class="hero-copy">
             <h1>Formulário - Resumo dos processos de reivindicação</h1>
-            <p>Os campos abaixo são para serem preenchidos com dados extraídos dos processos de reivindicação associados a cada ID de reivindicação.</p>
+            <p>Os campos abaixo devem ser preenchidos com dados extraídos dos processos de reivindicação associados a cada ID de reivindicação.</p>
           </div>
         </header>
 
@@ -94,7 +94,7 @@
                   <div class="multi-autocomplete">
                     <label for="etniaInput">Etnias:</label>
                     <div class="autocomplete-row">
-                      <input id="etniaInput" type="text" list="etniaOptions" placeholder="Localizar itens">
+                      <input id="etniaInput" type="text" list="etniaOptions" placeholder="Localizar etnias">
                       <button type="button" class="icon-button" id="addEtniaBtn" aria-label="Adicionar etnia">+</button>
                     </div>
                     <datalist id="etniaOptions"></datalist>
@@ -131,11 +131,11 @@
                     <div class="process-item">
                       <label class="process-field">
                         Número SEI do processo analisado
-                        <input name="numeroSeiProcessoAnalisado" type="text" placeholder="Número SEI dos processos analisados">
+                        <input name="numeroSeiProcessoAnalisado" type="text" placeholder="Número SEI do processo analisado">
                       </label>
                       <label class="process-field">
                         Descrição do processo analisado
-                        <textarea name="descricaoProcessoAnalisado" rows="1" placeholder="Descreva o tema principal dos processos analisados"></textarea>
+                        <textarea name="descricaoProcessoAnalisado" rows="1" placeholder="Descreva o tema principal do processo analisado"></textarea>
                       </label>
                       <div class="process-item-actions">
                         <button type="button" class="icon-button add-processo-analisado-btn" aria-label="Adicionar processo analisado">+</button>
@@ -145,7 +145,7 @@
                   </div>
 
                   <fieldset class="roteiro-group">
-                    Tem roteiro de qualificação ou material semelhante? *
+                    Há roteiro de qualificação ou material semelhante? *
                     <div class="check-grid">
                       <label><input type="radio" name="temRoteiro" value="Sim" required> Sim</label>
                       <label><input type="radio" name="temRoteiro" value="Não"> Não</label>
@@ -290,7 +290,7 @@
 
             <div class="field-grid">
               <label class="wide">
-                Descrição da reivindicação. Citar principais documentos e fazer um breve resumo deles - com foco sobre histórico da ocupação e a situação fundiária.*
+                Descrição da reivindicação. Citar os principais documentos e fazer um breve resumo deles, com foco no histórico da ocupação e na situação fundiária.*
                 <textarea name="descricaoReivindicacao" rows="10" placeholder="Aqui o foco é descritivo, sem limites de caracteres." required></textarea>
               </label>
 
@@ -309,7 +309,7 @@
                           <span class="table-info-label">
                             Página
                             <button type="button" class="info-icon" aria-expanded="false" aria-controls="paginasDocumentoInfo">i</button>
-                            <span class="info-text" id="paginasDocumentoInfo">para o caso de dossiê/volume digitalizado</span>
+                            <span class="info-text" id="paginasDocumentoInfo">Para o caso de dossiê/volume digitalizado</span>
                           </span>
                         </th>
                         <th>Assunto</th>
@@ -406,7 +406,7 @@
                     <p><strong>Formato GMS (Graus, Minutos e Segundos):</strong></p>
                     <p>Latitude: 15° 47' 39" S</p>
                     <p>Longitude: 47° 52' 56" O</p>
-                    <p><strong>Formato em coordenadas de graus decimais:</strong></p>
+                    <p><strong>Formato em graus decimais:</strong></p>
                     <p>Latitude: -15.7942</p>
                     <p>Longitude: -47.8822</p>
                   </div>
@@ -524,9 +524,13 @@
                   <div class="check-grid">
                     <label><input type="radio" name="contextoUrbano" value="Sim"> Sim</label>
                     <label><input type="radio" name="contextoUrbano" value="Não"> Não</label>
-                    <label><input type="radio" name="contextoUrbano" value="Sem informação">Sem informação</label>
+                    <label><input type="radio" name="contextoUrbano" value="Sem informação"> Sem informação</label>
 
                   </div>
+                  <label class="conditional" id="detalhesContextoUrbanoWrap">
+                    <span class="sr-only">Detalhes do contexto urbano</span>
+                    <input name="detalhesContextoUrbano" type="text" placeholder="Descreva o contexto urbano">
+                  </label>
                 </fieldset>
 
                 <fieldset class="area-card">
@@ -534,7 +538,12 @@
                   <div class="check-grid">
                     <label><input type="radio" name="faixaFronteira" value="Sim"> Sim</label>
                     <label><input type="radio" name="faixaFronteira" value="Não"> Não</label>
+                    <label><input type="radio" name="faixaFronteira" value="Sem informação"> Sem informação</label>
                   </div>
+                  <label class="conditional" id="detalhesFaixaFronteiraWrap">
+                    <span class="sr-only">Detalhes da faixa de fronteira</span>
+                    <input name="detalhesFaixaFronteira" type="text" placeholder="Descreva a faixa de fronteira">
+                  </label>
                 </fieldset>
 
                 <fieldset class="area-card area-question-group">
@@ -683,9 +692,18 @@
                   </label>
                   <details class="field-help">
                     <summary>Glossário dos critérios de vulnerabilidade</summary>
-                    <p>Garimpo: presença, pressão ou impacto associado a garimpo. Empreendimento de grande porte: obra ou atividade econômica relevante no entorno. Conflito deflagrado: conflito em curso ou explícito. Conflito latente: tensão, ameaça ou disputa indicada no processo. Danos ambientais: degradação ou risco ambiental registrado. Inacessibilidade a políticas públicas: dificuldade de acesso a serviços ou políticas públicas. Risco habitacional: vulnerabilidade ligada a moradia, deslocamento, permanência ou ameaça à ocupação. Outros: descreva quando o processo indicar outro critério.</p>
+                    <dl class="glossary-list">
+                      <div><dt>Garimpo</dt><dd>Presença, pressão ou impacto associado a garimpo.</dd></div>
+                      <div><dt>Empreendimento de grande porte</dt><dd>Obra ou atividade econômica relevante no entorno.</dd></div>
+                      <div><dt>Conflito deflagrado</dt><dd>Conflito em curso ou explícito.</dd></div>
+                      <div><dt>Conflito latente</dt><dd>Tensão, ameaça ou disputa indicada no processo.</dd></div>
+                      <div><dt>Danos ambientais</dt><dd>Degradação ou risco ambiental registrado.</dd></div>
+                      <div><dt>Inacessibilidade a políticas públicas</dt><dd>Dificuldade de acesso a serviços ou políticas públicas.</dd></div>
+                      <div><dt>Risco habitacional</dt><dd>Vulnerabilidade ligada a moradia, deslocamento, permanência ou ameaça à ocupação.</dd></div>
+                      <div><dt>Outros</dt><dd>Descreva quando o processo indicar outro critério.</dd></div>
+                    </dl>
                   </details>
-                  <div class="vulnerability-detail-table" aria-label="Fonte e data por critério de vulnerabilidade">
+                  <div class="vulnerability-detail-table" aria-label="Fonte e referência por critério de vulnerabilidade">
                     <div class="vulnerability-detail-row header">
                       <strong>Critério</strong>
                       <strong>Fonte do dado</strong>
@@ -762,7 +780,7 @@
                       <input name="descricaoComunidadeTradicional" type="text" placeholder="Descreva">
                     </label>
 
-                    <div class="community-detail-table" id="comunidadeTradicionalDetalhes" aria-label="Fonte e data por comunidade tradicional"></div>
+                    <div class="community-detail-table" id="comunidadeTradicionalDetalhes" aria-label="Fonte e referência por comunidade tradicional"></div>
                   </div>
                 </div>
               </section>
@@ -770,7 +788,7 @@
               <section class="occupation-item">
                 <div class="occupation-content">
                   <fieldset>
-                    Há conflitos?
+                    Há conflito na área reivindicada?
                     <div class="check-grid">
                       <label><input type="radio" name="conflitoInteretnico" value="Sim"> Sim</label>
                       <label><input type="radio" name="conflitoInteretnico" value="Não"> Não</label>
@@ -787,30 +805,7 @@
                         <label><input type="checkbox" name="tiposConflito" value="Outro"> Outro</label>
                       </div>
                     </fieldset>
-                    <label class="conditional" id="outroTipoConflitoWrap">
-                      Qual outro tipo?
-                      <input name="outroTipoConflito" type="text" placeholder="Descreva o tipo de conflito">
-                    </label>
-                    <label>
-                      Envolvidos
-                      <input name="envolvidosConflito" type="text" placeholder="Informe os envolvidos">
-                    </label>
-                    <label>
-                      Descreva
-                      <input name="motivoConflitoInteretnico" type="text" placeholder="Descreva">
-                    </label>
-                    <label>
-                      Etnia relacionada
-                      <input name="etniaConflitoInteretnico" type="text" list="etniaOptions" placeholder="Localizar etnia">
-                    </label>
-                    <label>
-                      De quando é o dado?
-                      <input name="dataReferenciaConflitoInteretnico" type="text" placeholder="Informe a referência do dado">
-                    </label>
-                    <label>
-                      Fonte do dado
-                      <input name="fonteConflito" type="text" placeholder="Documento de onde veio a informação">
-                    </label>
+                    <div class="conflict-detail-list wide" id="detalhesConflitos" aria-live="polite"></div>
                   </div>
                 </div>
               </section>

@@ -28,7 +28,7 @@
 
 .process-item {
   display: grid;
-  grid-template-columns: minmax(190px, 0.85fr) minmax(280px, 1.15fr) 82px;
+  grid-template-columns: minmax(240px, 1fr) minmax(240px, 1fr) 82px;
   gap: 10px;
   align-items: end;
 }
@@ -302,7 +302,7 @@ section.coordinate-table-section.is-visible {
 }
 
 .process-item textarea {
-  min-height: 60px;
+  min-height: 47px;
   padding-top: 12px;
   padding-bottom: 12px;
 }

@@ -171,6 +171,42 @@
   display: grid;
 }
 
+.conflict-detail-list {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 16px;
+}
+
+.conflict-detail-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(139, 61, 24, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.68);
+}
+
+.conflict-detail-card h4 {
+  margin: 0;
+  color: var(--green);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.conflict-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 16px 24px;
+}
+
+.conflict-detail-grid .conflict-other-type {
+  display: none;
+}
+
+.conflict-detail-grid .conflict-other-type.is-visible {
+  display: flex;
+}
+
 .occupation-community-group {
   display: none;
   gap: 18px;
@@ -256,6 +292,29 @@
 
 .field-help p {
   margin: 8px 0 0;
+}
+
+.glossary-list {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+
+.glossary-list div {
+  display: grid;
+  gap: 2px;
+}
+
+.glossary-list dt {
+  color: var(--green);
+  font-weight: 850;
+}
+
+.glossary-list dd {
+  margin: 0;
+  color: var(--muted);
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .reference-field {

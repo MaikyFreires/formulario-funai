@@ -586,11 +586,13 @@ function updateConditionals() {
   setConditional("mapasCartograficosWrap", getValue("temMapaCartografico") === "Sim");
   setConditional("sobreposicoesWrap", getValue("sobreposicoes") === "Sim");
   setConditional("aldeiasComunidadesWrap", getValue("citaAldeiasComunidades") === "Sim");
+  setConditional("detalhesContextoUrbanoWrap", getValue("contextoUrbano") === "Sim");
+  setConditional("detalhesFaixaFronteiraWrap", getValue("faixaFronteira") === "Sim");
   setConditional("indigenasAreaWrap", getValue("indigenasArea") === "Sim");
   setConditional("comunidadesTradicionaisWrap", getValue("comunidadesTradicionais") === "Sim");
   setConditional("outrasComunidadesTradicionaisWrap", selectedComunidadesTradicionais.includes("Outros"));
   setConditional("conflitoInteretnicoWrap", getValue("conflitoInteretnico") === "Sim");
-  setConditional("outroTipoConflitoWrap", getValue("conflitoInteretnico") === "Sim" && getCheckedValues("tiposConflito").includes("Outro"));
+  renderDetalhesConflitos();
   setConditional("reintegracaoPosseWrap", getValue("reintegracaoPosse") === "Sim");
   setConditional("outrasAcoesJudiciaisComunidadeWrap", getValue("outrasAcoesJudiciaisComunidade") === "Sim");
   setConditional("detalhesRetomadaWrap", getValue("temRetomada") === "Sim");
@@ -638,7 +640,7 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "reivindicacaoId", label: "ID", isValid: () => hasValue("reivindicacaoId") },
     { fieldId: "nomeReivindicacao", label: "Nome da reivindicação", isValid: () => hasValue("nomeReivindicacao") },
     { fieldId: "outrosNomesTexto", label: "Outros nomes da reivindicação", isValid: () => getValue("outrosNomes") !== "Sim" || hasValue("outrosNomesTexto") },
-    { fieldId: "temRoteiro", label: "Tem roteiro", isValid: () => hasChecked("temRoteiro") },
+    { fieldId: "temRoteiro", label: "Roteiro de qualificação", isValid: () => hasChecked("temRoteiro") },
     { fieldId: "dataRoteiro", label: "Data do roteiro", isValid: () => getValue("temRoteiro") !== "Sim" || hasValue("dataRoteiro") },
     { fieldId: "etnias", label: "Etnia", isValid: () => selectedEtnias.length > 0 },
     { fieldId: "outraEtnia", label: "Outra etnia", isValid: () => !selectedEtnias.includes("Outros") || selectedOutrasEtnias.length > 0 },
@@ -649,7 +651,7 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "estados", label: "Estado", isValid: () => selectedEstados.length > 0 },
     { fieldId: "municipios", label: "Município", isValid: () => selectedMunicipios.length > 0 },
     { fieldId: "coordenacaoRegional", label: "Coordenação Regional", isValid: () => hasValue("coordenacaoRegional") },
-    { fieldId: "temRetomada", label: "Tem retomada", isValid: () => hasChecked("temRetomada") },
+    { fieldId: "temRetomada", label: "Ação de retomada do território", isValid: () => hasChecked("temRetomada") },
     { fieldId: "estaJudicializado", label: "Há ações judiciais contra a FUNAI", isValid: () => hasChecked("estaJudicializado") },
     { fieldId: "tiposAcaoJudicial", label: "Motivação", isValid: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0 },
     { fieldId: "classificacaoJudicializacaoOutros", label: "Outra motivação", isValid: () => !getCheckedValues("tiposAcaoJudicial").includes("Outros") || hasValue("classificacaoJudicializacaoOutros") },
@@ -659,7 +661,7 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") },
     { fieldId: "outroCriterioVulnerabilidade", label: "Outro critério de vulnerabilidade", isValid: () => !getCheckedValues("vulnerabilidades").includes("Outros") || hasValue("outroCriterioVulnerabilidade") },
     { fieldId: "descricaoComunidadeTradicional", label: "Outra comunidade tradicional", isValid: () => !selectedComunidadesTradicionais.includes("Outros") || hasValue("descricaoComunidadeTradicional") },
-    { fieldId: "outroTipoConflito", label: "Outro tipo de conflito", isValid: () => !getCheckedValues("tiposConflito").includes("Outro") || hasValue("outroTipoConflito") },
+    { fieldId: "outroTipoConflito", label: "Outro tipo de conflito", isValid: () => !getCheckedValues("tiposConflito").includes("Outro") || getDetalhesConflitos().some((item) => item.tipo === "Outro" && item.outroTipoConflito) },
     { fieldId: "coordenadas", label: "Coordenadas geográficas", isValid: () => areCoordenadasValid() }
   ];
 
@@ -691,7 +693,7 @@ function validateRequiredFields(isDraftSave = false) {
         const error = showFieldError(`${prefix}-decisao`, "Campo obrigatório");
         errors.push({
           fieldId: `${prefix}-decisao`,
-          label: `${acao.tipo}: tem decisão judicial`,
+          label: `${acao.tipo}: decisão judicial`,
           stepIndex: error.stepIndex,
           target: error.target
         });
@@ -796,6 +798,10 @@ function getFieldErrorTarget(fieldId) {
     tiposAcaoJudicial: () => {
       const group = form.querySelector("[data-required-group='tiposAcaoJudicial']");
       return { container: group, control: group?.querySelector(".check-grid") || group };
+    },
+    outroTipoConflito: () => {
+      const control = form.querySelector("[data-conflict-detail='Outro'] [data-conflict-other-type]");
+      return { container: control?.closest("label, .conflict-detail-card"), control };
     }
   };
 
@@ -945,7 +951,7 @@ function renderAcoesJudiciaisDetalhadas(existingDetails) {
         </label>
       </div>
       <fieldset class="judicial-decision-fieldset">
-        Tem decisão judicial?
+        Há decisão judicial?
         <div class="check-grid">
           <label><input type="radio" name="temDecisaoJudicial_${index}" value="Sim"> Sim</label>
           <label><input type="radio" name="temDecisaoJudicial_${index}" value="Não"> Não</label>
@@ -1145,6 +1151,7 @@ function garantirTiposPayload(payload) {
   normalizado.caracterizacaoArea.mapasCartograficos = garantirArray(normalizado.caracterizacaoArea.mapasCartograficos);
   normalizado.ocupacaoIndigena.detalhesVulnerabilidades = garantirArray(normalizado.ocupacaoIndigena.detalhesVulnerabilidades);
   normalizado.ocupacaoIndigena.detalhesComunidadesTradicionais = garantirArray(normalizado.ocupacaoIndigena.detalhesComunidadesTradicionais);
+  normalizado.ocupacaoIndigena.detalhesConflitos = garantirArray(normalizado.ocupacaoIndigena.detalhesConflitos);
 
   ["detalhesDecisao", "motivacaoJudicializacao", "detalhesJudicializacao"].forEach((campo) => {
     const valor = normalizado.statusProcesso[campo];
@@ -1179,6 +1186,8 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
   const tiposAcaoJudicial = asList(getCheckedValues("tiposAcaoJudicial"));
   const acoesJudiciaisDetalhadas = asList(getAcoesJudiciaisDetalhadas());
   const primeiraAcaoJudicial = acoesJudiciaisDetalhadas[0] || {};
+  const detalhesConflitos = asList(getDetalhesConflitos());
+  const primeiroConflito = detalhesConflitos[0] || {};
 
   return {
     formularioId: asText(getCurrentFormularioId()),
@@ -1269,7 +1278,9 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       aldeiasComunidades: asText(getAldeiasComunidades().join(", ")),
       aldeiasComunidadesLista: asList(getAldeiasComunidades()),
       contextoUrbano: asText(getValue("contextoUrbano")),
+      detalhesContextoUrbano: asText(getValue("detalhesContextoUrbano")),
       faixaFronteira: asText(getValue("faixaFronteira")),
+      detalhesFaixaFronteira: asText(getValue("detalhesFaixaFronteira")),
       temRetomada: asText(getValue("temRetomada")),
       detalhesRetomada: asText(getValue("detalhesRetomada")),
       sobreposicoes: asText(getValue("sobreposicoes")),
@@ -1302,12 +1313,13 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
       dataReferenciaComunidadeTradicional: asText(getPrimeiroDetalheComunidadeTradicional().dataReferencia),
       conflitoInteretnico: asText(getValue("conflitoInteretnico")),
       tiposConflito: asList(getCheckedValues("tiposConflito")),
-      outroTipoConflito: asText(getValue("outroTipoConflito")),
-      envolvidosConflito: asText(getValue("envolvidosConflito")),
-      motivoConflitoInteretnico: asText(getValue("motivoConflitoInteretnico")),
-      etniaConflitoInteretnico: asText(getValue("etniaConflitoInteretnico")),
-      dataReferenciaConflitoInteretnico: asText(getValue("dataReferenciaConflitoInteretnico")),
-      fonteConflito: asText(getValue("fonteConflito")),
+      detalhesConflitos,
+      outroTipoConflito: asText(primeiroConflito.outroTipoConflito),
+      envolvidosConflito: asText(primeiroConflito.envolvidos),
+      motivoConflitoInteretnico: asText(primeiroConflito.descricao),
+      etniaConflitoInteretnico: asText(primeiroConflito.etniaRelacionada),
+      dataReferenciaConflitoInteretnico: asText(primeiroConflito.dataReferencia),
+      fonteConflito: asText(primeiroConflito.fonte),
       reintegracaoPosse: asText(getValue("reintegracaoPosse")),
       descricaoReintegracaoPosse: asText(getValue("descricaoReintegracaoPosse")),
       outrasAcoesJudiciaisComunidade: asText(getValue("outrasAcoesJudiciaisComunidade")),
@@ -1384,7 +1396,7 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
     console.log("payload enviado", payload);
 
     console.log(
-      "FormularioJson parseado",
+      "FormularioJson analisado",
       JSON.parse(payload.formularioJson)
     );
 
@@ -1792,6 +1804,14 @@ function restoreValues(values) {
     populateComunidadeTradicionalOptions();
   }
 
+  const detalhesConflitos = normalizeDetalhesConflitos(values.detalhesConflitos, values);
+  const tiposConflito = asListOrSplit(values.tiposConflito).length
+    ? asListOrSplit(values.tiposConflito)
+    : detalhesConflitos.map((item) => item.tipo).filter(Boolean);
+  form.querySelectorAll('input[name="tiposConflito"]').forEach((field) => {
+    field.checked = tiposConflito.includes(field.value);
+  });
+
   carregarProcessosAnalisados(processosAnalisados);
 
   if (aldeiasComunidadesLista.length) {
@@ -1810,7 +1830,7 @@ function restoreValues(values) {
   renderComunidadeTradicionalDetalhes(values.detalhesComunidadesTradicionais);
 
   Object.entries(values).forEach(([name, value]) => {
-    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "tiposAcaoJudicial", "acoesJudiciaisDetalhadas", "acoesJudiciais", "classificacaoJudicializacao", "classificacaoJudicializacaoOutros", "descricaoAcao", "numeroProcessoSeiJudicial", "numeroAcaoJudicial", "dataAcaoJudicial", "detalhesJudicializacao", "temDecisao", "numeroDecisao", "dataDecisao", "sentenca", "detalhesDecisao", "numeroProcessoJudicial", "processosAnalisados", "numerosProcesso", "descricaoProcessosAnalisados", "numeroSeiProcessoAnalisado", "descricaoProcessoAnalisado", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "mapasCartograficos", "detalhesVulnerabilidades", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada", "numeroSeiMapa", "paginaMapa"].includes(name)) return;
+    if (["etnias", "outrasEtnias", "outraEtnia", "estados", "municipios", "tiposComunidadeTradicional", "detalhesComunidadesTradicionais", "tiposAcaoJudicial", "acoesJudiciaisDetalhadas", "acoesJudiciais", "classificacaoJudicializacao", "classificacaoJudicializacaoOutros", "descricaoAcao", "numeroProcessoSeiJudicial", "numeroAcaoJudicial", "dataAcaoJudicial", "detalhesJudicializacao", "temDecisao", "numeroDecisao", "dataDecisao", "sentenca", "detalhesDecisao", "numeroProcessoJudicial", "processosAnalisados", "numerosProcesso", "descricaoProcessosAnalisados", "numeroSeiProcessoAnalisado", "descricaoProcessoAnalisado", "aldeiasComunidades", "aldeiasComunidadesLista", "documentos", "coordenadas", "mapasCartograficos", "detalhesVulnerabilidades", "detalhesConflitos", "tiposConflito", "outroTipoConflito", "envolvidosConflito", "motivoConflitoInteretnico", "etniaConflitoInteretnico", "dataReferenciaConflitoInteretnico", "fonteConflito", "dataDocumento", "tipoDocumento", "paginasDocumento", "numeroSei", "numeroProcessoDocumento", "eventosAssuntos", "tipoCoordenada", "outroFormatoCoordenada", "latitude", "latitudeDirecao", "longitude", "longitudeDirecao", "coordenadaSedeMunicipio", "comentarioCoordenada", "numeroSeiMapa", "paginaMapa"].includes(name)) return;
     if (value === undefined) return;
 
     const element = form.elements[name];
@@ -1833,6 +1853,8 @@ function restoreValues(values) {
       }
     });
   });
+
+  renderDetalhesConflitos(detalhesConflitos);
 }
 
 function shouldDisplayDateAsBrazil(name) {
@@ -1918,7 +1940,9 @@ function flattenDraft(draft) {
     aldeiasComunidades: draft.caracterizacaoArea?.aldeiasComunidades,
     aldeiasComunidadesLista: asListOrSplit(draft.caracterizacaoArea?.aldeiasComunidadesLista || draft.caracterizacaoArea?.aldeiasComunidades),
     contextoUrbano: draft.caracterizacaoArea?.contextoUrbano,
+    detalhesContextoUrbano: draft.caracterizacaoArea?.detalhesContextoUrbano,
     faixaFronteira: draft.caracterizacaoArea?.faixaFronteira,
+    detalhesFaixaFronteira: draft.caracterizacaoArea?.detalhesFaixaFronteira,
     sobreposicoes: draft.caracterizacaoArea?.sobreposicoes,
     tiposSobreposicao: draft.caracterizacaoArea?.tiposSobreposicao,
     detalheUcFederal: draft.caracterizacaoArea?.detalheUcFederal,
@@ -1946,7 +1970,8 @@ function flattenDraft(draft) {
     descricaoComunidadeTradicional: draft.ocupacaoIndigena?.descricaoComunidadeTradicional,
     dataReferenciaComunidadeTradicional: draft.ocupacaoIndigena?.dataReferenciaComunidadeTradicional,
     conflitoInteretnico: draft.ocupacaoIndigena?.conflitoInteretnico,
-    tiposConflito: draft.ocupacaoIndigena?.tiposConflito,
+    tiposConflito: asListOrSplit(draft.ocupacaoIndigena?.tiposConflito),
+    detalhesConflitos: normalizeDetalhesConflitos(draft.ocupacaoIndigena?.detalhesConflitos, draft.ocupacaoIndigena),
     outroTipoConflito: draft.ocupacaoIndigena?.outroTipoConflito,
     envolvidosConflito: draft.ocupacaoIndigena?.envolvidosConflito,
     motivoConflitoInteretnico: draft.ocupacaoIndigena?.motivoConflitoInteretnico,
@@ -2030,8 +2055,14 @@ function normalizarPayloadParaPowerAutomate(payload) {
     ["statusProcesso", "detalhesJudicializacao"],
     ["statusProcesso", "detalhesDecisao"],
     ["caracterizacaoArea", "localizacaoDemanda"],
+    ["caracterizacaoArea", "detalhesContextoUrbano"],
+    ["caracterizacaoArea", "detalhesFaixaFronteira"],
     ["caracterizacaoArea", "detalhesRetomada"],
     ["ocupacaoIndigena", "motivoConflitoInteretnico"],
+    ["ocupacaoIndigena", "envolvidosConflito"],
+    ["ocupacaoIndigena", "etniaConflitoInteretnico"],
+    ["ocupacaoIndigena", "dataReferenciaConflitoInteretnico"],
+    ["ocupacaoIndigena", "fonteConflito"],
     ["ocupacaoIndigena", "descricaoReintegracaoPosse"],
     ["ocupacaoIndigena", "descricaoOutrasAcoesJudiciaisComunidade"],
     ["ocupacaoIndigena", "informacoesAdicionais"]
@@ -2572,6 +2603,119 @@ function getPrimeiroDetalheComunidadeTradicional() {
   return getDetalhesComunidadesTradicionais()[0] || {};
 }
 
+function renderDetalhesConflitos(existingDetails = []) {
+  const container = document.getElementById("detalhesConflitos");
+  if (!container) return;
+
+  const previous = new Map(getDetalhesConflitos().map((item) => [item.tipo, item]));
+  normalizeDetalhesConflitos(existingDetails).forEach((item) => previous.set(item.tipo, item));
+  const selected = getValue("conflitoInteretnico") === "Sim" ? getCheckedValues("tiposConflito") : [];
+
+  container.innerHTML = "";
+  if (!selected.length) return;
+
+  selected.forEach((tipo) => {
+    const detail = previous.get(tipo) || {};
+    const card = document.createElement("section");
+    card.className = "conflict-detail-card";
+    card.dataset.conflictDetail = tipo;
+    card.innerHTML = `
+      <h4>${tipo}</h4>
+      <div class="conflict-detail-grid">
+        <label class="conditional conflict-other-type">
+          Qual outro tipo?
+          <input data-conflict-other-type type="text" placeholder="Descreva o tipo de conflito">
+        </label>
+        <label>
+          Descreva
+          <input data-conflict-description type="text" placeholder="Descreva">
+        </label>
+        <label>
+          De quando é o dado?
+          <input data-conflict-reference type="text" placeholder="Informe a referência do dado">
+        </label>
+        <label>
+          Envolvidos
+          <input data-conflict-involved type="text" placeholder="Informe os envolvidos">
+        </label>
+        <label>
+          Etnia relacionada
+          <input data-conflict-ethnicity type="text" list="etniaOptions" placeholder="Localizar etnia">
+        </label>
+        <label>
+          Fonte do dado
+          <input data-conflict-source type="text" placeholder="Documento de onde veio a informação">
+        </label>
+      </div>
+    `;
+
+    card.querySelector(".conflict-other-type").classList.toggle("is-visible", tipo === "Outro");
+    card.querySelector("[data-conflict-other-type]").value = asText(detail.outroTipoConflito);
+    card.querySelector("[data-conflict-description]").value = asText(detail.descricao);
+    card.querySelector("[data-conflict-reference]").value = asText(detail.dataReferencia);
+    card.querySelector("[data-conflict-involved]").value = asText(detail.envolvidos);
+    card.querySelector("[data-conflict-ethnicity]").value = asText(detail.etniaRelacionada);
+    card.querySelector("[data-conflict-source]").value = asText(detail.fonte);
+    container.append(card);
+  });
+}
+
+function getDetalhesConflitos() {
+  return Array.from(document.querySelectorAll("[data-conflict-detail]"))
+    .map((card) => ({
+      tipo: asText(card.dataset.conflictDetail),
+      outroTipoConflito: asText(card.querySelector("[data-conflict-other-type]")?.value),
+      descricao: asText(card.querySelector("[data-conflict-description]")?.value),
+      dataReferencia: asText(card.querySelector("[data-conflict-reference]")?.value),
+      envolvidos: asText(card.querySelector("[data-conflict-involved]")?.value),
+      etniaRelacionada: asText(card.querySelector("[data-conflict-ethnicity]")?.value),
+      fonte: asText(card.querySelector("[data-conflict-source]")?.value)
+    }))
+    .filter((item) => item.tipo);
+}
+
+function normalizeDetalhesConflitos(value, legacy = {}) {
+  let detalhes = [];
+
+  if (Array.isArray(value)) {
+    detalhes = value;
+  } else if (typeof value === "string" && value.trim()) {
+    try {
+      const parsed = JSON.parse(value);
+      detalhes = Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      detalhes = [];
+    }
+  }
+
+  detalhes = detalhes
+    .map((item) => ({
+      tipo: asText(item?.tipo),
+      outroTipoConflito: asText(item?.outroTipoConflito || item?.outroTipo || item?.tipoOutro),
+      descricao: asText(item?.descricao || item?.motivoConflitoInteretnico),
+      dataReferencia: asText(item?.dataReferencia || item?.dataReferenciaConflitoInteretnico),
+      envolvidos: asText(item?.envolvidos || item?.envolvidosConflito),
+      etniaRelacionada: asText(item?.etniaRelacionada || item?.etniaConflitoInteretnico),
+      fonte: asText(item?.fonte || item?.fonteConflito)
+    }))
+    .filter((item) => item.tipo);
+
+  if (detalhes.length) return detalhes;
+
+  const tipos = asListOrSplit(legacy.tiposConflito);
+  if (!tipos.length && !legacy.motivoConflitoInteretnico && !legacy.envolvidosConflito && !legacy.fonteConflito) return [];
+
+  return (tipos.length ? tipos : ["Interétnico"]).map((tipo, index) => ({
+    tipo,
+    outroTipoConflito: tipo === "Outro" ? asText(legacy.outroTipoConflito) : "",
+    descricao: index === 0 ? asText(legacy.motivoConflitoInteretnico) : "",
+    dataReferencia: index === 0 ? asText(legacy.dataReferenciaConflitoInteretnico) : "",
+    envolvidos: index === 0 ? asText(legacy.envolvidosConflito) : "",
+    etniaRelacionada: index === 0 ? asText(legacy.etniaConflitoInteretnico) : "",
+    fonte: index === 0 ? asText(legacy.fonteConflito) : ""
+  }));
+}
+
 function pruneSelectedMunicipios() {
   const availableMunicipios = getAvailableMunicipios();
   selectedMunicipios = selectedMunicipios.filter((municipio) => availableMunicipios.includes(municipio));
@@ -3071,18 +3215,18 @@ function adicionarProcessoAnalisado(processo = {}, shouldFocus = true) {
   item.className = "process-item";
 
   numeroLabel.className = "process-field";
-  numeroLabel.append(document.createTextNode("N\u00famero SEI dos processos analisados"));
+  numeroLabel.append(document.createTextNode("N\u00famero SEI do processo analisado"));
   numeroInput.name = "numeroSeiProcessoAnalisado";
   numeroInput.type = "text";
-  numeroInput.placeholder = "N\u00famero SEI dos processos analisados";
+  numeroInput.placeholder = "N\u00famero SEI do processo analisado";
   numeroInput.value = asText(processo.numeroSei || processo.numeroProcesso || processo.numeroProcessoDocumento);
   numeroLabel.append(numeroInput);
 
   descricaoLabel.className = "process-field";
-  descricaoLabel.append(document.createTextNode("Descri\u00e7\u00e3o dos processos analisados"));
+  descricaoLabel.append(document.createTextNode("Descri\u00e7\u00e3o do processo analisado"));
   descricaoInput.name = "descricaoProcessoAnalisado";
   descricaoInput.rows = 1;
-  descricaoInput.placeholder = "Descreva o tema principal dos processos analisados";
+  descricaoInput.placeholder = "Descreva o tema principal do processo analisado";
   descricaoInput.value = asText(processo.descricao || processo.descricaoProcessosAnalisados);
   descricaoLabel.append(descricaoInput);
 
@@ -3187,7 +3331,7 @@ function addProcessField(value = "") {
   input.name = "numeroSeiProcessoAnalisado";
   input.type = "text";
   input.value = value;
-  label.append(document.createTextNode("Número SEI dos processos analisados"), input);
+  label.append(document.createTextNode("Número SEI do processo analisado"), input);
   processList.insertBefore(label, processList.querySelector(".process-buttons"));
   input.focus();
 }
