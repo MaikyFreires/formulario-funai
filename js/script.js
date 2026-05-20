@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260520-01";
+const APP_VERSION = "20260520-02";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
@@ -426,7 +426,9 @@ function setAuthorizedEmail(email) {
 }
 
 function bindEvents() {
+  form.addEventListener("beforeinput", handleNumericIdBeforeInput);
   form.addEventListener("input", handleFormChange);
+  form.addEventListener("input", handleNumericIdInput);
   form.addEventListener("input", handleDateMaskInput);
   form.addEventListener("change", handleFormChange);
   form.addEventListener("change", agendarAutosave);
@@ -549,6 +551,24 @@ function formatAutosaveTime(date) {
 
 function isChoiceInput(field) {
   return field?.matches?.('input[type="radio"], input[type="checkbox"], select') ?? false;
+}
+
+function isReivindicacaoIdField(field) {
+  return field?.name === "reivindicacaoId";
+}
+
+function handleNumericIdBeforeInput(event) {
+  if (!isReivindicacaoIdField(event.target)) return;
+  if (!event.data) return;
+  if (/\D/.test(event.data)) event.preventDefault();
+}
+
+function handleNumericIdInput(event) {
+  const field = event.target;
+  if (!isReivindicacaoIdField(field)) return;
+
+  const numericValue = String(field.value || "").replace(/\D/g, "");
+  if (field.value !== numericValue) field.value = numericValue;
 }
 
 function handleDateMaskInput(event) {
