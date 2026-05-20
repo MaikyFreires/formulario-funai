@@ -107,6 +107,21 @@ textarea {
   letter-spacing: 0;
 }
 
+.autosave-status {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.autosave-status.is-saving {
+  color: var(--green);
+}
+
+.autosave-status.is-error {
+  color: var(--danger);
+}
+
 .form-size-meter.is-warning {
   color: #9a6a00;
 }

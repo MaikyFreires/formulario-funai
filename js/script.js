@@ -9,7 +9,9 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260519-17";
+const APP_VERSION = "20260520-01";
+const AUTOSAVE_DEBOUNCE_MS = 2000;
+const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
 const FORMULARIO_JSON_BLOCK_LIMIT = 63000;
 const FORMULARIO_JSON_YELLOW_WARNING = 40000;
@@ -102,6 +104,7 @@ let savePdfBtn;
 let homeBtn;
 let messageBox;
 let formSizeMeter;
+let autosaveStatus;
 let etniaInput;
 let etniaOptions;
 let etniaChips;
@@ -148,6 +151,10 @@ let cachedReports = [];
 let currentReportListMode = "draft";
 let activeFormMode = "edit";
 let activePersistenceMode = "create";
+let autosaveTimer = null;
+let autosaveEmAndamento = false;
+let autosavePendente = false;
+let ultimoAutosaveEm = 0;
 
 init();
 
@@ -216,6 +223,7 @@ function cacheDomElements() {
   homeBtn = document.querySelector("#homeBtn");
   messageBox = document.querySelector("#formMessage");
   formSizeMeter = document.querySelector("#formSizeMeter");
+  autosaveStatus = document.querySelector("#autosaveStatus");
   etniaInput = document.querySelector("#etniaInput");
   etniaOptions = document.querySelector("#etniaOptions");
   etniaChips = document.querySelector("#etniaChips");
@@ -421,6 +429,9 @@ function bindEvents() {
   form.addEventListener("input", handleFormChange);
   form.addEventListener("input", handleDateMaskInput);
   form.addEventListener("change", handleFormChange);
+  form.addEventListener("change", agendarAutosave);
+  form.addEventListener("focusout", agendarAutosave);
+  form.addEventListener("click", handleAutosaveDynamicClick);
   form.addEventListener("submit", enviarFormulario);
   addEtniaBtn.addEventListener("click", addSelectedEtnia);
   etniaInput.addEventListener("keydown", handleEtniaKeydown);
@@ -458,6 +469,82 @@ function handleFormChange(event) {
   updateConditionals({ renderDynamic: isChoiceInput(event?.target) });
   clearResolvedValidationErrors();
   updateFormularioJsonSizeMeter();
+}
+
+function handleAutosaveDynamicClick(event) {
+  const button = event.target.closest("button");
+  if (!button || !form.contains(button)) return;
+  if (button.matches("#saveDraftBtn, #submitBtn, #nextBtn, #prevBtn, #homeBtn, #savePdfBtn")) return;
+  agendarAutosave();
+}
+
+function agendarAutosave() {
+  if (activeFormMode !== "edit") return;
+  if (!getValue("reivindicacaoId")) {
+    console.log("autosave ignorado: sem ReivindicacaoId");
+    return;
+  }
+  if (!getAuthorizedEmail()) return;
+
+  window.clearTimeout(autosaveTimer);
+  autosaveTimer = window.setTimeout(executarAutosave, AUTOSAVE_DEBOUNCE_MS);
+  console.log("autosave agendado");
+}
+
+async function executarAutosave() {
+  autosaveTimer = null;
+
+  if (activeFormMode !== "edit") return;
+  if (!getValue("reivindicacaoId")) {
+    console.log("autosave ignorado: sem ReivindicacaoId");
+    return;
+  }
+  if (!getAuthorizedEmail()) return;
+
+  const esperaMinima = AUTOSAVE_MIN_INTERVAL_MS - (Date.now() - ultimoAutosaveEm);
+  if (esperaMinima > 0) {
+    autosaveTimer = window.setTimeout(executarAutosave, esperaMinima);
+    return;
+  }
+
+  if (autosaveEmAndamento) {
+    autosavePendente = true;
+    return;
+  }
+
+  autosaveEmAndamento = true;
+  setAutosaveStatus("Salvando...", "saving");
+  console.log("autosave executado");
+
+  try {
+    const salvo = await salvarFormulario("Rascunho", { automatico: true });
+    ultimoAutosaveEm = Date.now();
+    if (salvo) {
+      setAutosaveStatus(`Rascunho salvo automaticamente \u00e0s ${formatAutosaveTime(new Date())}`, "success");
+    }
+  } finally {
+    autosaveEmAndamento = false;
+    if (autosavePendente) {
+      autosavePendente = false;
+      agendarAutosave();
+    }
+  }
+}
+
+function cancelarAutosavePendente() {
+  window.clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  autosavePendente = false;
+}
+
+function setAutosaveStatus(text, state = "") {
+  if (!autosaveStatus) return;
+  autosaveStatus.textContent = text;
+  autosaveStatus.className = `autosave-status${state ? ` is-${state}` : ""}`;
+}
+
+function formatAutosaveTime(date) {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
 }
 
 function isChoiceInput(field) {
@@ -1544,22 +1631,28 @@ function montarFormularioJson(statusFormulario = "Rascunho", now = new Date().to
 }
 
 async function salvarRascunho() {
+  cancelarAutosavePendente();
   const isDraftSave = true;
   validateRequiredFields(isDraftSave);
-  await salvarFormulario("Rascunho");
+  await salvarFormulario("Rascunho", { automatico: false });
 }
 
-async function salvarFormulario(statusFormulario = "Rascunho") {
+async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
+  const automatico = Boolean(options.automatico);
   const isDraft = statusFormulario === "Rascunho";
   const actionButton = isDraft ? saveDraftBtn : submitBtn;
   const defaultText = isDraft ? "Salvar Rascunho" : "Enviar formulário";
   const loadingText = isDraft ? "Salvando..." : "Enviando...";
 
-  if (actionButton.disabled) return;
+  if (!automatico && actionButton.disabled) return false;
 
   if (!POWER_AUTOMATE_URL) {
+    if (automatico) {
+      setAutosaveStatus("Erro ao salvar automaticamente", "error");
+      return false;
+    }
     showMessage("Configure POWER_AUTOMATE_URL no arquivo js/config.js antes de salvar.", "error");
-    return;
+    return false;
   }
 
   const isUpdate = activePersistenceMode === "update";
@@ -1569,11 +1662,15 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
   updateFormularioJsonSizeMeter();
   if (!isDraft && !formularioJsonValidation.isValid) {
     showMessage(`Não foi possível enviar: FormularioJson incompleto. Blocos ausentes: ${formularioJsonValidation.camposAusentes.join(", ") || "JSON inválido"}.`, "error");
-    return;
+    return false;
   }
   if (!tamanhoFormularioValidation.isValid) {
+    if (automatico) {
+      setAutosaveStatus("Erro ao salvar automaticamente", "error");
+      return false;
+    }
     showMessage(`N\u00e3o foi poss\u00edvel ${isDraft ? "salvar" : "enviar"}: o FormularioJson tem ${tamanhoFormularioValidation.tamanhoFormulario} caracteres e ultrapassa o limite de 63 mil.`, "error");
-    return;
+    return false;
   }
 
   console.log(isUpdate ? "modo update" : "modo create");
@@ -1614,9 +1711,11 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
     }
   });
 
-  saveDraftBtn.disabled = true;
-  submitBtn.disabled = true;
-  actionButton.textContent = loadingText;
+  if (!automatico) {
+    saveDraftBtn.disabled = true;
+    submitBtn.disabled = true;
+    actionButton.textContent = loadingText;
+  }
 
   try {
     console.log("payload enviado", payload);
@@ -1659,30 +1758,42 @@ async function salvarFormulario(statusFormulario = "Rascunho") {
       activePersistenceMode = "update";
       sessionStorage.setItem(ACTIVE_FORM_ID_KEY, payload.formularioId);
 
+      if (automatico) return true;
+
       if (!isDraft) {
         sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
         showDashboard(getAuthorizedEmail(), "Seu formulário foi enviado com sucesso.");
-        return;
+        return true;
       }
 
       showMessage(isUpdate ? "Rascunho atualizado no SharePoint." : "Rascunho criado no SharePoint.", "success");
-      return;
+      return true;
     }
 
     await readJsonIfAvailable(response);
 
     if (response.status === 403) {
+      if (automatico) {
+        setAutosaveStatus("Erro ao salvar automaticamente", "error");
+        return false;
+      }
       showMessage(isDraft ? "Este e-mail não está autorizado." : "Este e-mail não está autorizado a enviar o formulário.", "error");
-      return;
+      return false;
     }
 
     throw new Error(`Falha no envio: ${response.status}`);
   } catch (error) {
+    if (automatico) {
+      setAutosaveStatus("Erro ao salvar automaticamente", "error");
+      return false;
+    }
     showMessage(isDraft ? "Erro ao salvar rascunho no SharePoint." : "Não foi possível enviar o formulário. Verifique a URL do Power Automate e tente novamente.", "error");
   } finally {
-    saveDraftBtn.disabled = false;
-    submitBtn.disabled = false;
-    actionButton.textContent = defaultText;
+    if (!automatico) {
+      saveDraftBtn.disabled = false;
+      submitBtn.disabled = false;
+      actionButton.textContent = defaultText;
+    }
   }
 }
 
