@@ -7,9 +7,10 @@ const SECRET_TOKEN = "FUNAI_FORM_SECRET_2026";
 const AUTHORIZED_EMAIL_KEY = "consultorEmailAutorizado";
 const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
+const SENT_FORM_IDS_KEY = "formulariosEnviadosSemRascunho";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260520-05";
+const APP_VERSION = "20260520-06";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
@@ -156,6 +157,7 @@ let autosaveEmAndamento = false;
 let autosavePendente = false;
 let autosavePromise = null;
 let envioFinalEmAndamento = false;
+let formulariosBloqueadosParaRascunho = new Set();
 let ultimoAutosaveEm = 0;
 
 init();
@@ -328,6 +330,8 @@ function showDashboard(email = getAuthorizedEmail(), message = "") {
     return;
   }
 
+  activeFormMode = "dashboard";
+  cancelarAutosavePendente();
   accessGate.hidden = true;
   consultorDashboard.hidden = false;
   formApp.hidden = true;
@@ -337,6 +341,8 @@ function showDashboard(email = getAuthorizedEmail(), message = "") {
 }
 
 function showAccessScreen() {
+  activeFormMode = "access";
+  cancelarAutosavePendente();
   accessGate.hidden = false;
   consultorDashboard.hidden = true;
   formApp.hidden = true;
@@ -348,6 +354,7 @@ function showAccessScreen() {
 async function initializeForm() {
   if (formInitialized) return;
   formInitialized = true;
+  loadSentDraftBlockList();
   await loadEtniaData();
   await loadMunicipioData();
   populateComunidadeTradicionalOptions();
@@ -360,6 +367,7 @@ async function initializeForm() {
 async function novoRelatorio() {
   currentFormularioId = "";
   activePersistenceMode = "create";
+  envioFinalEmAndamento = false;
   sessionStorage.removeItem(ACTIVE_FORM_ID_KEY);
   await openForm({ reset: true, mode: "edit" });
   currentFormularioId = createFormularioId();
@@ -486,6 +494,7 @@ function handleAutosaveDynamicClick(event) {
 
 function agendarAutosave() {
   if (activeFormMode !== "edit") return;
+  if (envioFinalEmAndamento || isCurrentFormularioBlockedForDraft()) return;
   if (!getValue("reivindicacaoId")) {
     console.log("autosave ignorado: sem ReivindicacaoId");
     return;
@@ -502,6 +511,7 @@ async function executarAutosave() {
 
   if (activeFormMode !== "edit") return;
   if (envioFinalEmAndamento) return;
+  if (isCurrentFormularioBlockedForDraft()) return;
   if (!getValue("reivindicacaoId")) {
     console.log("autosave ignorado: sem ReivindicacaoId");
     return;
@@ -544,6 +554,32 @@ function cancelarAutosavePendente() {
   window.clearTimeout(autosaveTimer);
   autosaveTimer = null;
   autosavePendente = false;
+}
+
+function loadSentDraftBlockList() {
+  try {
+    const ids = JSON.parse(sessionStorage.getItem(SENT_FORM_IDS_KEY) || "[]");
+    formulariosBloqueadosParaRascunho = new Set(Array.isArray(ids) ? ids.filter(Boolean) : []);
+  } catch (error) {
+    formulariosBloqueadosParaRascunho = new Set();
+  }
+}
+
+function persistSentDraftBlockList() {
+  sessionStorage.setItem(SENT_FORM_IDS_KEY, JSON.stringify(Array.from(formulariosBloqueadosParaRascunho)));
+}
+
+function blockDraftSavesForFormulario(formularioId = currentFormularioId || sessionStorage.getItem(ACTIVE_FORM_ID_KEY) || "") {
+  const id = asText(formularioId);
+  if (!id) return;
+
+  formulariosBloqueadosParaRascunho.add(id);
+  persistSentDraftBlockList();
+}
+
+function isCurrentFormularioBlockedForDraft() {
+  const id = asText(currentFormularioId || sessionStorage.getItem(ACTIVE_FORM_ID_KEY));
+  return Boolean(id && formulariosBloqueadosParaRascunho.has(id));
 }
 
 function setAutosaveStatus(text, state = "") {
@@ -1372,6 +1408,7 @@ async function enviarFormulario(event) {
 
   setAuthorizedEmail(authorizedEmail);
 
+  blockDraftSavesForFormulario();
   const enviado = await salvarFormulario("Enviado");
   envioFinalEmAndamento = false;
   return enviado;
@@ -1681,6 +1718,11 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
   const actionButton = isDraft ? saveDraftBtn : submitBtn;
   const defaultText = isDraft ? "Salvar Rascunho" : "Enviar formulário";
   const loadingText = isDraft ? "Salvando..." : "Enviando...";
+
+  if (isDraft && (envioFinalEmAndamento || isCurrentFormularioBlockedForDraft())) {
+    if (automatico) setAutosaveStatus("Envio final iniciado. Rascunho bloqueado.", "success");
+    return false;
+  }
 
   if (!automatico && actionButton.disabled) return false;
 
