@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260520-04";
+const APP_VERSION = "20260520-05";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
@@ -436,6 +436,8 @@ function bindEvents() {
   form.addEventListener("change", agendarAutosave);
   form.addEventListener("focusout", agendarAutosave);
   form.addEventListener("click", handleAutosaveDynamicClick);
+  form.addEventListener("click", handleConflictEthnicityClick);
+  form.addEventListener("keydown", handleConflictEthnicityKeydown);
   form.addEventListener("submit", enviarFormulario);
   addEtniaBtn.addEventListener("click", addSelectedEtnia);
   etniaInput.addEventListener("keydown", handleEtniaKeydown);
@@ -1953,7 +1955,7 @@ function prepararImpressaoPdf() {
         item.descricao,
         formatarDataPdf(item.dataReferencia),
         item.envolvidos,
-        item.etniaRelacionada,
+        formatConflictEthnicities(item),
         item.fonte
       ])),
       pdfRadio("Há indício de povos isolados?", dados.ocupacaoIndigena?.povosIsolados, ["Sim", "Não"]),
@@ -3362,10 +3364,14 @@ function renderDetalhesConflitos(existingDetails = []) {
           Envolvidos
           <input data-conflict-involved type="text" placeholder="Informe os envolvidos">
         </label>
-        <label>
+        <div class="multi-autocomplete conflict-ethnicity-field">
           Etnia relacionada
-          <input data-conflict-ethnicity type="text" list="etniaOptions" placeholder="Localizar etnia">
-        </label>
+          <div class="autocomplete-row">
+            <input data-conflict-ethnicity type="text" list="etniaOptions" placeholder="Localizar etnia">
+            <button type="button" class="icon-button" data-add-conflict-ethnicity aria-label="Adicionar etnia relacionada">+</button>
+          </div>
+          <div class="chips" data-conflict-ethnicity-chips aria-live="polite"></div>
+        </div>
         <label>
           Fonte do dado
           <input data-conflict-source type="text" placeholder="Documento de onde veio a informação">
@@ -3378,7 +3384,7 @@ function renderDetalhesConflitos(existingDetails = []) {
     card.querySelector("[data-conflict-description]").value = asText(detail.descricao);
     card.querySelector("[data-conflict-reference]").value = converterDataParaBR(detail.dataReferencia);
     card.querySelector("[data-conflict-involved]").value = asText(detail.envolvidos);
-    card.querySelector("[data-conflict-ethnicity]").value = asText(detail.etniaRelacionada);
+    renderConflictEthnicityChips(card, getConflictEthnicityValues(detail));
     card.querySelector("[data-conflict-source]").value = asText(detail.fonte);
     container.append(card);
   });
@@ -3386,15 +3392,19 @@ function renderDetalhesConflitos(existingDetails = []) {
 
 function getDetalhesConflitos() {
   return Array.from(document.querySelectorAll("[data-conflict-detail]"))
-    .map((card) => ({
-      tipo: asText(card.dataset.conflictDetail),
-      outroTipoConflito: asText(card.querySelector("[data-conflict-other-type]")?.value),
-      descricao: asText(card.querySelector("[data-conflict-description]")?.value),
-      dataReferencia: prepararDataParaPayload(card.querySelector("[data-conflict-reference]")?.value),
-      envolvidos: asText(card.querySelector("[data-conflict-involved]")?.value),
-      etniaRelacionada: asText(card.querySelector("[data-conflict-ethnicity]")?.value),
-      fonte: asText(card.querySelector("[data-conflict-source]")?.value)
-    }))
+    .map((card) => {
+      const etniasRelacionadas = getConflictEthnicitiesFromCard(card);
+      return {
+        tipo: asText(card.dataset.conflictDetail),
+        outroTipoConflito: asText(card.querySelector("[data-conflict-other-type]")?.value),
+        descricao: asText(card.querySelector("[data-conflict-description]")?.value),
+        dataReferencia: prepararDataParaPayload(card.querySelector("[data-conflict-reference]")?.value),
+        envolvidos: asText(card.querySelector("[data-conflict-involved]")?.value),
+        etniaRelacionada: asText(etniasRelacionadas.join(", ")),
+        etniasRelacionadas,
+        fonte: asText(card.querySelector("[data-conflict-source]")?.value)
+      };
+    })
     .filter((item) => item.tipo);
 }
 
@@ -3419,7 +3429,8 @@ function normalizeDetalhesConflitos(value, legacy = {}) {
       descricao: asText(item?.descricao || item?.motivoConflitoInteretnico),
       dataReferencia: prepararDataParaPayload(item?.dataReferencia || item?.dataReferenciaConflitoInteretnico),
       envolvidos: asText(item?.envolvidos || item?.envolvidosConflito),
-      etniaRelacionada: asText(item?.etniaRelacionada || item?.etniaConflitoInteretnico),
+      etniasRelacionadas: getConflictEthnicityValues(item),
+      etniaRelacionada: formatConflictEthnicities(item),
       fonte: asText(item?.fonte || item?.fonteConflito)
     }))
     .filter((item) => item.tipo);
@@ -3436,8 +3447,97 @@ function normalizeDetalhesConflitos(value, legacy = {}) {
     dataReferencia: index === 0 ? prepararDataParaPayload(legacy.dataReferenciaConflitoInteretnico) : "",
     envolvidos: index === 0 ? asText(legacy.envolvidosConflito) : "",
     etniaRelacionada: index === 0 ? asText(legacy.etniaConflitoInteretnico) : "",
+    etniasRelacionadas: index === 0 ? asListOrSplit(legacy.etniaConflitoInteretnico) : [],
     fonte: index === 0 ? asText(legacy.fonteConflito) : ""
   }));
+}
+
+function getConflictEthnicityValues(item = {}) {
+  const candidates = [
+    item.etniasRelacionadas,
+    item.etniasRelacionada,
+    item.etniaRelacionada,
+    item.etniaConflitoInteretnico
+  ];
+
+  for (const candidate of candidates) {
+    const values = asListOrSplit(candidate);
+    if (values.length) return values;
+  }
+
+  return [];
+}
+
+function formatConflictEthnicities(item = {}) {
+  return getConflictEthnicityValues(item).join(", ");
+}
+
+function getConflictEthnicitiesFromCard(card) {
+  return Array.from(card.querySelectorAll("[data-remove-conflict-ethnicity]"))
+    .map((button) => asText(button.dataset.removeConflictEthnicity))
+    .filter(Boolean);
+}
+
+function renderConflictEthnicityChips(card, values) {
+  const container = card.querySelector("[data-conflict-ethnicity-chips]");
+  if (!container) return;
+
+  container.innerHTML = "";
+  asListOrSplit(values).forEach((value) => {
+    const chip = document.createElement("span");
+    const removeButton = document.createElement("button");
+
+    chip.className = "chip";
+    chip.append(document.createTextNode(value));
+    removeButton.type = "button";
+    removeButton.dataset.removeConflictEthnicity = value;
+    removeButton.setAttribute("aria-label", `Remover etnia relacionada ${value}`);
+    removeButton.textContent = "Ã—";
+    chip.append(removeButton);
+    container.append(chip);
+  });
+}
+
+function addConflictEthnicity(card) {
+  const input = card?.querySelector("[data-conflict-ethnicity]");
+  if (!input) return;
+
+  const value = input.value.trim();
+  const selected = getConflictEthnicitiesFromCard(card);
+  if (!value || selected.includes(value) || !allEtnias.includes(value)) return;
+
+  selected.push(value);
+  input.value = "";
+  renderConflictEthnicityChips(card, selected);
+  updateFormularioJsonSizeMeter();
+  clearResolvedValidationErrors();
+  agendarAutosave();
+}
+
+function handleConflictEthnicityClick(event) {
+  const addButton = event.target.closest("[data-add-conflict-ethnicity]");
+  if (addButton) {
+    addConflictEthnicity(addButton.closest("[data-conflict-detail]"));
+    return;
+  }
+
+  const removeButton = event.target.closest("[data-remove-conflict-ethnicity]");
+  if (!removeButton) return;
+
+  const card = removeButton.closest("[data-conflict-detail]");
+  const selected = getConflictEthnicitiesFromCard(card).filter((value) => value !== removeButton.dataset.removeConflictEthnicity);
+  renderConflictEthnicityChips(card, selected);
+  updateFormularioJsonSizeMeter();
+  clearResolvedValidationErrors();
+  agendarAutosave();
+}
+
+function handleConflictEthnicityKeydown(event) {
+  if (!event.target.matches("[data-conflict-ethnicity]")) return;
+  if (event.key !== "Enter") return;
+
+  event.preventDefault();
+  addConflictEthnicity(event.target.closest("[data-conflict-detail]"));
 }
 
 function pruneSelectedMunicipios() {
