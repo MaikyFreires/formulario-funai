@@ -9,7 +9,7 @@ const ACCESS_SESSION_KEY = "consultorSessaoAtiva";
 const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260520-02";
+const APP_VERSION = "20260520-04";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
@@ -154,6 +154,8 @@ let activePersistenceMode = "create";
 let autosaveTimer = null;
 let autosaveEmAndamento = false;
 let autosavePendente = false;
+let autosavePromise = null;
+let envioFinalEmAndamento = false;
 let ultimoAutosaveEm = 0;
 
 init();
@@ -497,6 +499,7 @@ async function executarAutosave() {
   autosaveTimer = null;
 
   if (activeFormMode !== "edit") return;
+  if (envioFinalEmAndamento) return;
   if (!getValue("reivindicacaoId")) {
     console.log("autosave ignorado: sem ReivindicacaoId");
     return;
@@ -519,14 +522,16 @@ async function executarAutosave() {
   console.log("autosave executado");
 
   try {
-    const salvo = await salvarFormulario("Rascunho", { automatico: true });
+    autosavePromise = salvarFormulario("Rascunho", { automatico: true });
+    const salvo = await autosavePromise;
     ultimoAutosaveEm = Date.now();
     if (salvo) {
       setAutosaveStatus(`Rascunho salvo automaticamente \u00e0s ${formatAutosaveTime(new Date())}`, "success");
     }
   } finally {
+    autosavePromise = null;
     autosaveEmAndamento = false;
-    if (autosavePendente) {
+    if (autosavePendente && !envioFinalEmAndamento) {
       autosavePendente = false;
       agendarAutosave();
     }
@@ -1339,24 +1344,35 @@ function normalizeText(value) {
 
 async function enviarFormulario(event) {
   event.preventDefault();
+  cancelarAutosavePendente();
+  envioFinalEmAndamento = true;
+
+  if (autosavePromise) {
+    await autosavePromise;
+  }
+
   const isDraftSave = false;
   const validationErrors = validateRequiredFields(isDraftSave);
   if (validationErrors.length) {
     showMessage(`Existem campos obrigatórios não preenchidos. Revise os campos destacados em vermelho. Campos: ${validationErrors.map((error) => error.label).join(", ")}.`, "error");
     goToFirstErrorStep(validationErrors);
+    envioFinalEmAndamento = false;
     return;
   }
 
   const authorizedEmail = getStoredAuthorizedEmail();
   if (!authorizedEmail || !hasActiveSession()) {
     showAccessScreen();
+    envioFinalEmAndamento = false;
     showAccessMessage("Informe seu e-mail para acessar o formulário.", "error");
     return;
   }
 
   setAuthorizedEmail(authorizedEmail);
 
-  await salvarFormulario("Enviado");
+  const enviado = await salvarFormulario("Enviado");
+  envioFinalEmAndamento = false;
+  return enviado;
 }
 
 async function handleSubmit(event) {
@@ -2281,13 +2297,14 @@ function renderReportList(relatorios, emptyMessage) {
 
   reportListMessage.textContent = "";
   reportListMessage.className = "message";
+  reportList.append(createDraftReportHeader());
 
   relatorios.forEach((relatorio) => {
-    const formularioId = relatorio.FormularioId || relatorio.formularioId;
-    const reivindicacaoId = relatorio.ReivindicacaoId || relatorio.field_2 || relatorio.reivindicacaoId || "Sem ID";
-    const nomeReivindicacao = relatorio.NomeReivindicacao || relatorio.field_3 || relatorio.nomeReivindicacao || "Sem nome";
-    const atualizadoEm = relatorio.Modified || relatorio.AtualizadoEm || relatorio.enviadoEm || relatorio.EnviadoEm || "";
-    const status = asText(relatorio.statusFormulario || relatorio.StatusFormulario || "Rascunho");
+    const formularioId = getReportFormularioId(relatorio);
+    const reivindicacaoId = getReportReivindicacaoId(relatorio) || "Sem ID";
+    const nomeReivindicacao = getReportNomeReivindicacao(relatorio) || "Sem nome";
+    const atualizadoEm = getReportAtualizadoEm(relatorio);
+    const status = getReportStatus(relatorio) || "Rascunho";
     const row = document.createElement("div");
     const idButton = document.createElement("button");
     const name = document.createElement("span");
@@ -2311,6 +2328,16 @@ function renderReportList(relatorios, emptyMessage) {
     name.textContent = nomeReivindicacao;
     date.textContent = atualizadoEm;
     statusText.textContent = status;
+
+    [
+      [idButton, "ID"],
+      [name, "Nome da reivindicação"],
+      [date, "Atualizado em"],
+      [statusText, "Status"]
+    ].forEach(([element, label]) => {
+      element.dataset.label = label;
+    });
+
     row.append(idButton, name, date, statusText);
     reportList.append(row);
   });
@@ -2390,6 +2417,17 @@ function createSentReportHeader() {
   const header = document.createElement("div");
   header.className = "report-list-row report-list-header sent-report-row";
   ["ID", "Nome da reivindicação", "Área de estudo", "Data de envio", "Status", "Ação"].forEach((label) => {
+    const item = document.createElement("strong");
+    item.textContent = label;
+    header.append(item);
+  });
+  return header;
+}
+
+function createDraftReportHeader() {
+  const header = document.createElement("div");
+  header.className = "report-list-row report-list-header";
+  ["ID", "Nome da reivindicação", "Atualizado em", "Status"].forEach((label) => {
     const item = document.createElement("strong");
     item.textContent = label;
     header.append(item);

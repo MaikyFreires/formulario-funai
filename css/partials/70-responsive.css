@@ -89,7 +89,7 @@
     display: none;
   }
 
-  .sent-report-row > [data-label]::before {
+  .report-list-row > [data-label]::before {
     content: attr(data-label);
     display: block;
     margin-bottom: 2px;
