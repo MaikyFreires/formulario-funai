@@ -1828,7 +1828,7 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
   }
 
   try {
-    const formularioJsonEnviado = payloadPowerAutomate.formularioJson || {};
+    const formularioJsonEnviado = converterJsonSerializadoEmObjeto(payloadPowerAutomate.formularioJson) || {};
     console.log("payload enviado", payloadPowerAutomate);
 
     console.log("FormularioJson analisado", formularioJsonEnviado);
@@ -2973,7 +2973,7 @@ function normalizarPayloadParaPowerAutomate(payload) {
 }
 
 function prepararPayloadPowerAutomate(payload) {
-  return converterJsonSerializadoEmObjeto({
+  const payloadNormalizado = converterJsonSerializadoEmObjeto({
     ...payload,
     formularioJson: converterJsonSerializadoEmObjeto(payload.formularioJson),
     dados: converterJsonSerializadoEmObjeto(payload.dados),
@@ -2985,6 +2985,16 @@ function prepararPayloadPowerAutomate(payload) {
     caracterizacaoArea: converterJsonSerializadoEmObjeto(payload.caracterizacaoArea),
     ocupacaoIndigena: converterJsonSerializadoEmObjeto(payload.ocupacaoIndigena)
   });
+
+  return {
+    ...payloadNormalizado,
+    formularioJson: serializarFormularioJsonParaPowerAutomate(payloadNormalizado.formularioJson)
+  };
+}
+
+function serializarFormularioJsonParaPowerAutomate(value) {
+  if (typeof value === "string") return value;
+  return JSON.stringify(value || {});
 }
 
 function converterJsonSerializadoEmObjeto(value) {
