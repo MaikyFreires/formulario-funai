@@ -438,6 +438,7 @@ function setAuthorizedEmail(email) {
 function bindEvents() {
   form.addEventListener("beforeinput", handleNumericIdBeforeInput);
   form.addEventListener("input", handleFormChange);
+  form.addEventListener("input", agendarAutosave);
   form.addEventListener("input", handleNumericIdInput);
   form.addEventListener("input", handleDateMaskInput);
   form.addEventListener("change", handleFormChange);
@@ -495,6 +496,7 @@ function handleAutosaveDynamicClick(event) {
 function agendarAutosave() {
   if (activeFormMode !== "edit") return;
   if (envioFinalEmAndamento || isCurrentFormularioBlockedForDraft()) return;
+  if (!hasActiveFormularioId()) return;
   if (!getValue("reivindicacaoId")) {
     console.log("autosave ignorado: sem ReivindicacaoId");
     return;
@@ -512,6 +514,7 @@ async function executarAutosave() {
   if (activeFormMode !== "edit") return;
   if (envioFinalEmAndamento) return;
   if (isCurrentFormularioBlockedForDraft()) return;
+  if (!hasActiveFormularioId()) return;
   if (!getValue("reivindicacaoId")) {
     console.log("autosave ignorado: sem ReivindicacaoId");
     return;
@@ -540,6 +543,9 @@ async function executarAutosave() {
     if (salvo) {
       setAutosaveStatus(`Rascunho salvo automaticamente \u00e0s ${formatAutosaveTime(new Date())}`, "success");
     }
+  } catch (error) {
+    console.error("Erro no autosave", error);
+    setAutosaveStatus("Erro ao salvar automaticamente", "error");
   } finally {
     autosavePromise = null;
     autosaveEmAndamento = false;
@@ -580,6 +586,10 @@ function blockDraftSavesForFormulario(formularioId = currentFormularioId || sess
 function isCurrentFormularioBlockedForDraft() {
   const id = asText(currentFormularioId || sessionStorage.getItem(ACTIVE_FORM_ID_KEY));
   return Boolean(id && formulariosBloqueadosParaRascunho.has(id));
+}
+
+function hasActiveFormularioId() {
+  return Boolean(asText(currentFormularioId || sessionStorage.getItem(ACTIVE_FORM_ID_KEY)));
 }
 
 function setAutosaveStatus(text, state = "") {
@@ -1736,20 +1746,34 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
   }
 
   const isUpdate = activePersistenceMode === "update";
-  const payload = normalizarPayloadParaPowerAutomate(buildPayload(statusFormulario));
-  const formularioJsonValidation = validarFormularioJsonAntesDoEnvio(payload);
-  const tamanhoFormularioValidation = validarTamanhoFormularioJson(payload);
-  updateFormularioJsonSizeMeter();
-  if (!isDraft && !formularioJsonValidation.isValid) {
-    showMessage(`Não foi possível enviar: FormularioJson incompleto. Blocos ausentes: ${formularioJsonValidation.camposAusentes.join(", ") || "JSON inválido"}.`, "error");
-    return false;
-  }
-  if (!tamanhoFormularioValidation.isValid) {
+  let payload;
+
+  try {
+    payload = normalizarPayloadParaPowerAutomate(buildPayload(statusFormulario));
+    const formularioJsonValidation = validarFormularioJsonAntesDoEnvio(payload);
+    const tamanhoFormularioValidation = validarTamanhoFormularioJson(payload);
+    updateFormularioJsonSizeMeter();
+
+    if (!isDraft && !formularioJsonValidation.isValid) {
+      showMessage(`Não foi possível enviar: FormularioJson incompleto. Blocos ausentes: ${formularioJsonValidation.camposAusentes.join(", ") || "JSON inválido"}.`, "error");
+      return false;
+    }
+
+    if (!tamanhoFormularioValidation.isValid) {
+      if (automatico) {
+        setAutosaveStatus("Erro ao salvar automaticamente", "error");
+        return false;
+      }
+      showMessage(`N\u00e3o foi poss\u00edvel ${isDraft ? "salvar" : "enviar"}: o FormularioJson tem ${tamanhoFormularioValidation.tamanhoFormulario} caracteres e ultrapassa o limite de 63 mil.`, "error");
+      return false;
+    }
+  } catch (error) {
+    console.error("Erro ao preparar payload", error);
     if (automatico) {
       setAutosaveStatus("Erro ao salvar automaticamente", "error");
       return false;
     }
-    showMessage(`N\u00e3o foi poss\u00edvel ${isDraft ? "salvar" : "enviar"}: o FormularioJson tem ${tamanhoFormularioValidation.tamanhoFormulario} caracteres e ultrapassa o limite de 63 mil.`, "error");
+    showMessage(isDraft ? "Erro ao salvar rascunho no SharePoint." : "Não foi possível enviar o formulário. Revise os campos e tente novamente.", "error");
     return false;
   }
 
@@ -2984,7 +3008,7 @@ function hasActiveSession() {
 function getValue(name) {
   const field = form.elements[name];
   if (!field) return "";
-  return asText(field.value).trim();
+  return String(field.value || "").trim();
 }
 
 function converterDataParaISO(dataBr) {
@@ -3087,7 +3111,7 @@ function isDataValida(valor) {
 }
 
 function getCheckedValues(name) {
-  return Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map((field) => asText(field.value));
+  return Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map((field) => field.value);
 }
 
 function populateEtniaOptions() {
@@ -3253,7 +3277,6 @@ function handleOutraEtniaKeydown(event) {
 
 function addSelectedEtnia() {
   const value = findSelectableValue(allEtnias, etniaInput.value);
-  selectedEtnias = selectedEtnias.map(asText).filter(Boolean);
   if (!value || selectedEtnias.includes(value)) return;
 
   selectedEtnias.push(value);
@@ -3300,7 +3323,6 @@ function getSelectedEtnias() {
 
 function addSelectedOutraEtnia() {
   const value = asText(outraEtniaInput.value).trim();
-  selectedOutrasEtnias = selectedOutrasEtnias.map(asText).filter(Boolean);
   if (!value || selectedOutrasEtnias.includes(value)) return;
 
   selectedOutrasEtnias.push(value);
@@ -3335,7 +3357,6 @@ function handleEstadoKeydown(event) {
 
 function addSelectedEstado() {
   const value = findSelectableValue(allEstados, estadoInput.value);
-  selectedEstados = selectedEstados.map(asText).filter(Boolean);
   if (!value || selectedEstados.includes(value)) return;
 
   selectedEstados.push(value);
@@ -3377,7 +3398,6 @@ function handleMunicipioKeydown(event) {
 function addSelectedMunicipio() {
   const municipios = getAvailableMunicipios();
   const value = findSelectableValue(municipios, municipioInput.value);
-  selectedMunicipios = selectedMunicipios.map(asText).filter(Boolean);
   if (!value || selectedMunicipios.includes(value)) return;
 
   selectedMunicipios.push(value);
@@ -3418,7 +3438,6 @@ function handleComunidadeTradicionalKeydown(event) {
 
 function addSelectedComunidadeTradicional() {
   const value = findSelectableValue(getComunidadesTradicionais(), comunidadeTradicionalInput.value);
-  selectedComunidadesTradicionais = selectedComunidadesTradicionais.map(asText).filter(Boolean);
   if (!value || selectedComunidadesTradicionais.includes(value)) return;
 
   selectedComunidadesTradicionais.push(value);
