@@ -2831,9 +2831,9 @@ function flattenDraft(draft) {
 }
 
 function splitLegacyList(value) {
-  return String(value || "")
+  return asText(value)
     .split(",")
-    .map((item) => item.trim())
+    .map((item) => asText(item).trim())
     .filter(Boolean);
 }
 
@@ -2870,14 +2870,36 @@ function createFormularioId() {
 }
 
 function asText(value) {
-  return value == null ? "" : String(value);
+  return value == null ? "" : repararTextoEncoding(String(value));
+}
+
+function repararTextoEncoding(texto) {
+  const textoOriginal = String(texto || "");
+  if (!temSinalDeMojibake(textoOriginal)) return textoOriginal;
+
+  try {
+    const bytes = Uint8Array.from(textoOriginal, (char) => char.charCodeAt(0) & 0xff);
+    const textoCorrigido = new TextDecoder("utf-8").decode(bytes);
+    return pontuarMojibake(textoCorrigido) < pontuarMojibake(textoOriginal) ? textoCorrigido : textoOriginal;
+  } catch (error) {
+    return textoOriginal;
+  }
+}
+
+function temSinalDeMojibake(texto) {
+  return /Ã.|Â.|â[\u0080-\u00bf]|�/.test(texto);
+}
+
+function pontuarMojibake(texto) {
+  const ocorrencias = texto.match(/Ã.|Â.|â[\u0080-\u00bf]|�/g);
+  return ocorrencias ? ocorrencias.length : 0;
 }
 
 function normalizarTextoParaPowerAutomate(valor) {
   if (valor === null || valor === undefined) return "";
   if (Array.isArray(valor)) return valor;
   if (typeof valor === "object") return valor;
-  return String(valor);
+  return asText(valor);
 }
 
 function normalizarPayloadParaPowerAutomate(payload) {
@@ -2921,11 +2943,11 @@ function normalizarPayloadParaPowerAutomate(payload) {
 }
 
 function asList(value) {
-  return Array.isArray(value) ? value.filter(Boolean) : [];
+  return Array.isArray(value) ? value.map(asText).filter(Boolean) : [];
 }
 
 function asListOrSplit(value) {
-  if (Array.isArray(value)) return value.filter(Boolean);
+  if (Array.isArray(value)) return value.map(asText).filter(Boolean);
   return splitLegacyList(value);
 }
 
@@ -2962,7 +2984,7 @@ function hasActiveSession() {
 function getValue(name) {
   const field = form.elements[name];
   if (!field) return "";
-  return String(field.value || "").trim();
+  return asText(field.value).trim();
 }
 
 function converterDataParaISO(dataBr) {
@@ -3065,14 +3087,11 @@ function isDataValida(valor) {
 }
 
 function getCheckedValues(name) {
-  return Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map((field) => field.value);
+  return Array.from(form.querySelectorAll(`input[name="${name}"]:checked`)).map((field) => asText(field.value));
 }
 
 function populateEtniaOptions() {
-  etniaOptions.innerHTML = allEtnias
-    .filter((etnia) => !selectedEtnias.includes(etnia))
-    .map((etnia) => `<option value="${etnia}"></option>`)
-    .join("");
+  renderDatalistOptions(etniaOptions, allEtnias, selectedEtnias);
 }
 
 async function loadEtniaData() {
@@ -3092,8 +3111,8 @@ async function loadEtniaData() {
 
 function parseEtniasCsv(csvText) {
   const [, ...dataRows] = parseDelimitedRows(csvText, ",");
-  const etnias = dataRows.map((row) => String(row[0] || "").trim()).filter(Boolean);
-  return Array.from(new Set(etnias));
+  const etnias = dataRows.map((row) => asText(row[0]).trim()).filter(Boolean);
+  return Array.from(new Set(etnias)).sort(sortPortuguese);
 }
 
 async function loadMunicipioData() {
@@ -3119,8 +3138,8 @@ function parseMunicipiosCsv(csvText) {
   const grouped = new Map();
 
   dataRows.forEach((row) => {
-    const municipio = String(row[0] || "").trim();
-    const estado = String(row[1] || "").trim();
+    const municipio = asText(row[0]).trim();
+    const estado = asText(row[1]).trim();
     if (!municipio || !estado) return;
     if (!grouped.has(estado)) grouped.set(estado, new Set());
     grouped.get(estado).add(municipio);
@@ -3172,19 +3191,37 @@ function sortPortuguese(a, b) {
   return a.localeCompare(b, "pt-BR");
 }
 
+function getComunidadesTradicionais() {
+  return COMUNIDADES_TRADICIONAIS.map(asText);
+}
+
+function renderDatalistOptions(datalist, options, selectedValues = []) {
+  if (!datalist) return;
+
+  const selectedSet = new Set(selectedValues.map(asText));
+  datalist.innerHTML = "";
+  options.map(asText).filter(Boolean).forEach((value) => {
+    if (selectedSet.has(value)) return;
+
+    const option = document.createElement("option");
+    option.value = value;
+    datalist.append(option);
+  });
+}
+
+function findSelectableValue(options, value) {
+  const normalizedValue = asText(value).trim();
+  if (!normalizedValue) return "";
+  return options.map(asText).find((option) => option === normalizedValue) || "";
+}
+
 function populateEstadoOptions() {
-  estadoOptions.innerHTML = allEstados
-    .filter((estado) => !selectedEstados.includes(estado))
-    .map((estado) => `<option value="${estado}"></option>`)
-    .join("");
+  renderDatalistOptions(estadoOptions, allEstados, selectedEstados);
 }
 
 function populateMunicipioOptions() {
   const municipios = getAvailableMunicipios();
-  municipioOptions.innerHTML = municipios
-    .filter((municipio) => !selectedMunicipios.includes(municipio))
-    .map((municipio) => `<option value="${municipio}"></option>`)
-    .join("");
+  renderDatalistOptions(municipioOptions, municipios, selectedMunicipios);
 
   const hasEstados = selectedEstados.length > 0;
   municipioInput.disabled = !hasEstados;
@@ -3215,8 +3252,9 @@ function handleOutraEtniaKeydown(event) {
 }
 
 function addSelectedEtnia() {
-  const value = etniaInput.value.trim();
-  if (!value || selectedEtnias.includes(value) || !allEtnias.includes(value)) return;
+  const value = findSelectableValue(allEtnias, etniaInput.value);
+  selectedEtnias = selectedEtnias.map(asText).filter(Boolean);
+  if (!value || selectedEtnias.includes(value)) return;
 
   selectedEtnias.push(value);
   etniaInput.value = "";
@@ -3230,7 +3268,8 @@ function removeSelectedEtnia(event) {
   const button = event.target.closest("button[data-etnia]");
   if (!button) return;
 
-  selectedEtnias = selectedEtnias.filter((etnia) => etnia !== button.dataset.etnia);
+  const value = asText(button.dataset.etnia);
+  selectedEtnias = selectedEtnias.filter((etnia) => asText(etnia) !== value);
   renderEtniaChips();
   populateEtniaOptions();
   updateConditionals();
@@ -3239,6 +3278,7 @@ function removeSelectedEtnia(event) {
 
 function renderEtniaChips() {
   etniaChips.innerHTML = "";
+  selectedEtnias = selectedEtnias.map(asText).filter(Boolean);
   selectedEtnias.forEach((etnia) => {
     const chip = document.createElement("span");
     const removeButton = document.createElement("button");
@@ -3255,11 +3295,12 @@ function renderEtniaChips() {
 }
 
 function getSelectedEtnias() {
-  return selectedEtnias.filter(Boolean);
+  return selectedEtnias.map(asText).filter(Boolean);
 }
 
 function addSelectedOutraEtnia() {
-  const value = outraEtniaInput.value.trim();
+  const value = asText(outraEtniaInput.value).trim();
+  selectedOutrasEtnias = selectedOutrasEtnias.map(asText).filter(Boolean);
   if (!value || selectedOutrasEtnias.includes(value)) return;
 
   selectedOutrasEtnias.push(value);
@@ -3272,7 +3313,8 @@ function removeSelectedOutraEtnia(event) {
   const button = event.target.closest("button[data-outra-etnia]");
   if (!button) return;
 
-  selectedOutrasEtnias = selectedOutrasEtnias.filter((etnia) => etnia !== button.dataset.outraEtnia);
+  const value = asText(button.dataset.outraEtnia);
+  selectedOutrasEtnias = selectedOutrasEtnias.filter((etnia) => asText(etnia) !== value);
   renderOutraEtniaChips();
   clearResolvedValidationErrors();
 }
@@ -3282,7 +3324,7 @@ function renderOutraEtniaChips() {
 }
 
 function getSelectedOutrasEtnias() {
-  return selectedOutrasEtnias.filter(Boolean);
+  return selectedOutrasEtnias.map(asText).filter(Boolean);
 }
 
 function handleEstadoKeydown(event) {
@@ -3292,8 +3334,9 @@ function handleEstadoKeydown(event) {
 }
 
 function addSelectedEstado() {
-  const value = estadoInput.value.trim();
-  if (!value || selectedEstados.includes(value) || !allEstados.includes(value)) return;
+  const value = findSelectableValue(allEstados, estadoInput.value);
+  selectedEstados = selectedEstados.map(asText).filter(Boolean);
+  if (!value || selectedEstados.includes(value)) return;
 
   selectedEstados.push(value);
   estadoInput.value = "";
@@ -3308,7 +3351,8 @@ function removeSelectedEstado(event) {
   const button = event.target.closest("button[data-estado]");
   if (!button) return;
 
-  selectedEstados = selectedEstados.filter((estado) => estado !== button.dataset.estado);
+  const value = asText(button.dataset.estado);
+  selectedEstados = selectedEstados.filter((estado) => asText(estado) !== value);
   renderEstadoChips();
   populateEstadoOptions();
   pruneSelectedMunicipios();
@@ -3321,7 +3365,7 @@ function renderEstadoChips() {
 }
 
 function getSelectedEstados() {
-  return selectedEstados.filter(Boolean);
+  return selectedEstados.map(asText).filter(Boolean);
 }
 
 function handleMunicipioKeydown(event) {
@@ -3331,9 +3375,10 @@ function handleMunicipioKeydown(event) {
 }
 
 function addSelectedMunicipio() {
-  const value = municipioInput.value.trim();
   const municipios = getAvailableMunicipios();
-  if (!value || selectedMunicipios.includes(value) || !municipios.includes(value)) return;
+  const value = findSelectableValue(municipios, municipioInput.value);
+  selectedMunicipios = selectedMunicipios.map(asText).filter(Boolean);
+  if (!value || selectedMunicipios.includes(value)) return;
 
   selectedMunicipios.push(value);
   municipioInput.value = "";
@@ -3346,7 +3391,8 @@ function removeSelectedMunicipio(event) {
   const button = event.target.closest("button[data-municipio]");
   if (!button) return;
 
-  selectedMunicipios = selectedMunicipios.filter((municipio) => municipio !== button.dataset.municipio);
+  const value = asText(button.dataset.municipio);
+  selectedMunicipios = selectedMunicipios.filter((municipio) => asText(municipio) !== value);
   renderMunicipioChips();
   populateMunicipioOptions();
   clearResolvedValidationErrors();
@@ -3357,14 +3403,11 @@ function renderMunicipioChips() {
 }
 
 function getSelectedMunicipios() {
-  return selectedMunicipios.filter(Boolean);
+  return selectedMunicipios.map(asText).filter(Boolean);
 }
 
 function populateComunidadeTradicionalOptions() {
-  comunidadeTradicionalOptions.innerHTML = COMUNIDADES_TRADICIONAIS
-    .filter((item) => !selectedComunidadesTradicionais.includes(item))
-    .map((item) => `<option value="${item}"></option>`)
-    .join("");
+  renderDatalistOptions(comunidadeTradicionalOptions, getComunidadesTradicionais(), selectedComunidadesTradicionais);
 }
 
 function handleComunidadeTradicionalKeydown(event) {
@@ -3374,8 +3417,9 @@ function handleComunidadeTradicionalKeydown(event) {
 }
 
 function addSelectedComunidadeTradicional() {
-  const value = comunidadeTradicionalInput.value.trim();
-  if (!value || selectedComunidadesTradicionais.includes(value) || !COMUNIDADES_TRADICIONAIS.includes(value)) return;
+  const value = findSelectableValue(getComunidadesTradicionais(), comunidadeTradicionalInput.value);
+  selectedComunidadesTradicionais = selectedComunidadesTradicionais.map(asText).filter(Boolean);
+  if (!value || selectedComunidadesTradicionais.includes(value)) return;
 
   selectedComunidadesTradicionais.push(value);
   comunidadeTradicionalInput.value = "";
@@ -3389,7 +3433,8 @@ function removeSelectedComunidadeTradicional(event) {
   const button = event.target.closest("button[data-comunidade-tradicional]");
   if (!button) return;
 
-  selectedComunidadesTradicionais = selectedComunidadesTradicionais.filter((item) => item !== button.dataset.comunidadeTradicional);
+  const value = asText(button.dataset.comunidadeTradicional);
+  selectedComunidadesTradicionais = selectedComunidadesTradicionais.filter((item) => asText(item) !== value);
   renderComunidadeTradicionalChips();
   populateComunidadeTradicionalOptions();
   renderComunidadeTradicionalDetalhes();
@@ -3401,7 +3446,7 @@ function renderComunidadeTradicionalChips() {
 }
 
 function getSelectedComunidadesTradicionais() {
-  return selectedComunidadesTradicionais.filter(Boolean);
+  return selectedComunidadesTradicionais.map(asText).filter(Boolean);
 }
 
 function renderComunidadeTradicionalDetalhes(existingDetails = []) {
@@ -3602,15 +3647,16 @@ function renderConflictEthnicityChips(card, values) {
 
   container.innerHTML = "";
   asListOrSplit(values).forEach((value) => {
+    const displayValue = asText(value);
     const chip = document.createElement("span");
     const removeButton = document.createElement("button");
 
     chip.className = "chip";
-    chip.append(document.createTextNode(value));
+    chip.append(document.createTextNode(displayValue));
     removeButton.type = "button";
-    removeButton.dataset.removeConflictEthnicity = value;
-    removeButton.setAttribute("aria-label", `Remover etnia relacionada ${value}`);
-    removeButton.textContent = "Ã—";
+    removeButton.dataset.removeConflictEthnicity = displayValue;
+    removeButton.setAttribute("aria-label", `Remover etnia relacionada ${displayValue}`);
+    removeButton.textContent = "×";
     chip.append(removeButton);
     container.append(chip);
   });
@@ -3620,9 +3666,9 @@ function addConflictEthnicity(card) {
   const input = card?.querySelector("[data-conflict-ethnicity]");
   if (!input) return;
 
-  const value = input.value.trim();
+  const value = findSelectableValue(allEtnias, input.value);
   const selected = getConflictEthnicitiesFromCard(card);
-  if (!value || selected.includes(value) || !allEtnias.includes(value)) return;
+  if (!value || selected.includes(value)) return;
 
   selected.push(value);
   input.value = "";
@@ -3643,7 +3689,8 @@ function handleConflictEthnicityClick(event) {
   if (!removeButton) return;
 
   const card = removeButton.closest("[data-conflict-detail]");
-  const selected = getConflictEthnicitiesFromCard(card).filter((value) => value !== removeButton.dataset.removeConflictEthnicity);
+  const value = asText(removeButton.dataset.removeConflictEthnicity);
+  const selected = getConflictEthnicitiesFromCard(card).filter((item) => asText(item) !== value);
   renderConflictEthnicityChips(card, selected);
   updateFormularioJsonSizeMeter();
   clearResolvedValidationErrors();
@@ -3666,7 +3713,7 @@ function pruneSelectedMunicipios() {
 
 function renderChips(container, values, dataName, ariaPrefix) {
   container.innerHTML = "";
-  values.forEach((value) => {
+  values.map(asText).filter(Boolean).forEach((value) => {
     const chip = document.createElement("span");
     const removeButton = document.createElement("button");
 
