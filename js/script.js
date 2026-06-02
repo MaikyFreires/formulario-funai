@@ -159,6 +159,7 @@ let autosavePromise = null;
 let envioFinalEmAndamento = false;
 let formulariosBloqueadosParaRascunho = new Set();
 let ultimoAutosaveEm = 0;
+let ultimaAssinaturaAutosave = "";
 
 init();
 
@@ -1747,6 +1748,7 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
 
   const isUpdate = activePersistenceMode === "update";
   let payload;
+  let payloadPowerAutomate;
 
   try {
     payload = normalizarPayloadParaPowerAutomate(buildPayload(statusFormulario));
@@ -1767,6 +1769,14 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
       showMessage(`N\u00e3o foi poss\u00edvel ${isDraft ? "salvar" : "enviar"}: o FormularioJson tem ${tamanhoFormularioValidation.tamanhoFormulario} caracteres e ultrapassa o limite de 63 mil.`, "error");
       return false;
     }
+
+    payloadPowerAutomate = prepararPayloadPowerAutomate(payload);
+
+    if (automatico) {
+      const assinaturaAtual = JSON.stringify(payloadPowerAutomate);
+      if (assinaturaAtual === ultimaAssinaturaAutosave) return false;
+      ultimaAssinaturaAutosave = assinaturaAtual;
+    }
   } catch (error) {
     console.error("Erro ao preparar payload", error);
     if (automatico) {
@@ -1778,40 +1788,41 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
   }
 
   console.log(isUpdate ? "modo update" : "modo create");
-  console.log("payload enviado", payload);
-  console.log("payload normalizado", payload);
+  console.log("payload enviado", payloadPowerAutomate);
+  console.log("payload normalizado", payloadPowerAutomate);
   console.log("TIPOS DO PAYLOAD", {
-    consultor: typeof payload.consultor,
-    reivindicacao: typeof payload.reivindicacao,
-    etniasEhArray: Array.isArray(payload.reivindicacao?.etnias),
-    tipoDemandaEhArray: Array.isArray(payload.reivindicacao?.tipoDemanda),
-    mapasEhArray: Array.isArray(payload.caracterizacaoArea?.mapasCartograficos)
+    formularioJson: typeof payloadPowerAutomate.formularioJson,
+    consultor: typeof payloadPowerAutomate.consultor,
+    reivindicacao: typeof payloadPowerAutomate.reivindicacao,
+    etniasEhArray: Array.isArray(payloadPowerAutomate.reivindicacao?.etnias),
+    tipoDemandaEhArray: Array.isArray(payloadPowerAutomate.reivindicacao?.tipoDemanda),
+    mapasEhArray: Array.isArray(payloadPowerAutomate.caracterizacaoArea?.mapasCartograficos)
   });
   console.log("DEBUG TIPOS COMPLETO", {
-    formularioJson: typeof payload.formularioJson,
+    formularioJson: typeof payloadPowerAutomate.formularioJson,
 
-    consultor: typeof payload.consultor,
-    reivindicacao: typeof payload.reivindicacao,
-    resumoProcesso: typeof payload.resumoProcesso,
-    statusProcesso: typeof payload.statusProcesso,
-    caracterizacaoArea: typeof payload.caracterizacaoArea,
-    ocupacaoIndigena: typeof payload.ocupacaoIndigena,
+    consultor: typeof payloadPowerAutomate.consultor,
+    reivindicacao: typeof payloadPowerAutomate.reivindicacao,
+    resumoProcesso: typeof payloadPowerAutomate.resumoProcesso,
+    statusProcesso: typeof payloadPowerAutomate.statusProcesso,
+    caracterizacaoArea: typeof payloadPowerAutomate.caracterizacaoArea,
+    ocupacaoIndigena: typeof payloadPowerAutomate.ocupacaoIndigena,
 
-    processosAnalisadosEhArray: Array.isArray(payload.reivindicacao?.processosAnalisados),
-    documentosEhArray: Array.isArray(payload.resumoProcesso?.documentos),
-    coordenadasEhArray: Array.isArray(payload.caracterizacaoArea?.coordenadas),
-    coordenadasDetalhadasEhArray: Array.isArray(payload.caracterizacaoArea?.coordenadasDetalhadas),
-    mapasCartograficosEhArray: Array.isArray(payload.caracterizacaoArea?.mapasCartograficos),
-    detalhesVulnerabilidadesEhArray: Array.isArray(payload.ocupacaoIndigena?.detalhesVulnerabilidades),
-    detalhesComunidadesEhArray: Array.isArray(payload.ocupacaoIndigena?.detalhesComunidadesTradicionais),
+    processosAnalisadosEhArray: Array.isArray(payloadPowerAutomate.reivindicacao?.processosAnalisados),
+    documentosEhArray: Array.isArray(payloadPowerAutomate.resumoProcesso?.documentos),
+    coordenadasEhArray: Array.isArray(payloadPowerAutomate.caracterizacaoArea?.coordenadas),
+    coordenadasDetalhadasEhArray: Array.isArray(payloadPowerAutomate.caracterizacaoArea?.coordenadasDetalhadas),
+    mapasCartograficosEhArray: Array.isArray(payloadPowerAutomate.caracterizacaoArea?.mapasCartograficos),
+    detalhesVulnerabilidadesEhArray: Array.isArray(payloadPowerAutomate.ocupacaoIndigena?.detalhesVulnerabilidades),
+    detalhesComunidadesEhArray: Array.isArray(payloadPowerAutomate.ocupacaoIndigena?.detalhesComunidadesTradicionais),
 
     detalhesDecisao: {
-      tipo: typeof payload.statusProcesso?.detalhesDecisao,
-      valor: payload.statusProcesso?.detalhesDecisao
+      tipo: typeof payloadPowerAutomate.statusProcesso?.detalhesDecisao,
+      valor: payloadPowerAutomate.statusProcesso?.detalhesDecisao
     },
     motivacaoJudicializacao: {
-      tipo: typeof payload.statusProcesso?.motivacaoJudicializacao,
-      valor: payload.statusProcesso?.motivacaoJudicializacao
+      tipo: typeof payloadPowerAutomate.statusProcesso?.motivacaoJudicializacao,
+      valor: payloadPowerAutomate.statusProcesso?.motivacaoJudicializacao
     }
   });
 
@@ -1822,31 +1833,29 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
   }
 
   try {
-    console.log("payload enviado", payload);
+    const formularioJsonEnviado = payloadPowerAutomate.formularioJson || {};
+    console.log("payload enviado", payloadPowerAutomate);
 
-    console.log(
-      "FormularioJson analisado",
-      JSON.parse(payload.formularioJson)
-    );
+    console.log("FormularioJson analisado", formularioJsonEnviado);
 
     console.log(
       "mapasCartograficos",
-      JSON.parse(payload.formularioJson).caracterizacaoArea.mapasCartograficos
+      formularioJsonEnviado.caracterizacaoArea?.mapasCartograficos
     );
 
     console.log(
       "outrasAcoesJudiciaisComunidade",
-      JSON.parse(payload.formularioJson).ocupacaoIndigena.outrasAcoesJudiciaisComunidade
+      formularioJsonEnviado.ocupacaoIndigena?.outrasAcoesJudiciaisComunidade
     );
 
     console.log(
       "descricaoOutrasAcoesJudiciaisComunidade",
-      JSON.parse(payload.formularioJson).ocupacaoIndigena.descricaoOutrasAcoesJudiciaisComunidade
+      formularioJsonEnviado.ocupacaoIndigena?.descricaoOutrasAcoesJudiciaisComunidade
     );
 
     console.log(
       "processosAnalisados",
-      JSON.parse(payload.formularioJson).reivindicacao.processosAnalisados
+      formularioJsonEnviado.reivindicacao?.processosAnalisados
     );
 
     const response = await fetch(POWER_AUTOMATE_URL, {
@@ -1854,13 +1863,13 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payloadPowerAutomate)
     });
     console.log(response.status, response.statusText);
 
     if (response.ok) {
       activePersistenceMode = "update";
-      sessionStorage.setItem(ACTIVE_FORM_ID_KEY, payload.formularioId);
+      sessionStorage.setItem(ACTIVE_FORM_ID_KEY, payloadPowerAutomate.formularioId);
 
       if (automatico) return true;
 
@@ -2963,6 +2972,44 @@ function normalizarPayloadParaPowerAutomate(payload) {
   });
 
   return normalizado;
+}
+
+function prepararPayloadPowerAutomate(payload) {
+  return converterJsonSerializadoEmObjeto({
+    ...payload,
+    formularioJson: converterJsonSerializadoEmObjeto(payload.formularioJson),
+    dados: converterJsonSerializadoEmObjeto(payload.dados),
+    payload: converterJsonSerializadoEmObjeto(payload.payload),
+    consultor: converterJsonSerializadoEmObjeto(payload.consultor),
+    reivindicacao: converterJsonSerializadoEmObjeto(payload.reivindicacao),
+    resumoProcesso: converterJsonSerializadoEmObjeto(payload.resumoProcesso),
+    statusProcesso: converterJsonSerializadoEmObjeto(payload.statusProcesso),
+    caracterizacaoArea: converterJsonSerializadoEmObjeto(payload.caracterizacaoArea),
+    ocupacaoIndigena: converterJsonSerializadoEmObjeto(payload.ocupacaoIndigena)
+  });
+}
+
+function converterJsonSerializadoEmObjeto(value) {
+  if (typeof value === "string") {
+    const text = value.trim();
+    if (!text || !/^[{\[]/.test(text)) return asText(value);
+
+    try {
+      return converterJsonSerializadoEmObjeto(JSON.parse(text));
+    } catch (error) {
+      return asText(value);
+    }
+  }
+
+  if (Array.isArray(value)) return value.map(converterJsonSerializadoEmObjeto);
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, converterJsonSerializadoEmObjeto(item)])
+    );
+  }
+
+  return value;
 }
 
 function asList(value) {
