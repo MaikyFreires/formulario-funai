@@ -2921,8 +2921,7 @@ function pontuarMojibake(texto) {
 
 function normalizarTextoParaPowerAutomate(valor) {
   if (valor === null || valor === undefined) return "";
-  if (Array.isArray(valor)) return valor;
-  if (typeof valor === "object") return valor;
+  if (Array.isArray(valor) || typeof valor === "object") return repararEncodingEmValor(valor);
   return asText(valor);
 }
 
@@ -2967,12 +2966,30 @@ function normalizarPayloadParaPowerAutomate(payload) {
 }
 
 function asList(value) {
-  return Array.isArray(value) ? value.map(asText).filter(Boolean) : [];
+  return Array.isArray(value) ? value.map(repararEncodingEmValor).filter(isListValueFilled) : [];
 }
 
 function asListOrSplit(value) {
-  if (Array.isArray(value)) return value.map(asText).filter(Boolean);
+  if (Array.isArray(value)) return value.map(repararEncodingEmValor).filter(isListValueFilled);
   return splitLegacyList(value);
+}
+
+function repararEncodingEmValor(value) {
+  if (value == null) return value;
+  if (typeof value === "string") return asText(value);
+  if (Array.isArray(value)) return value.map(repararEncodingEmValor);
+  if (typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, repararEncodingEmValor(item)])
+    );
+  }
+  return value;
+}
+
+function isListValueFilled(value) {
+  if (value == null) return false;
+  if (typeof value === "string") return value.trim().length > 0;
+  return true;
 }
 
 async function readJsonIfAvailable(response) {
