@@ -1434,7 +1434,7 @@ function buildPayload(statusFormulario = "Enviado") {
   const formularioJson = montarFormularioJson(statusFormulario, now);
   const payload = {
     ...formularioJson,
-    formularioJson: JSON.stringify(formularioJson)
+    formularioJson
   };
   return garantirTiposPayload(payload);
 }
@@ -1462,13 +1462,6 @@ function garantirTiposPayload(payload) {
   normalizado.ocupacaoIndigena.detalhesComunidadesTradicionais = garantirArray(normalizado.ocupacaoIndigena.detalhesComunidadesTradicionais);
   normalizado.ocupacaoIndigena.detalhesConflitos = garantirArray(normalizado.ocupacaoIndigena.detalhesConflitos);
 
-  ["detalhesDecisao", "motivacaoJudicializacao", "detalhesJudicializacao"].forEach((campo) => {
-    const valor = normalizado.statusProcesso[campo];
-    if (valor && typeof valor === "object") {
-      normalizado.statusProcesso[campo] = JSON.stringify(valor);
-    }
-  });
-
   return normalizado;
 }
 
@@ -1481,7 +1474,9 @@ function garantirArray(valor) {
 }
 
 function validarFormularioJsonAntesDoEnvio(payload) {
-  const formularioJsonTexto = asText(payload?.formularioJson);
+  const formularioJsonTexto = typeof payload?.formularioJson === "string"
+    ? asText(payload.formularioJson)
+    : JSON.stringify(payload?.formularioJson || {});
   let formularioJson = {};
   let parseError = null;
 
@@ -1773,7 +1768,7 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
     payloadPowerAutomate = prepararPayloadPowerAutomate(payload);
 
     if (automatico) {
-      const assinaturaAtual = JSON.stringify(payloadPowerAutomate);
+      const assinaturaAtual = criarAssinaturaPayload(payloadPowerAutomate);
       if (assinaturaAtual === ultimaAssinaturaAutosave) return false;
       ultimaAssinaturaAutosave = assinaturaAtual;
     }
@@ -1883,7 +1878,7 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
       return true;
     }
 
-    await readJsonIfAvailable(response);
+    const erro = await response.text();
 
     if (response.status === 403) {
       if (automatico) {
@@ -1894,8 +1889,9 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
       return false;
     }
 
-    throw new Error(`Falha no envio: ${response.status}`);
+    throw new Error(`Erro ao chamar Power Automate: ${response.status} - ${erro}`);
   } catch (error) {
+    console.error(error);
     if (automatico) {
       setAutosaveStatus("Erro ao salvar automaticamente", "error");
       return false;
@@ -1923,7 +1919,9 @@ function prepararImpressaoPdf() {
   document.querySelector(".pdf-print-root")?.remove();
 
   const payload = normalizarPayloadParaPowerAutomate(buildPayload("Enviado"));
-  const dados = JSON.parse(payload.formularioJson);
+  const dados = typeof payload.formularioJson === "string"
+    ? JSON.parse(payload.formularioJson)
+    : payload.formularioJson;
   const root = el("section", "pdf-print-root");
   const title = el("header", "pdf-cover pdf-section");
   title.append(
@@ -3009,6 +3007,25 @@ function converterJsonSerializadoEmObjeto(value) {
     );
   }
 
+  return value;
+}
+
+function criarAssinaturaPayload(payload) {
+  return JSON.stringify(removerCamposVolateisDoPayload(payload));
+}
+
+function removerCamposVolateisDoPayload(value, key = "") {
+  if (Array.isArray(value)) return value.map((item) => removerCamposVolateisDoPayload(item));
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value)
+        .filter(([entryKey]) => !["atualizadoEm", "enviadoEm"].includes(entryKey))
+        .map(([entryKey, item]) => [entryKey, removerCamposVolateisDoPayload(item, entryKey)])
+    );
+  }
+
+  if (["atualizadoEm", "enviadoEm"].includes(key)) return "";
   return value;
 }
 
