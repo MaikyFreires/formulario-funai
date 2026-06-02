@@ -177,7 +177,7 @@
 
 .report-list-row {
   display: grid;
-  grid-template-columns: minmax(130px, 0.8fr) minmax(180px, 1.3fr) minmax(150px, 0.9fr) minmax(120px, 0.7fr);
+  grid-template-columns: minmax(110px, 0.7fr) minmax(180px, 1.25fr) minmax(140px, 0.8fr) minmax(105px, 0.6fr) minmax(160px, 0.85fr);
   gap: 14px;
   align-items: center;
   padding: 14px 16px;
@@ -204,6 +204,41 @@
 
 .report-list-row span {
   font-weight: 600;
+}
+
+.draft-progress {
+  display: grid;
+  grid-template-columns: auto minmax(92px, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-width: 150px;
+}
+
+.draft-progress-value {
+  color: var(--green);
+  font-size: 0.9rem;
+  font-weight: 850;
+}
+
+.draft-progress-track {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent calc(10% - 1px),
+      rgba(38, 58, 31, 0.2) calc(10% - 1px),
+      rgba(38, 58, 31, 0.2) 10%
+    ),
+    rgba(38, 58, 31, 0.13);
+}
+
+.draft-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--terracotta), var(--gold), var(--green-2));
 }
 
 .report-link {

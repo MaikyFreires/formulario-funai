@@ -2354,6 +2354,7 @@ function renderReportList(relatorios, emptyMessage) {
     const name = document.createElement("span");
     const date = document.createElement("span");
     const statusText = document.createElement("span");
+    const progress = createDraftProgress(getDraftCompletionPercent(relatorio));
 
     row.className = "report-list-row";
     idButton.type = "button";
@@ -2377,12 +2378,13 @@ function renderReportList(relatorios, emptyMessage) {
       [idButton, "ID"],
       [name, "Nome da reivindicação"],
       [date, "Atualizado em"],
-      [statusText, "Status"]
+      [statusText, "Status"],
+      [progress, "Progresso"]
     ].forEach(([element, label]) => {
       element.dataset.label = label;
     });
 
-    row.append(idButton, name, date, statusText);
+    row.append(idButton, name, date, statusText, progress);
     reportList.append(row);
   });
 }
@@ -2471,12 +2473,86 @@ function createSentReportHeader() {
 function createDraftReportHeader() {
   const header = document.createElement("div");
   header.className = "report-list-row report-list-header";
-  ["ID", "Nome da reivindicação", "Atualizado em", "Status"].forEach((label) => {
+  ["ID", "Nome da reivindicação", "Atualizado em", "Status", "Progresso"].forEach((label) => {
     const item = document.createElement("strong");
     item.textContent = label;
     header.append(item);
   });
   return header;
+}
+
+function createDraftProgress(percent) {
+  const value = Math.min(Math.max(Number(percent) || 10, 10), 100);
+  const wrapper = document.createElement("div");
+  const meta = document.createElement("span");
+  const track = document.createElement("div");
+  const bar = document.createElement("div");
+
+  wrapper.className = "draft-progress";
+  meta.className = "draft-progress-value";
+  track.className = "draft-progress-track";
+  bar.className = "draft-progress-bar";
+
+  meta.textContent = `${value}%`;
+  track.setAttribute("aria-hidden", "true");
+  bar.style.width = `${value}%`;
+
+  track.append(bar);
+  wrapper.append(meta, track);
+  return wrapper;
+}
+
+function getDraftCompletionPercent(relatorio) {
+  const formularioJson = extrairFormularioJson(relatorio);
+  if (!formularioJson) return getStepCompletionPercent(getFormularioStep(relatorio));
+
+  const fields = collectCompletionFields(formularioJson);
+  if (!fields.length) return 10;
+
+  const filledFields = fields.filter((field) => isCompletionValueFilled(field.value)).length;
+  const percent = Math.ceil((filledFields / fields.length) * 100 / 10) * 10;
+  return Math.min(Math.max(percent, 10), 100);
+}
+
+function getStepCompletionPercent(stepIndex) {
+  if (!steps.length) return 10;
+  const currentStepNumber = Math.min(Math.max(Number(stepIndex) || 0, 0), steps.length - 1) + 1;
+  if (currentStepNumber === 1) return 10;
+  if (currentStepNumber === steps.length) return 100;
+  const percent = Math.ceil((currentStepNumber / steps.length) * 100 / 10) * 10;
+  return Math.min(Math.max(percent, 10), 100);
+}
+
+function collectCompletionFields(source, path = []) {
+  const ignoredKeys = new Set([
+    "tokenSecreto",
+    "formularioId",
+    "statusFormulario",
+    "atualizadoEm",
+    "enviadoEm",
+    "origem",
+    "etapaAtual"
+  ]);
+
+  if (Array.isArray(source)) {
+    if (!source.length) return [{ path, value: "" }];
+    return source.flatMap((item, index) => collectCompletionFields(item, [...path, index]));
+  }
+
+  if (source && typeof source === "object") {
+    return Object.entries(source).flatMap(([key, value]) => {
+      if (ignoredKeys.has(key)) return [];
+      return collectCompletionFields(value, [...path, key]);
+    });
+  }
+
+  return [{ path, value: source }];
+}
+
+function isCompletionValueFilled(value) {
+  if (Array.isArray(value)) return value.some(isCompletionValueFilled);
+  if (value && typeof value === "object") return Object.values(value).some(isCompletionValueFilled);
+  return asText(value).trim().length > 0;
 }
 
 function createReportOpenButton(label, formularioId) {
