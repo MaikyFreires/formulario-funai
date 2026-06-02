@@ -2688,7 +2688,7 @@ function restoreValues(values) {
     restoreAldeiaFields(aldeiasComunidadesLista);
   }
 
-  const documentos = asList(values.documentos);
+  const documentos = normalizeDocumentos(values.documentos);
   restoreDocumentoRows(documentos);
   if (!documentos.length) restoreLegacyDocumentoRow(values);
   const coordenadas = asList(values.coordenadasDetalhadas || values.coordenadas);
@@ -3892,7 +3892,7 @@ function resetDocumentoRows() {
 }
 
 function restoreDocumentoRows(documentos = []) {
-  const values = asList(documentos);
+  const values = normalizeDocumentos(documentos);
   resetDocumentoRows();
   if (!values.length) return;
 
@@ -3919,12 +3919,13 @@ function restoreLegacyDocumentoRow(values) {
 
 function setDocumentoRowValues(row, documento) {
   if (!row) return;
-  row.querySelector("[name='dataDocumento']").value = converterDataParaBR(documento.dataDocumento);
-  row.querySelector("[name='tipoDocumento']").value = asText(documento.tipoDocumento);
-  row.querySelector("[name='paginasDocumento']").value = asText(documento.paginasDocumento || documento.paginas);
-  row.querySelector("[name='numeroSei']").value = asText(documento.numeroSei);
-  row.querySelector("[name='numeroProcessoDocumento']").value = asText(documento.numeroProcessoDocumento || documento.numeroProcesso);
-  row.querySelector("[name='eventosAssuntos']").value = asText(documento.eventosAssuntos);
+  const normalizado = normalizeDocumentoItem(documento);
+  row.querySelector("[name='dataDocumento']").value = converterDataParaBR(normalizado.dataDocumento);
+  row.querySelector("[name='tipoDocumento']").value = asText(normalizado.tipoDocumento);
+  row.querySelector("[name='paginasDocumento']").value = asText(normalizado.paginasDocumento);
+  row.querySelector("[name='numeroSei']").value = asText(normalizado.numeroSei);
+  row.querySelector("[name='numeroProcessoDocumento']").value = asText(normalizado.numeroProcessoDocumento);
+  row.querySelector("[name='eventosAssuntos']").value = asText(normalizado.eventosAssuntos);
 }
 
 function getDocumentosProcesso() {
@@ -3941,17 +3942,43 @@ function getDocumentosProcesso() {
 }
 
 function normalizeDocumentos(value) {
-  if (Array.isArray(value)) return value;
+  if (Array.isArray(value)) return value.map(normalizeDocumentoItem).filter((documento) => Object.values(documento).some(Boolean));
   if (!value) return [];
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
+      return Array.isArray(parsed) ? normalizeDocumentos(parsed) : [];
     } catch (error) {
       return [];
     }
   }
   return [];
+}
+
+function normalizeDocumentoItem(documento = {}) {
+  if (typeof documento === "string") {
+    try {
+      return normalizeDocumentoItem(JSON.parse(documento));
+    } catch (error) {
+      return {
+        dataDocumento: "",
+        tipoDocumento: "",
+        paginasDocumento: "",
+        eventosAssuntos: asText(documento),
+        numeroSei: "",
+        numeroProcessoDocumento: ""
+      };
+    }
+  }
+
+  return {
+    dataDocumento: prepararDataParaPayload(documento.dataDocumento || documento.DataDocumento || documento.data || documento.Data),
+    tipoDocumento: asText(documento.tipoDocumento || documento.TipoDocumento || documento.tipo || documento.Tipo),
+    paginasDocumento: asText(documento.paginasDocumento || documento.PaginasDocumento || documento.paginas || documento.Paginas || documento.pagina || documento.Pagina),
+    eventosAssuntos: asText(documento.eventosAssuntos || documento.EventosAssuntos || documento.assunto || documento.Assunto || documento.descricao || documento.Descricao),
+    numeroSei: asText(documento.numeroSei || documento.NumeroSei || documento.NumeroSEI || documento.nSEI || documento.NSEI),
+    numeroProcessoDocumento: asText(documento.numeroProcessoDocumento || documento.NumeroProcessoDocumento || documento.numeroProcesso || documento.NumeroProcesso || documento.processo || documento.Processo)
+  };
 }
 
 function handleCoordenadaTableClick(event) {
