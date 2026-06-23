@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const SENT_FORM_IDS_KEY = "formulariosEnviadosSemRascunho";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260520-06";
+const APP_VERSION = "20260623-01";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
@@ -2197,6 +2197,7 @@ async function carregarFormulario(formularioId, mode = "draft") {
   }
 
   const id = getReportFormularioId(resumo) || asText(formularioId);
+  const expectedReivindicacaoId = getReportReivindicacaoId(resumo);
   if (!LOAD_DRAFT_URL) {
     showReportListMessage("Configure LOAD_DRAFT_URL no arquivo js/config.js.", "error");
     return;
@@ -2224,6 +2225,12 @@ async function carregarFormulario(formularioId, mode = "draft") {
     console.log("rascunho carregado", data);
     const relatorio = normalizarRascunhoCarregado(data, resumo);
     console.log(mode === "sent" ? "relatório enviado carregado" : "rascunho carregado", relatorio);
+
+    if (!relatorioCorrespondeAoResumo(relatorio, resumo)) {
+      const loadedReivindicacaoId = getReportReivindicacaoId(relatorio) || "sem ID";
+      showReportListMessage(`O relatório carregado não corresponde ao ID selecionado (${expectedReivindicacaoId || "sem ID"}). Recebido: ${loadedReivindicacaoId}.`, "error");
+      return;
+    }
 
     currentFormularioId = getReportFormularioId(relatorio) || id;
     sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
@@ -2597,16 +2604,28 @@ function createReportOpenButton(label, formularioId) {
 }
 
 function getCachedReport(id) {
+  const targetId = asText(id);
   return cachedReports.find((relatorio) => {
     const formId = getReportFormularioId(relatorio);
-    const reivindicacaoId = getReportReivindicacaoId(relatorio);
-    return formId === asText(id) || reivindicacaoId === asText(id);
+    return formId && formId === targetId;
   });
 }
 
 function getReportFormularioId(relatorio) {
   const formularioJson = extrairFormularioJson(relatorio);
-  return asText(relatorio.formularioId || relatorio.FormularioId || relatorio.id || relatorio.ID || formularioJson?.formularioId);
+  return asText(formularioJson?.formularioId || relatorio.formularioId || relatorio.FormularioId);
+}
+
+function relatorioCorrespondeAoResumo(relatorio, resumo) {
+  const resumoFormularioId = getReportFormularioId(resumo);
+  const relatorioFormularioId = getReportFormularioId(relatorio);
+  if (resumoFormularioId && relatorioFormularioId && resumoFormularioId !== relatorioFormularioId) return false;
+
+  const resumoReivindicacaoId = getReportReivindicacaoId(resumo);
+  const relatorioReivindicacaoId = getReportReivindicacaoId(relatorio);
+  if (resumoReivindicacaoId && relatorioReivindicacaoId && resumoReivindicacaoId !== relatorioReivindicacaoId) return false;
+
+  return true;
 }
 
 function getReportReivindicacaoId(relatorio) {
