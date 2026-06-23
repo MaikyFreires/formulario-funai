@@ -2773,7 +2773,7 @@ function flattenDraft(draft) {
     documentos: normalizeDocumentos(draft.resumoProcesso?.documentos || draft.Documentos || draft.documentos),
     dataDocumento: draft.resumoProcesso?.dataDocumento,
     tipoDocumento: draft.resumoProcesso?.tipoDocumento,
-    paginasDocumento: draft.resumoProcesso?.paginas,
+    paginasDocumento: draft.resumoProcesso?.paginasDocumento || draft.resumoProcesso?.paginaDocumento || draft.resumoProcesso?.paginas,
     numeroSei: draft.resumoProcesso?.numeroSei,
     eventosAssuntos: draft.resumoProcesso?.eventosAssuntos,
     estaJudicializado: normalizeEstaJudicializado(draft.statusProcesso?.estaJudicializado),
@@ -3856,7 +3856,7 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
   row.innerHTML = `
     <td><input name="dataDocumento" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" aria-label="Data"></td>
     <td><input name="tipoDocumento" type="text" placeholder="Tipo de documento" aria-label="Tipo de documento"></td>
-    <td><input name="paginasDocumento" type="number" min="0" placeholder="Página" aria-label="Página para o caso de dossiê/volume digitalizado"></td>
+    <td><input name="paginasDocumento" type="text" placeholder="Página" aria-label="Página para o caso de dossiê/volume digitalizado"></td>
     <td><input name="eventosAssuntos" type="text" placeholder="Digite o assunto" aria-label="Assunto"></td>
     <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
     <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
@@ -3974,7 +3974,7 @@ function normalizeDocumentoItem(documento = {}) {
   return {
     dataDocumento: prepararDataParaPayload(documento.dataDocumento || documento.DataDocumento || documento.data || documento.Data),
     tipoDocumento: asText(documento.tipoDocumento || documento.TipoDocumento || documento.tipo || documento.Tipo),
-    paginasDocumento: asText(documento.paginasDocumento || documento.PaginasDocumento || documento.paginas || documento.Paginas || documento.pagina || documento.Pagina),
+    paginasDocumento: asText(documento.paginasDocumento || documento.PaginasDocumento || documento.paginaDocumento || documento.PaginaDocumento || documento.paginas || documento.Paginas || documento.pagina || documento.Pagina),
     eventosAssuntos: asText(documento.eventosAssuntos || documento.EventosAssuntos || documento.assunto || documento.Assunto || documento.descricao || documento.Descricao),
     numeroSei: asText(documento.numeroSei || documento.NumeroSei || documento.NumeroSEI || documento.nSEI || documento.NSEI),
     numeroProcessoDocumento: asText(documento.numeroProcessoDocumento || documento.NumeroProcessoDocumento || documento.numeroProcesso || documento.NumeroProcesso || documento.processo || documento.Processo)
