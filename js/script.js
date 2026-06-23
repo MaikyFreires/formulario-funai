@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const SENT_FORM_IDS_KEY = "formulariosEnviadosSemRascunho";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260623-02";
+const APP_VERSION = "20260623-04";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
@@ -741,6 +741,22 @@ function confirmReturnHome() {
     return;
   }
 
+  if (!hasReivindicacaoId()) {
+    showRequiredReivindicacaoIdDialog({
+      title: "Informe o ID para salvar o rascunho",
+      description: "O ID da reivindicação é a chave do rascunho. Para salvar este formulário, informe o ID antes de voltar ao início.",
+      primaryText: "Salvar rascunho",
+      discardText: "Sim, sair sem salvar",
+      onConfirm: async () => {
+        const saved = await salvarFormulario("Rascunho", { automatico: false });
+        if (saved) showDashboard(getAuthorizedEmail());
+        return saved;
+      },
+      onDiscard: () => showDashboard(getAuthorizedEmail())
+    });
+    return;
+  }
+
   showReturnHomeDialog();
 }
 
@@ -772,6 +788,114 @@ function showReturnHomeDialog() {
   dialog.append(title, actions);
   overlay.append(dialog);
   document.body.append(overlay);
+}
+
+function showRequiredReivindicacaoIdDialog({
+  title = "ID da reivindicação obrigatório",
+  description = "Informe o ID da reivindicação para salvar este rascunho.",
+  primaryText = "Salvar rascunho",
+  discardText = "Sim, não salvar",
+  onConfirm,
+  onDiscard
+} = {}) {
+  const overlay = document.createElement("div");
+  const dialog = document.createElement("section");
+  const heading = document.createElement("h2");
+  const text = document.createElement("p");
+  const label = document.createElement("label");
+  const input = document.createElement("input");
+  const error = document.createElement("span");
+  const actions = document.createElement("div");
+  const keepEditingBtn = document.createElement("button");
+  const discardBtn = document.createElement("button");
+  const saveBtn = document.createElement("button");
+
+  overlay.className = "confirm-overlay";
+  dialog.className = "confirm-dialog required-id-dialog";
+  heading.textContent = title;
+  text.textContent = description;
+  label.textContent = "ID da reivindicação";
+  input.type = "text";
+  input.inputMode = "numeric";
+  input.pattern = "[0-9]*";
+  input.value = getValue("reivindicacaoId");
+  input.placeholder = "Digite o ID";
+  error.className = "field-error-message";
+  actions.className = "confirm-actions";
+  keepEditingBtn.type = "button";
+  keepEditingBtn.className = "ghost";
+  keepEditingBtn.textContent = "Continuar editando";
+  discardBtn.type = "button";
+  discardBtn.className = "ghost";
+  discardBtn.textContent = discardText;
+  saveBtn.type = "button";
+  saveBtn.textContent = primaryText;
+
+  input.addEventListener("input", () => {
+    const numericValue = input.value.replace(/\D/g, "");
+    if (input.value !== numericValue) input.value = numericValue;
+    error.textContent = "";
+    input.classList.remove("field-error");
+  });
+
+  keepEditingBtn.addEventListener("click", () => {
+    overlay.remove();
+    focusReivindicacaoIdField();
+  });
+
+  discardBtn.addEventListener("click", () => {
+    overlay.remove();
+    onDiscard?.();
+  });
+
+  saveBtn.addEventListener("click", async () => {
+    const id = input.value.trim();
+    if (!id) {
+      input.classList.add("field-error");
+      error.textContent = "Informe o ID para salvar o rascunho.";
+      input.focus();
+      return;
+    }
+
+    setReivindicacaoIdValue(id);
+    saveBtn.disabled = true;
+    discardBtn.disabled = true;
+    keepEditingBtn.disabled = true;
+    const confirmed = await onConfirm?.(id);
+    if (confirmed === false) {
+      saveBtn.disabled = false;
+      discardBtn.disabled = false;
+      keepEditingBtn.disabled = false;
+      return;
+    }
+    overlay.remove();
+  });
+
+  label.append(input, error);
+  actions.append(keepEditingBtn, discardBtn, saveBtn);
+  dialog.append(heading, text, label, actions);
+  overlay.append(dialog);
+  document.body.append(overlay);
+  input.focus();
+}
+
+function hasReivindicacaoId() {
+  return Boolean(getValue("reivindicacaoId"));
+}
+
+function setReivindicacaoIdValue(id) {
+  const field = form.elements.reivindicacaoId;
+  if (!field) return;
+  field.value = String(id || "").replace(/\D/g, "");
+  handleFormChange({ target: field });
+}
+
+function focusReivindicacaoIdField() {
+  const field = form.elements.reivindicacaoId;
+  if (!field) return;
+  const stepIndex = steps.findIndex((step) => step.contains(field));
+  if (stepIndex >= 0) showStep(stepIndex);
+  field.focus();
 }
 
 function updateConditionals({ renderDynamic = true } = {}) {
@@ -1732,6 +1856,18 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
 
   if (!automatico && actionButton.disabled) return false;
 
+  if (isDraft && !hasReivindicacaoId()) {
+    if (automatico) {
+      setAutosaveStatus("Rascunho não salvo: informe o ID da reivindicação.", "error");
+      return false;
+    }
+
+    showRequiredReivindicacaoIdDialog({
+      onConfirm: () => salvarFormulario("Rascunho", { automatico: false })
+    });
+    return false;
+  }
+
   if (!POWER_AUTOMATE_URL) {
     if (automatico) {
       setAutosaveStatus("Erro ao salvar automaticamente", "error");
@@ -2198,6 +2334,8 @@ async function carregarFormulario(formularioId, mode = "draft") {
 
   const id = getReportFormularioId(resumo) || asText(formularioId);
   const expectedReivindicacaoId = getReportReivindicacaoId(resumo);
+  const expectedConsultor = getReportConsultorIdentity(resumo);
+  const selectionKey = getReportSelectionKey(resumo);
   if (extrairFormularioJson(resumo)) {
     showReportListMessage(mode === "sent" ? "Abrindo relatório enviado..." : "Abrindo rascunho...", "success");
     await abrirRelatorioSelecionado(resumo, id, mode);
@@ -2220,6 +2358,8 @@ async function carregarFormulario(formularioId, mode = "draft") {
         formularioId: id,
         reivindicacaoId: expectedReivindicacaoId,
         idReivindicacao: expectedReivindicacaoId,
+        consultorIdentidade: expectedConsultor,
+        chaveRelatorio: selectionKey,
         consultor: {
           email: getAuthorizedEmail()
         }
@@ -2394,7 +2534,7 @@ function renderReportList(relatorios, emptyMessage) {
   reportList.append(createDraftReportHeader());
 
   relatorios.forEach((relatorio) => {
-    const formularioId = getReportFormularioId(relatorio);
+    const reportKey = getReportSelectionKey(relatorio);
     const reivindicacaoId = getReportReivindicacaoId(relatorio) || "Sem ID";
     const nomeReivindicacao = getReportNomeReivindicacao(relatorio) || "Sem nome";
     const atualizadoEm = getReportAtualizadoEm(relatorio);
@@ -2412,13 +2552,13 @@ function renderReportList(relatorios, emptyMessage) {
     idButton.textContent = reivindicacaoId;
     idButton.addEventListener("click", () => {
       if (currentReportListMode === "sent") {
-        abrirRelatorioEnviado(formularioId);
+        abrirRelatorioEnviado(reportKey);
         return;
       }
 
-      abrirRascunho(formularioId);
+      abrirRascunho(reportKey);
     });
-    idButton.disabled = !formularioId;
+    idButton.disabled = !reportKey;
 
     name.textContent = nomeReivindicacao;
     date.textContent = atualizadoEm;
@@ -2468,14 +2608,14 @@ function renderSentReportList(relatorios, emptyMessage) {
   reportList.append(createSentReportHeader());
 
   relatorios.forEach((relatorio) => {
-    const formularioId = getReportFormularioId(relatorio);
+    const reportKey = getReportSelectionKey(relatorio);
     const reivindicacaoId = getReportReivindicacaoId(relatorio) || "Sem ID";
     const nomeReivindicacao = getReportNomeReivindicacao(relatorio) || "Sem nome";
     const areaEstudo = getReportAreaEstudo(relatorio) || "Sem informação";
     const enviadoEm = getReportEnviadoEm(relatorio);
     const status = getReportStatus(relatorio) || "Enviado";
     const row = document.createElement("div");
-    const idButton = createReportOpenButton(reivindicacaoId, formularioId);
+    const idButton = createReportOpenButton(reivindicacaoId, reportKey);
     const name = document.createElement("span");
     const area = document.createElement("span");
     const date = document.createElement("span");
@@ -2490,8 +2630,8 @@ function renderSentReportList(relatorios, emptyMessage) {
     action.type = "button";
     action.className = "report-open-action";
     action.textContent = "Abrir";
-    action.disabled = !formularioId;
-    action.addEventListener("click", () => abrirRelatorioEnviado(formularioId));
+    action.disabled = !reportKey;
+    action.addEventListener("click", () => abrirRelatorioEnviado(reportKey));
 
     [
       [idButton, "ID"],
@@ -2605,22 +2745,53 @@ function isCompletionValueFilled(value) {
   return asText(value).trim().length > 0;
 }
 
-function createReportOpenButton(label, formularioId) {
+function createReportOpenButton(label, reportKey) {
   const button = document.createElement("button");
   button.type = "button";
   button.className = "report-link";
   button.textContent = label;
-  button.disabled = !formularioId;
-  button.addEventListener("click", () => abrirRelatorioEnviado(formularioId));
+  button.disabled = !reportKey;
+  button.addEventListener("click", () => abrirRelatorioEnviado(reportKey));
   return button;
 }
 
 function getCachedReport(id) {
   const targetId = asText(id);
   return cachedReports.find((relatorio) => {
+    const reportKey = getReportSelectionKey(relatorio);
+    if (reportKey && reportKey === targetId) return true;
+
     const formId = getReportFormularioId(relatorio);
     return formId && formId === targetId;
   });
+}
+
+function getReportSelectionKey(relatorio) {
+  const reivindicacaoId = normalizeKeyPart(getReportReivindicacaoId(relatorio));
+  const consultor = normalizeKeyPart(getReportConsultorIdentity(relatorio));
+  if (reivindicacaoId && consultor) return `${reivindicacaoId}::${consultor}`;
+
+  const formularioId = normalizeKeyPart(getReportFormularioId(relatorio));
+  return formularioId ? `formulario::${formularioId}` : "";
+}
+
+function getReportConsultorIdentity(relatorio) {
+  const formularioJson = extrairFormularioJson(relatorio);
+  return asText(
+    formularioJson?.consultor?.email ||
+    relatorio.consultor?.email ||
+    relatorio.ConsultorEmail ||
+    relatorio.consultorEmail ||
+    formularioJson?.consultor?.nome ||
+    relatorio.consultor?.nome ||
+    relatorio.ConsultorNome ||
+    relatorio.Title ||
+    relatorio.consultorNome
+  );
+}
+
+function normalizeKeyPart(value) {
+  return normalizeText(asText(value)).trim();
 }
 
 function getReportFormularioId(relatorio) {
