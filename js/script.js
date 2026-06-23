@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const SENT_FORM_IDS_KEY = "formulariosEnviadosSemRascunho";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260623-01";
+const APP_VERSION = "20260623-02";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const FORMULARIO_JSON_SIZE_LIMIT = 63999;
@@ -2198,6 +2198,12 @@ async function carregarFormulario(formularioId, mode = "draft") {
 
   const id = getReportFormularioId(resumo) || asText(formularioId);
   const expectedReivindicacaoId = getReportReivindicacaoId(resumo);
+  if (extrairFormularioJson(resumo)) {
+    showReportListMessage(mode === "sent" ? "Abrindo relatório enviado..." : "Abrindo rascunho...", "success");
+    await abrirRelatorioSelecionado(resumo, id, mode);
+    return;
+  }
+
   if (!LOAD_DRAFT_URL) {
     showReportListMessage("Configure LOAD_DRAFT_URL no arquivo js/config.js.", "error");
     return;
@@ -2212,6 +2218,8 @@ async function carregarFormulario(formularioId, mode = "draft") {
       },
       body: JSON.stringify({
         formularioId: id,
+        reivindicacaoId: expectedReivindicacaoId,
+        idReivindicacao: expectedReivindicacaoId,
         consultor: {
           email: getAuthorizedEmail()
         }
@@ -2232,20 +2240,24 @@ async function carregarFormulario(formularioId, mode = "draft") {
       return;
     }
 
-    currentFormularioId = getReportFormularioId(relatorio) || id;
-    sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
-    activePersistenceMode = "update";
-    await openForm({ reset: true, mode: mode === "sent" ? "sent" : "edit" });
-    preencherFormulario(relatorio);
-    setFormViewMode(mode === "sent" ? "sent" : "edit");
-    updateConditionals();
-    if (mode === "sent") {
-      renderSentFullView();
-    } else {
-      showStep(getFormularioStep(relatorio));
-    }
+    await abrirRelatorioSelecionado(relatorio, id, mode);
   } catch (error) {
     showReportListMessage("Não foi possível abrir o relatório.", "error");
+  }
+}
+
+async function abrirRelatorioSelecionado(relatorio, fallbackFormularioId, mode = "draft") {
+  currentFormularioId = getReportFormularioId(relatorio) || asText(fallbackFormularioId);
+  sessionStorage.setItem(ACTIVE_FORM_ID_KEY, currentFormularioId);
+  activePersistenceMode = "update";
+  await openForm({ reset: true, mode: mode === "sent" ? "sent" : "edit" });
+  preencherFormulario(relatorio);
+  setFormViewMode(mode === "sent" ? "sent" : "edit");
+  updateConditionals();
+  if (mode === "sent") {
+    renderSentFullView();
+  } else {
+    showStep(getFormularioStep(relatorio));
   }
 }
 
