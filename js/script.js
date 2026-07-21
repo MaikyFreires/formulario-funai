@@ -2046,18 +2046,21 @@ function salvarPdf() {
   gerarPdfFormulario();
 }
 
-function gerarPdfFormulario() {
-  prepararImpressaoPdf();
+function gerarPdfFormulario(dadosOrigem = null, nomeArquivo = "") {
+  const tituloOriginal = document.title;
+  if (nomeArquivo) document.title = nomeArquivo;
+  window.addEventListener("afterprint", () => {
+    document.title = tituloOriginal;
+  }, { once: true });
+
+  prepararImpressaoPdf(dadosOrigem);
   window.print();
 }
 
-function prepararImpressaoPdf() {
+function prepararImpressaoPdf(dadosOrigem = null) {
   document.querySelector(".pdf-print-root")?.remove();
 
-  const payload = normalizarPayloadParaPowerAutomate(buildPayload("Enviado"));
-  const dados = typeof payload.formularioJson === "string"
-    ? JSON.parse(payload.formularioJson)
-    : payload.formularioJson;
+  const dados = normalizarDadosParaPdf(dadosOrigem);
   const root = el("section", "pdf-print-root");
   const title = el("header", "pdf-cover pdf-section");
   title.append(
@@ -2180,6 +2183,114 @@ function prepararImpressaoPdf() {
 
   document.body.append(root);
   window.addEventListener("afterprint", () => root.remove(), { once: true });
+}
+
+function normalizarDadosParaPdf(dadosOrigem) {
+  if (!dadosOrigem) {
+    const payload = normalizarPayloadParaPowerAutomate(buildPayload("Enviado"));
+    return typeof payload.formularioJson === "string"
+      ? JSON.parse(payload.formularioJson)
+      : payload.formularioJson;
+  }
+
+  const dadosConvertidos = converterJsonSerializadoEmObjeto(dadosOrigem);
+  const formularioJson = extrairFormularioJson(dadosConvertidos);
+  if (formularioJson) return formularioJson;
+
+  if (
+    dadosConvertidos?.consultor ||
+    dadosConvertidos?.reivindicacao ||
+    dadosConvertidos?.resumoProcesso ||
+    dadosConvertidos?.statusProcesso ||
+    dadosConvertidos?.caracterizacaoArea ||
+    dadosConvertidos?.ocupacaoIndigena
+  ) {
+    return garantirTiposPayload({
+      ...dadosConvertidos,
+      formularioJson: dadosConvertidos
+    });
+  }
+
+  return montarDadosLegadosParaPdf(flattenDraft(dadosConvertidos));
+}
+
+function montarDadosLegadosParaPdf(values) {
+  return {
+    consultor: {
+      nome: values.consultorNome,
+      email: values.consultorEmail,
+      areaEstudo: values.areaEstudo
+    },
+    reivindicacao: {
+      id: values.reivindicacaoId,
+      nome: values.nomeReivindicacao,
+      outrosNomes: values.outrosNomes,
+      outrosNomesTexto: values.outrosNomesTexto,
+      processosAnalisados: normalizarProcessosAnalisados(values.processosAnalisados, values.numerosProcesso, values.descricaoProcessosAnalisados),
+      temRoteiro: values.temRoteiro,
+      dataRoteiro: values.dataRoteiro,
+      numeroSeiQualificacao: values.numeroSeiQualificacao,
+      etnias: values.etnias,
+      outrasEtnias: values.outrasEtnias,
+      tipoDemanda: values.tipoDemanda,
+      modalidadeConstituicao: values.modalidadeConstituicao,
+      temJustificativaRevisao: values.temJustificativaRevisao,
+      justificativaRevisao: values.justificativaRevisao,
+      estados: values.estados,
+      municipios: values.municipios,
+      coordenacaoRegional: values.coordenacaoRegional,
+      temRetomada: values.temRetomada,
+      detalhesRetomada: values.detalhesRetomada
+    },
+    resumoProcesso: {
+      descricao: values.descricaoReivindicacao,
+      documentos: values.documentos
+    },
+    statusProcesso: {
+      estaJudicializado: values.estaJudicializado,
+      motivacaoJudicializacao: values.motivacaoJudicializacao,
+      tiposAcaoJudicial: values.tiposAcaoJudicial,
+      acoesJudiciaisDetalhadas: values.acoesJudiciaisDetalhadas
+    },
+    caracterizacaoArea: {
+      localizacaoDemanda: values.localizacaoDemanda,
+      temCoordenadas: values.temCoordenadas,
+      coordenadasDetalhadas: values.coordenadas,
+      temMapaCartografico: values.temMapaCartografico,
+      mapasCartograficos: values.mapasCartograficos,
+      bioma: values.bioma,
+      citaAldeiasComunidades: values.citaAldeiasComunidades,
+      aldeiasComunidadesLista: values.aldeiasComunidadesLista,
+      aldeiasComunidades: values.aldeiasComunidades,
+      contextoUrbano: values.contextoUrbano,
+      detalhesContextoUrbano: values.detalhesContextoUrbano,
+      faixaFronteira: values.faixaFronteira,
+      detalhesFaixaFronteira: values.detalhesFaixaFronteira,
+      sobreposicoes: values.sobreposicoes,
+      tiposSobreposicao: values.tiposSobreposicao
+    },
+    ocupacaoIndigena: {
+      indigenasArea: values.indigenasArea,
+      tempoOcupacao: values.tempoOcupacao,
+      dataReferenciaOcupacao: values.dataReferenciaOcupacao,
+      vulnerabilidades: values.vulnerabilidades,
+      outroCriterioVulnerabilidade: values.outroCriterioVulnerabilidade,
+      detalhesVulnerabilidades: values.detalhesVulnerabilidades,
+      comunidadesTradicionais: values.comunidadesTradicionais,
+      tiposComunidadeTradicional: values.tiposComunidadeTradicional,
+      detalhesComunidadesTradicionais: values.detalhesComunidadesTradicionais,
+      conflitoInteretnico: values.conflitoInteretnico,
+      tiposConflito: values.tiposConflito,
+      detalhesConflitos: values.detalhesConflitos,
+      povosIsolados: values.povosIsolados,
+      detalhesPovosIsolados: values.detalhesPovosIsolados,
+      reintegracaoPosse: values.reintegracaoPosse,
+      descricaoReintegracaoPosse: values.descricaoReintegracaoPosse,
+      outrasAcoesJudiciaisComunidade: values.outrasAcoesJudiciaisComunidade,
+      descricaoOutrasAcoesJudiciaisComunidade: values.descricaoOutrasAcoesJudiciaisComunidade,
+      informacoesAdicionais: values.informacoesAdicionais
+    }
+  };
 }
 
 function criarPdfSecao(titulo, items) {
@@ -2545,6 +2656,7 @@ function renderReportList(relatorios, emptyMessage) {
     const date = document.createElement("span");
     const statusText = document.createElement("span");
     const progress = createDraftProgress(getDraftCompletionPercent(relatorio));
+    const action = document.createElement("button");
 
     row.className = "report-list-row";
     idButton.type = "button";
@@ -2563,20 +2675,93 @@ function renderReportList(relatorios, emptyMessage) {
     name.textContent = nomeReivindicacao;
     date.textContent = atualizadoEm;
     statusText.textContent = status;
+    action.type = "button";
+    action.className = "report-open-action";
+    action.textContent = "Baixar PDF";
+    action.disabled = !reportKey;
+    action.addEventListener("click", () => baixarRascunhoPdf(reportKey));
 
     [
       [idButton, "ID"],
       [name, "Nome da reivindicação"],
       [date, "Atualizado em"],
       [statusText, "Status"],
-      [progress, "Progresso"]
+      [progress, "Progresso"],
+      [action, "A\u00e7\u00e3o"]
     ].forEach(([element, label]) => {
       element.dataset.label = label;
     });
 
-    row.append(idButton, name, date, statusText, progress);
+    row.append(idButton, name, date, statusText, progress, action);
     reportList.append(row);
   });
+}
+
+async function baixarRascunhoPdf(reportKey) {
+  const resumo = getCachedReport(reportKey);
+  if (!resumo) {
+    showReportListMessage("Rascunho n\u00e3o encontrado nesta lista.", "error");
+    return;
+  }
+
+  try {
+    showReportListMessage("Preparando PDF do rascunho...", "success");
+    const relatorio = await carregarRelatorioCompletoDaLista(resumo, reportKey, "draft");
+    const reivindicacaoId = getReportReivindicacaoId(relatorio) || getReportReivindicacaoId(resumo) || "rascunho";
+    gerarPdfFormulario(relatorio, criarNomeArquivoPdf(reivindicacaoId));
+    showReportListMessage("PDF pronto. Escolha salvar como PDF na janela de impress\u00e3o.", "success");
+  } catch (error) {
+    console.error(error);
+    showReportListMessage("N\u00e3o foi poss\u00edvel baixar este rascunho.", "error");
+  }
+}
+
+async function carregarRelatorioCompletoDaLista(resumo, formularioId, mode = "draft") {
+  const id = getReportFormularioId(resumo) || asText(formularioId);
+  const expectedReivindicacaoId = getReportReivindicacaoId(resumo);
+  const expectedConsultor = getReportConsultorIdentity(resumo);
+  const selectionKey = getReportSelectionKey(resumo);
+
+  if (extrairFormularioJson(resumo)) return resumo;
+
+  if (!LOAD_DRAFT_URL) {
+    throw new Error("LOAD_DRAFT_URL n\u00e3o configurada.");
+  }
+
+  const response = await fetch(LOAD_DRAFT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      formularioId: id,
+      reivindicacaoId: expectedReivindicacaoId,
+      idReivindicacao: expectedReivindicacaoId,
+      consultorIdentidade: expectedConsultor,
+      chaveRelatorio: selectionKey,
+      consultor: {
+        email: getAuthorizedEmail()
+      }
+    })
+  });
+
+  if (!response.ok) throw new Error(`Falha ao carregar relat\u00f3rio: ${response.status}`);
+
+  const data = await readJsonIfAvailable(response);
+  const relatorio = normalizarRascunhoCarregado(data, resumo);
+
+  if (!relatorioCorrespondeAoResumo(relatorio, resumo)) {
+    throw new Error(`Relat\u00f3rio carregado n\u00e3o corresponde ao rascunho selecionado (${mode}).`);
+  }
+
+  return relatorio;
+}
+
+function criarNomeArquivoPdf(reivindicacaoId) {
+  const id = normalizeText(reivindicacaoId)
+    .replace(/[^a-z0-9_-]+/g, "-")
+    .replace(/^-+|-+$/g, "") || "rascunho";
+  return `rascunho-${id}`;
 }
 
 function handleSentReportSearch() {
@@ -2663,7 +2848,7 @@ function createSentReportHeader() {
 function createDraftReportHeader() {
   const header = document.createElement("div");
   header.className = "report-list-row report-list-header";
-  ["ID", "Nome da reivindicação", "Atualizado em", "Status", "Progresso"].forEach((label) => {
+  ["ID", "Nome da reivindicação", "Atualizado em", "Status", "Progresso", "A\u00e7\u00e3o"].forEach((label) => {
     const item = document.createElement("strong");
     item.textContent = label;
     header.append(item);
