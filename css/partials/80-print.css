@@ -3,7 +3,7 @@
 }
 
 @page {
-  margin: 18mm;
+  margin: 14mm 12mm 16mm;
 }
 
 @media print {
@@ -48,43 +48,49 @@
   .pdf-print-root {
     display: block !important;
     font-family: Arial, Helvetica, sans-serif;
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 11.5px;
+    line-height: 1.42;
     color: #111;
   }
 
   .pdf-cover {
-    margin-bottom: 12mm;
-    border-bottom: 2px solid #263a1f;
-    padding-bottom: 6mm;
+    margin-bottom: 7mm;
+    border-bottom: 2px solid #1f4f35;
+    padding-bottom: 5mm;
   }
 
   .pdf-cover h1 {
-    margin: 0 0 6mm;
-    color: #263a1f;
-    font-size: 20px;
+    max-width: 170mm;
+    margin: 0 auto 4mm;
+    color: #1f4f35;
+    font-size: 19px;
     line-height: 1.25;
+    text-align: center;
   }
 
   .pdf-section {
-    margin: 0 0 8mm;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    margin: 0 0 7mm;
   }
 
   .pdf-section h2 {
-    margin: 0 0 4mm;
+    margin: 0 0 3mm;
     page-break-after: avoid;
     break-after: avoid;
-    color: #263a1f;
-    font-size: 15px;
+    color: #1f4f35;
+    font-size: 14px;
     line-height: 1.2;
-    border-bottom: 1px solid #b8b8b8;
-    padding-bottom: 2mm;
+    border-bottom: 1px solid #9fb6a8;
+    padding: 0 0 1.8mm;
+  }
+
+  .pdf-section-body {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 2.4mm 5mm;
   }
 
   .pdf-section h3 {
-    margin: 4mm 0 2mm;
+    margin: 2mm 0 1.8mm;
     page-break-after: avoid;
     break-after: avoid;
     color: #333;
@@ -92,16 +98,34 @@
   }
 
   .pdf-field {
-    margin: 0 0 2.5mm;
+    margin: 0;
     page-break-inside: avoid;
     break-inside: avoid;
     white-space: pre-wrap;
   }
 
+  .pdf-field strong {
+    display: block;
+    margin-bottom: 0.8mm;
+    color: #333;
+    font-size: 10.2px;
+    text-transform: uppercase;
+  }
+
+  .pdf-field span {
+    display: block;
+  }
+
+  .pdf-field-long,
+  .pdf-radio,
+  .pdf-table-wrap {
+    grid-column: 1 / -1;
+  }
+
   .pdf-radio {
     display: flex;
     flex-wrap: wrap;
-    gap: 3mm 5mm;
+    gap: 1.8mm 5mm;
     align-items: baseline;
   }
 
@@ -114,30 +138,46 @@
   }
 
   .pdf-table-wrap {
-    margin: 0 0 5mm;
-    page-break-inside: avoid;
-    break-inside: avoid;
+    margin: 1mm 0 2mm;
   }
 
   .pdf-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto;
+    table-layout: fixed;
+    page-break-inside: auto;
   }
 
   .pdf-table th,
   .pdf-table td {
-    border: 1px solid #ccc;
-    padding: 6px;
-    font-size: 12px;
+    border: 1px solid #c9d0cc;
+    padding: 4px 5px;
+    font-size: 10.5px;
+    line-height: 1.32;
     vertical-align: top;
     overflow-wrap: anywhere;
   }
 
   .pdf-table th {
-    background: #f0f0f0;
+    background: #eef4f0;
     color: #111;
     font-weight: 700;
+  }
+
+  .pdf-table thead {
+    display: table-header-group;
+  }
+
+  .pdf-table tr {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  .pdf-table-wide th,
+  .pdf-table-wide td {
+    padding: 3px 4px;
+    font-size: 9.2px;
+    line-height: 1.25;
   }
 
   .pdf-signature {
@@ -157,7 +197,7 @@
   }
 
   .pdf-footer-line {
-    margin-top: 8mm;
+    margin: 4mm 0 0;
     color: #333;
     font-size: 11px;
     font-weight: 700;

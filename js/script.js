@@ -2068,6 +2068,7 @@ function prepararImpressaoPdf(dadosOrigem = null) {
     el("p", "pdf-footer-line", "CGID/DIDEM/FUNAI | 2026")
   );
   root.append(title);
+  root.append(criarResumoPdf(dados));
 
   root.append(
     criarPdfSecao("1. Dados do consultor", [
@@ -2297,15 +2298,28 @@ function criarPdfSecao(titulo, items) {
   const content = items.filter(Boolean);
   if (!content.length) return document.createDocumentFragment();
   const section = el("section", "pdf-section");
-  section.append(el("h2", "", titulo), ...content);
+  const body = el("div", "pdf-section-body");
+  body.append(...content);
+  section.append(el("h2", "", titulo), body);
   return section;
+}
+
+function criarResumoPdf(dados) {
+  return criarPdfSecao("Resumo do rascunho", [
+    pdfField("ID", dados.reivindicacao?.id),
+    pdfField("Nome da reivindicação", dados.reivindicacao?.nome),
+    pdfField("Consultor", dados.consultor?.nome),
+    pdfField("Área de estudo", dados.consultor?.areaEstudo),
+    pdfField("Estado", asList(dados.reivindicacao?.estados).join(", ") || dados.reivindicacao?.estado),
+    pdfField("Município", asList(dados.reivindicacao?.municipios).join(", ") || dados.reivindicacao?.municipio)
+  ]);
 }
 
 function pdfField(label, value) {
   const text = asText(value);
   if (!text) return null;
-  const row = el("div", "pdf-field");
-  row.append(el("strong", "", `${label}: `), document.createTextNode(text));
+  const row = el("div", text.length > 95 ? "pdf-field pdf-field-long" : "pdf-field");
+  row.append(el("strong", "", label), el("span", "", text));
   return row;
 }
 
@@ -2313,7 +2327,7 @@ function pdfRadio(label, value, options) {
   const selected = asText(value);
   if (!selected) return null;
   const row = el("div", "pdf-field pdf-radio");
-  row.append(el("strong", "", `${label}: `));
+  row.append(el("strong", "", label));
   options.forEach((option) => {
     row.append(el("span", "pdf-radio-option", `( ${selected === option ? "X" : " "} ) ${option}`));
   });
@@ -2327,7 +2341,7 @@ function pdfTabela(title, headers, rows) {
   if (!cleanRows.length) return null;
 
   const wrapper = el("div", "pdf-table-wrap");
-  const table = el("table", "pdf-table");
+  const table = el("table", headers.length > 4 ? "pdf-table pdf-table-wide" : "pdf-table");
   const thead = document.createElement("thead");
   const headerRow = document.createElement("tr");
   headers.forEach((header) => headerRow.append(el("th", "", header)));
@@ -2336,7 +2350,11 @@ function pdfTabela(title, headers, rows) {
   const tbody = document.createElement("tbody");
   cleanRows.forEach((row) => {
     const tr = document.createElement("tr");
-    row.forEach((cell) => tr.append(el("td", "", cell)));
+    headers.forEach((header, index) => {
+      const cell = el("td", "", row[index] || "");
+      cell.dataset.label = header;
+      tr.append(cell);
+    });
     tbody.append(tr);
   });
 
