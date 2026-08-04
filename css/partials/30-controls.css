@@ -179,6 +179,22 @@ textarea {
   min-height: 76px;
 }
 
+.character-counter {
+  align-self: flex-end;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 750;
+  letter-spacing: 0;
+}
+
+.character-counter.is-warning {
+  color: #9a6a00;
+}
+
+.character-counter.is-danger {
+  color: var(--danger);
+}
+
 input::placeholder,
 textarea::placeholder {
   color: color-mix(in srgb, var(--muted) 82%, transparent);
