@@ -13,10 +13,6 @@ const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
 const APP_VERSION = "20260804-01";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
-const FORMULARIO_JSON_SIZE_LIMIT = 63999;
-const FORMULARIO_JSON_BLOCK_LIMIT = 63000;
-const FORMULARIO_JSON_YELLOW_WARNING = 40000;
-const FORMULARIO_JSON_RED_WARNING = 55000;
 const DESCRICAO_REIVINDICACAO_LIMIT = 55000;
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
@@ -1579,10 +1575,10 @@ async function handleSubmit(event) {
 
 function buildPayload(statusFormulario = "Enviado") {
   const now = new Date().toISOString();
-  const formularioJson = montarFormularioJson(statusFormulario, now);
+  const dadosCompletos = montarFormularioJson(statusFormulario, now);
   const payload = {
-    ...formularioJson,
-    formularioJson
+    ...dadosCompletos,
+    formularioJson: JSON.stringify(dadosCompletos)
   };
   return garantirTiposPayload(payload);
 }
@@ -1651,34 +1647,17 @@ function validarFormularioJsonAntesDoEnvio(payload) {
 }
 
 function calcularTamanhoFormularioJson(payload) {
-  const formularioJson = JSON.stringify(payload);
+  const formularioJson = typeof payload?.formularioJson === "string"
+    ? asText(payload.formularioJson)
+    : JSON.stringify(payload?.formularioJson || payload || {});
   const tamanhoFormulario = formularioJson.length;
-  const percentualUsado = ((tamanhoFormulario / FORMULARIO_JSON_SIZE_LIMIT) * 100).toFixed(2);
+  const tamanhoBytes = new TextEncoder().encode(formularioJson).length;
+  const tamanhoKb = tamanhoBytes / 1024;
   return {
     formularioJson,
     tamanhoFormulario,
-    percentualUsado
-  };
-}
-
-function validarTamanhoFormularioJson(payload) {
-  const resultado = calcularTamanhoFormularioJson(payload);
-  const { tamanhoFormulario, percentualUsado } = resultado;
-
-  console.log("Tamanho FormularioJson:", tamanhoFormulario, "caracteres");
-  console.log("Percentual usado:", `${percentualUsado}%`);
-
-  if (tamanhoFormulario > FORMULARIO_JSON_BLOCK_LIMIT) {
-    console.error("%cFormularioJson acima de 63 mil caracteres. Envio bloqueado.", "color: #9f2b1f; font-weight: 800;");
-  } else if (tamanhoFormulario > FORMULARIO_JSON_RED_WARNING) {
-    console.warn("%cFormularioJson acima de 55 mil caracteres.", "color: #9f2b1f; font-weight: 800;");
-  } else if (tamanhoFormulario > FORMULARIO_JSON_YELLOW_WARNING) {
-    console.warn("%cFormularioJson acima de 40 mil caracteres.", "color: #9a6a00; font-weight: 800;");
-  }
-
-  return {
-    ...resultado,
-    isValid: tamanhoFormulario <= FORMULARIO_JSON_BLOCK_LIMIT
+    tamanhoBytes,
+    tamanhoKb
   };
 }
 
@@ -1687,15 +1666,11 @@ function updateFormularioJsonSizeMeter() {
 
   try {
     const payload = normalizarPayloadParaPowerAutomate(buildPayload(activeFormMode === "sent" ? "Enviado" : "Rascunho"));
-    const { tamanhoFormulario, percentualUsado } = calcularTamanhoFormularioJson(payload);
-    formSizeMeter.textContent = `Espa\u00e7o utilizado do formul\u00e1rio: ${percentualUsado}%`;
-    formSizeMeter.title = `${tamanhoFormulario} de ${FORMULARIO_JSON_SIZE_LIMIT} caracteres`;
-    formSizeMeter.classList.toggle("is-warning", tamanhoFormulario > FORMULARIO_JSON_YELLOW_WARNING && tamanhoFormulario <= FORMULARIO_JSON_RED_WARNING);
-    formSizeMeter.classList.toggle("is-danger", tamanhoFormulario > FORMULARIO_JSON_RED_WARNING && tamanhoFormulario <= FORMULARIO_JSON_BLOCK_LIMIT);
-    formSizeMeter.classList.toggle("is-blocked", tamanhoFormulario > FORMULARIO_JSON_BLOCK_LIMIT);
+    const { tamanhoFormulario, tamanhoKb } = calcularTamanhoFormularioJson(payload);
+    formSizeMeter.textContent = `Tamanho atual do JSON: ${tamanhoKb.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} KB`;
+    formSizeMeter.title = `${tamanhoFormulario.toLocaleString("pt-BR")} caracteres`;
   } catch (error) {
-    formSizeMeter.textContent = "Espa\u00e7o utilizado do formul\u00e1rio: --";
-    formSizeMeter.classList.remove("is-warning", "is-danger", "is-blocked");
+    formSizeMeter.textContent = "Tamanho atual do JSON: --";
   }
 }
 
@@ -1894,7 +1869,7 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
 
   if (!POWER_AUTOMATE_URL) {
     if (automatico) {
-      setAutosaveStatus("Erro ao salvar automaticamente", "error");
+      setAutosaveStatus("Autosave não configurado.", "error");
       return false;
     }
     showMessage("Configure POWER_AUTOMATE_URL no arquivo js/config.js antes de salvar.", "error");
@@ -1908,20 +1883,10 @@ async function salvarFormulario(statusFormulario = "Rascunho", options = {}) {
   try {
     payload = normalizarPayloadParaPowerAutomate(buildPayload(statusFormulario));
     const formularioJsonValidation = validarFormularioJsonAntesDoEnvio(payload);
-    const tamanhoFormularioValidation = validarTamanhoFormularioJson(payload);
     updateFormularioJsonSizeMeter();
 
     if (!isDraft && !formularioJsonValidation.isValid) {
       showMessage(`Não foi possível enviar: FormularioJson incompleto. Blocos ausentes: ${formularioJsonValidation.camposAusentes.join(", ") || "JSON inválido"}.`, "error");
-      return false;
-    }
-
-    if (!tamanhoFormularioValidation.isValid) {
-      if (automatico) {
-        setAutosaveStatus("Erro ao salvar automaticamente", "error");
-        return false;
-      }
-      showMessage(`N\u00e3o foi poss\u00edvel ${isDraft ? "salvar" : "enviar"}: o FormularioJson tem ${tamanhoFormularioValidation.tamanhoFormulario} caracteres e ultrapassa o limite de 63 mil.`, "error");
       return false;
     }
 

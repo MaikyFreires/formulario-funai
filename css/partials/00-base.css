@@ -122,15 +122,6 @@ textarea {
   color: var(--danger);
 }
 
-.form-size-meter.is-warning {
-  color: #9a6a00;
-}
-
-.form-size-meter.is-danger,
-.form-size-meter.is-blocked {
-  color: var(--danger);
-}
-
 .form-shell {
   width: min(1474px, calc(100% - 84px));
   margin: 0 auto;
