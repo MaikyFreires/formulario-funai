@@ -13,7 +13,6 @@ const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
 const APP_VERSION = "20260804-01";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
-const DESCRICAO_REIVINDICACAO_LIMIT = 55000;
 const DATE_BR_FIELD_NAMES = new Set([
   "dataRoteiro",
   "dataDocumento",
@@ -361,7 +360,6 @@ async function initializeForm() {
   await loadMunicipioData();
   populateComunidadeTradicionalOptions();
   bindEvents();
-  descricaoReivindicacaoField?.setAttribute("maxlength", String(DESCRICAO_REIVINDICACAO_LIMIT));
   updateConditionals();
   updateDescricaoReivindicacaoCounter();
   updateFormularioJsonSizeMeter();
@@ -496,14 +494,7 @@ function updateDescricaoReivindicacaoCounter() {
   if (!descricaoReivindicacaoField || !descricaoReivindicacaoCounter) return;
 
   const usedCharacters = descricaoReivindicacaoField.value.length;
-  const remainingCharacters = Math.max(DESCRICAO_REIVINDICACAO_LIMIT - usedCharacters, 0);
-  descricaoReivindicacaoCounter.textContent = `${usedCharacters.toLocaleString("pt-BR")} de ${DESCRICAO_REIVINDICACAO_LIMIT.toLocaleString("pt-BR")} caracteres`;
-  descricaoReivindicacaoCounter.classList.toggle("is-warning", remainingCharacters > 0 && remainingCharacters < DESCRICAO_REIVINDICACAO_LIMIT * 0.1);
-  descricaoReivindicacaoCounter.classList.toggle("is-danger", remainingCharacters === 0);
-}
-
-function isDescricaoReivindicacaoWithinLimit() {
-  return (descricaoReivindicacaoField?.value.length || 0) <= DESCRICAO_REIVINDICACAO_LIMIT;
+  descricaoReivindicacaoCounter.textContent = `${usedCharacters.toLocaleString("pt-BR")} caracteres`;
 }
 
 function handleAutosaveDynamicClick(event) {
@@ -1008,7 +999,6 @@ function validateRequiredFields(isDraftSave = false) {
     { fieldId: "descricaoAcao", label: "Descrição da ação judicial", isValid: () => !getCheckedValues("acoesJudiciais").includes("Outros") || hasValue("descricaoAcao") },
     { fieldId: "detalheOutrasSobreposicoes", label: "Detalhe de outras sobreposições", isValid: () => !getCheckedValues("tiposSobreposicao").includes("Outros") || hasValue("detalheOutrasSobreposicoes") },
     { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", isValid: () => hasValue("descricaoReivindicacao") },
-    { fieldId: "descricaoReivindicacao", label: "Descrição da reivindicação", message: `A descrição da reivindicação deve ter no máximo ${DESCRICAO_REIVINDICACAO_LIMIT.toLocaleString("pt-BR")} caracteres.`, isValid: isDescricaoReivindicacaoWithinLimit },
     { fieldId: "indigenasArea", label: "Indígenas na área reivindicada", isValid: () => hasChecked("indigenasArea") },
     { fieldId: "comunidadesTradicionais", label: "Comunidades tradicionais", isValid: () => hasChecked("comunidadesTradicionais") },
     { fieldId: "conflitoInteretnico", label: "Conflito na área reivindicada", isValid: () => hasChecked("conflitoInteretnico") },
@@ -1245,7 +1235,7 @@ function isRequiredFieldResolved(fieldId) {
     estaJudicializado: () => hasChecked("estaJudicializado"),
     tiposAcaoJudicial: () => getValue("estaJudicializado") !== "Sim" || getCheckedValues("tiposAcaoJudicial").length > 0,
     classificacaoJudicializacaoOutros: () => !getCheckedValues("tiposAcaoJudicial").includes("Outros") || hasValue("classificacaoJudicializacaoOutros"),
-    descricaoReivindicacao: () => hasValue("descricaoReivindicacao") && isDescricaoReivindicacaoWithinLimit(),
+    descricaoReivindicacao: () => hasValue("descricaoReivindicacao"),
     indigenasArea: () => hasChecked("indigenasArea"),
     comunidadesTradicionais: () => hasChecked("comunidadesTradicionais"),
     conflitoInteretnico: () => hasChecked("conflitoInteretnico"),

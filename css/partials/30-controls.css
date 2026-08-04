@@ -187,14 +187,6 @@ textarea {
   letter-spacing: 0;
 }
 
-.character-counter.is-warning {
-  color: #9a6a00;
-}
-
-.character-counter.is-danger {
-  color: var(--danger);
-}
-
 input::placeholder,
 textarea::placeholder {
   color: color-mix(in srgb, var(--muted) 82%, transparent);
