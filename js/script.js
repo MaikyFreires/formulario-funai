@@ -10,7 +10,7 @@ const ACTIVE_FORM_ID_KEY = "formularioIdAtivo";
 const SENT_FORM_IDS_KEY = "formulariosEnviadosSemRascunho";
 const MUNICIPIOS_CSV_URL = "data/municipios-estados.csv";
 const ETNIAS_CSV_URL = "data/Etnias%20IBGE%20.csv";
-const APP_VERSION = "20260804-01";
+const APP_VERSION = "20261002-02";
 const AUTOSAVE_DEBOUNCE_MS = 2000;
 const AUTOSAVE_MIN_INTERVAL_MS = 5000;
 const DATE_BR_FIELD_NAMES = new Set([
@@ -118,6 +118,9 @@ let aldeiaChips;
 let addAldeiaBtn;
 let documentosTableBody;
 let addDocumentoBtn;
+let draggedDocumentoRow = null;
+let draggedDocumentoPointerId = null;
+let documentoDragMoved = false;
 let estadoInput;
 let estadoOptions;
 let estadoChips;
@@ -471,7 +474,11 @@ function bindEvents() {
   aldeiaInput.addEventListener("keydown", handleAldeiaKeydown);
   aldeiaChips.addEventListener("click", removeAldeiaField);
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
-  documentosTableBody.addEventListener("focusout", handleDocumentoTableFocusOut);
+  documentosTableBody.addEventListener("pointerdown", handleDocumentoPointerDown);
+  documentosTableBody.addEventListener("keydown", handleDocumentoMoveKeydown);
+  document.addEventListener("pointermove", handleDocumentoPointerMove, { passive: false });
+  document.addEventListener("pointerup", finishDocumentoDrag);
+  document.addEventListener("pointercancel", finishDocumentoDrag);
   document.addEventListener("click", handleInfoToggleClick);
   coordenadasTableBody.addEventListener("click", handleCoordenadaTableClick);
   coordenadasTableBody.addEventListener("input", handleCoordenadaTableInput);
@@ -4236,11 +4243,6 @@ function handleDocumentoTableClick(event) {
   if (addButton) addDocumentoRow();
 }
 
-function handleDocumentoTableFocusOut(event) {
-  if (!event.target.matches("[name='dataDocumento']")) return;
-  sortDocumentoRows();
-}
-
 function addDocumentoRow(documento = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "document-row";
@@ -4252,14 +4254,14 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
     <td><input name="numeroSei" type="text" placeholder="Nº SEI" aria-label="Nº SEI"></td>
     <td><input name="numeroProcessoDocumento" type="text" placeholder="Nº do processo" aria-label="Nº do processo"></td>
     <td class="document-actions">
+      <button type="button" class="icon-button move-documento-btn" aria-label="Mover documento; arraste para reordenar" title="Arraste para reordenar">&#x283F;</button>
       <button type="button" class="icon-button remove-documento-btn" aria-label="Remover documento">×</button>
       <button type="button" class="icon-button add-documento-row-btn" aria-label="Adicionar documento">+</button>
     </td>
   `;
-  row.dataset.ordemInsercao = String(getDocumentoInsertionOrder(documento));
   documentosTableBody.append(row);
   setDocumentoRowValues(row, documento);
-  sortDocumentoRows();
+  renumberDocumentoRows();
   updateFormularioJsonSizeMeter();
   if (shouldFocus) row.querySelector("input, textarea")?.focus();
 }
@@ -4269,6 +4271,7 @@ function removeDocumentoRow(row) {
   const rows = Array.from(documentosTableBody.querySelectorAll(".document-row"));
   if (rows.length > 1) {
     row.remove();
+    renumberDocumentoRows();
     updateFormularioJsonSizeMeter();
     return;
   }
@@ -4286,7 +4289,7 @@ function resetDocumentoRows() {
 }
 
 function restoreDocumentoRows(documentos = []) {
-  const values = sortDocumentos(normalizeDocumentos(documentos));
+  const values = normalizeDocumentos(documentos);
   resetDocumentoRows();
   if (!values.length) return;
 
@@ -4294,6 +4297,7 @@ function restoreDocumentoRows(documentos = []) {
   const firstRow = documentosTableBody.querySelector(".document-row");
   setDocumentoRowValues(firstRow, first);
   rest.forEach((documento) => addDocumentoRow(documento, false));
+  renumberDocumentoRows();
 }
 
 function restoreLegacyDocumentoRow(values) {
@@ -4317,7 +4321,7 @@ function setDocumentoRowValues(row, documento) {
   if (Number.isInteger(normalizado.ordemInsercao)) {
     row.dataset.ordemInsercao = String(normalizado.ordemInsercao);
   } else if (!row.dataset.ordemInsercao) {
-    row.dataset.ordemInsercao = String(getDocumentoInsertionOrder());
+    row.dataset.ordemInsercao = String(Math.max(documentosTableBody.querySelectorAll(".document-row").length - 1, 0));
   }
   row.querySelector("[name='dataDocumento']").value = converterDataParaBR(normalizado.dataDocumento);
   row.querySelector("[name='tipoDocumento']").value = asText(normalizado.tipoDocumento);
@@ -4328,18 +4332,17 @@ function setDocumentoRowValues(row, documento) {
 }
 
 function getDocumentosProcesso() {
-  const documentos = Array.from(documentosTableBody.querySelectorAll(".document-row"))
-    .map((row) => ({
+  return Array.from(documentosTableBody.querySelectorAll(".document-row"))
+    .map((row, index) => ({
       dataDocumento: prepararDataParaPayload(row.querySelector("[name='dataDocumento']")?.value),
       tipoDocumento: asText(row.querySelector("[name='tipoDocumento']")?.value),
       paginasDocumento: asText(row.querySelector("[name='paginasDocumento']")?.value),
       eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value),
       numeroSei: asText(row.querySelector("[name='numeroSei']")?.value),
       numeroProcessoDocumento: asText(row.querySelector("[name='numeroProcessoDocumento']")?.value),
-      ordemInsercao: Number(row.dataset.ordemInsercao)
+      ordemInsercao: index
     }))
     .filter((documento) => Object.entries(documento).some(([campo, valor]) => campo !== "ordemInsercao" && Boolean(valor)));
-  return sortDocumentos(documentos);
 }
 
 function normalizeDocumentos(value) {
@@ -4391,40 +4394,68 @@ function normalizeDocumentoItem(documento = {}, fallbackOrder) {
   };
 }
 
-function getDocumentoInsertionOrder(documento = {}) {
-  const ordemInformada = Number(documento?.ordemInsercao ?? documento?.OrdemInsercao);
-  if (Number.isInteger(ordemInformada) && ordemInformada >= 0) return ordemInformada;
+function handleDocumentoPointerDown(event) {
+  const handle = event.target.closest(".move-documento-btn");
+  if (!handle || event.button > 0) return;
 
-  const ordens = Array.from(documentosTableBody.querySelectorAll(".document-row"))
-    .map((row) => Number(row.dataset.ordemInsercao))
-    .filter(Number.isInteger);
-  return ordens.length ? Math.max(...ordens) + 1 : 0;
+  event.preventDefault();
+  draggedDocumentoRow = handle.closest(".document-row");
+  draggedDocumentoPointerId = event.pointerId;
+  documentoDragMoved = false;
+  draggedDocumentoRow?.classList.add("is-dragging");
+  handle.setPointerCapture?.(event.pointerId);
 }
 
-function sortDocumentos(documentos = []) {
-  return documentos
-    .map((documento, index) => ({ ...documento, ordemInsercao: Number.isInteger(documento.ordemInsercao) ? documento.ordemInsercao : index }))
-    .sort((a, b) => {
-      const dataA = prepararDataParaPayload(a.dataDocumento);
-      const dataB = prepararDataParaPayload(b.dataDocumento);
-      if (dataA && dataB && dataA !== dataB) return dataA.localeCompare(dataB);
-      if (dataA && !dataB) return -1;
-      if (!dataA && dataB) return 1;
-      return a.ordemInsercao - b.ordemInsercao;
-    });
+function handleDocumentoPointerMove(event) {
+  if (!draggedDocumentoRow || event.pointerId !== draggedDocumentoPointerId) return;
+  event.preventDefault();
+
+  const targetRow = document.elementFromPoint(event.clientX, event.clientY)?.closest(".document-row");
+  if (targetRow && targetRow !== draggedDocumentoRow && targetRow.parentElement === documentosTableBody) {
+    const bounds = targetRow.getBoundingClientRect();
+    const insertBefore = event.clientY < bounds.top + bounds.height / 2;
+    documentosTableBody.insertBefore(draggedDocumentoRow, insertBefore ? targetRow : targetRow.nextSibling);
+    documentoDragMoved = true;
+  }
+
+  const scrollMargin = 72;
+  if (event.clientY < scrollMargin) window.scrollBy(0, -12);
+  if (event.clientY > window.innerHeight - scrollMargin) window.scrollBy(0, 12);
 }
 
-function sortDocumentoRows() {
-  const rows = Array.from(documentosTableBody.querySelectorAll(".document-row"));
-  rows.sort((rowA, rowB) => {
-    const dataA = prepararDataParaPayload(rowA.querySelector("[name='dataDocumento']")?.value);
-    const dataB = prepararDataParaPayload(rowB.querySelector("[name='dataDocumento']")?.value);
-    if (dataA && dataB && dataA !== dataB) return dataA.localeCompare(dataB);
-    if (dataA && !dataB) return -1;
-    if (!dataA && dataB) return 1;
-    return Number(rowA.dataset.ordemInsercao) - Number(rowB.dataset.ordemInsercao);
-  });
-  rows.forEach((row) => documentosTableBody.append(row));
+function finishDocumentoDrag(event) {
+  if (!draggedDocumentoRow || event.pointerId !== draggedDocumentoPointerId) return;
+  draggedDocumentoRow.classList.remove("is-dragging");
+  draggedDocumentoRow = null;
+  draggedDocumentoPointerId = null;
+
+  if (documentoDragMoved) {
+    renumberDocumentoRows();
+    updateFormularioJsonSizeMeter();
+    agendarAutosave();
+  }
+  documentoDragMoved = false;
+}
+
+function handleDocumentoMoveKeydown(event) {
+  const handle = event.target.closest(".move-documento-btn");
+  if (!handle || !["ArrowUp", "ArrowDown"].includes(event.key)) return;
+
+  const row = handle.closest(".document-row");
+  const sibling = event.key === "ArrowUp" ? row.previousElementSibling : row.nextElementSibling;
+  if (!sibling) return;
+
+  event.preventDefault();
+  documentosTableBody.insertBefore(row, event.key === "ArrowUp" ? sibling : sibling.nextElementSibling);
+  renumberDocumentoRows();
+  updateFormularioJsonSizeMeter();
+  agendarAutosave();
+  handle.focus();
+}
+
+function renumberDocumentoRows() {
+  Array.from(documentosTableBody.querySelectorAll(".document-row"))
+    .forEach((row, index) => { row.dataset.ordemInsercao = String(index); });
 }
 
 function handleCoordenadaTableClick(event) {

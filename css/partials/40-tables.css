@@ -353,7 +353,7 @@ section.coordinate-table-section.is-visible {
 
 .document-table td:last-child,
 .document-table th:last-child {
-  width: 112px;
+  width: 132px;
   text-align: center;
 }
 
@@ -391,7 +391,7 @@ section.coordinate-table-section.is-visible {
 .document-actions {
   display: flex;
   justify-content: center;
-  gap: 20px;
+  gap: 10px;
   white-space: nowrap;
 }
 
@@ -419,6 +419,25 @@ section.coordinate-table-section.is-visible {
 .document-actions .add-documento-row-btn {
   color: var(--green-2);
   font-size: 2.25rem;
+}
+
+.document-actions .move-documento-btn {
+  color: var(--muted);
+  font-size: 1.65rem;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.document-actions .move-documento-btn:active,
+.document-row.is-dragging .move-documento-btn {
+  cursor: grabbing;
+}
+
+.document-row.is-dragging {
+  opacity: 0.62;
+  outline: 2px dashed var(--blue);
+  outline-offset: 2px;
 }
 
 .coordinate-actions .add-coordenada-row-btn {
