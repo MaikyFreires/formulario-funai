@@ -471,6 +471,7 @@ function bindEvents() {
   aldeiaInput.addEventListener("keydown", handleAldeiaKeydown);
   aldeiaChips.addEventListener("click", removeAldeiaField);
   documentosTableBody.addEventListener("click", handleDocumentoTableClick);
+  documentosTableBody.addEventListener("focusout", handleDocumentoTableFocusOut);
   document.addEventListener("click", handleInfoToggleClick);
   coordenadasTableBody.addEventListener("click", handleCoordenadaTableClick);
   coordenadasTableBody.addEventListener("input", handleCoordenadaTableInput);
@@ -4235,6 +4236,11 @@ function handleDocumentoTableClick(event) {
   if (addButton) addDocumentoRow();
 }
 
+function handleDocumentoTableFocusOut(event) {
+  if (!event.target.matches("[name='dataDocumento']")) return;
+  sortDocumentoRows();
+}
+
 function addDocumentoRow(documento = {}, shouldFocus = true) {
   const row = document.createElement("tr");
   row.className = "document-row";
@@ -4250,8 +4256,10 @@ function addDocumentoRow(documento = {}, shouldFocus = true) {
       <button type="button" class="icon-button add-documento-row-btn" aria-label="Adicionar documento">+</button>
     </td>
   `;
+  row.dataset.ordemInsercao = String(getDocumentoInsertionOrder(documento));
   documentosTableBody.append(row);
   setDocumentoRowValues(row, documento);
+  sortDocumentoRows();
   updateFormularioJsonSizeMeter();
   if (shouldFocus) row.querySelector("input, textarea")?.focus();
 }
@@ -4273,11 +4281,12 @@ function resetDocumentoRows() {
   const rows = Array.from(documentosTableBody.querySelectorAll(".document-row"));
   if (!rows.length) return;
   rows.slice(1).forEach((row) => row.remove());
+  rows[0].dataset.ordemInsercao = "0";
   setDocumentoRowValues(rows[0], {});
 }
 
 function restoreDocumentoRows(documentos = []) {
-  const values = normalizeDocumentos(documentos);
+  const values = sortDocumentos(normalizeDocumentos(documentos));
   resetDocumentoRows();
   if (!values.length) return;
 
@@ -4305,6 +4314,11 @@ function restoreLegacyDocumentoRow(values) {
 function setDocumentoRowValues(row, documento) {
   if (!row) return;
   const normalizado = normalizeDocumentoItem(documento);
+  if (Number.isInteger(normalizado.ordemInsercao)) {
+    row.dataset.ordemInsercao = String(normalizado.ordemInsercao);
+  } else if (!row.dataset.ordemInsercao) {
+    row.dataset.ordemInsercao = String(getDocumentoInsertionOrder());
+  }
   row.querySelector("[name='dataDocumento']").value = converterDataParaBR(normalizado.dataDocumento);
   row.querySelector("[name='tipoDocumento']").value = asText(normalizado.tipoDocumento);
   row.querySelector("[name='paginasDocumento']").value = asText(normalizado.paginasDocumento);
@@ -4314,20 +4328,26 @@ function setDocumentoRowValues(row, documento) {
 }
 
 function getDocumentosProcesso() {
-  return Array.from(documentosTableBody.querySelectorAll(".document-row"))
+  const documentos = Array.from(documentosTableBody.querySelectorAll(".document-row"))
     .map((row) => ({
       dataDocumento: prepararDataParaPayload(row.querySelector("[name='dataDocumento']")?.value),
       tipoDocumento: asText(row.querySelector("[name='tipoDocumento']")?.value),
       paginasDocumento: asText(row.querySelector("[name='paginasDocumento']")?.value),
       eventosAssuntos: asText(row.querySelector("[name='eventosAssuntos']")?.value),
       numeroSei: asText(row.querySelector("[name='numeroSei']")?.value),
-      numeroProcessoDocumento: asText(row.querySelector("[name='numeroProcessoDocumento']")?.value)
+      numeroProcessoDocumento: asText(row.querySelector("[name='numeroProcessoDocumento']")?.value),
+      ordemInsercao: Number(row.dataset.ordemInsercao)
     }))
-    .filter((documento) => Object.values(documento).some(Boolean));
+    .filter((documento) => Object.entries(documento).some(([campo, valor]) => campo !== "ordemInsercao" && Boolean(valor)));
+  return sortDocumentos(documentos);
 }
 
 function normalizeDocumentos(value) {
-  if (Array.isArray(value)) return value.map(normalizeDocumentoItem).filter((documento) => Object.values(documento).some(Boolean));
+  if (Array.isArray(value)) {
+    return value
+      .map((documento, index) => normalizeDocumentoItem(documento, index))
+      .filter((documento) => Object.entries(documento).some(([campo, valor]) => campo !== "ordemInsercao" && Boolean(valor)));
+  }
   if (!value) return [];
   if (typeof value === "string") {
     try {
@@ -4340,10 +4360,10 @@ function normalizeDocumentos(value) {
   return [];
 }
 
-function normalizeDocumentoItem(documento = {}) {
+function normalizeDocumentoItem(documento = {}, fallbackOrder) {
   if (typeof documento === "string") {
     try {
-      return normalizeDocumentoItem(JSON.parse(documento));
+      return normalizeDocumentoItem(JSON.parse(documento), fallbackOrder);
     } catch (error) {
       return {
         dataDocumento: "",
@@ -4351,19 +4371,60 @@ function normalizeDocumentoItem(documento = {}) {
         paginasDocumento: "",
         eventosAssuntos: asText(documento),
         numeroSei: "",
-        numeroProcessoDocumento: ""
+        numeroProcessoDocumento: "",
+        ordemInsercao: Number.isInteger(fallbackOrder) ? fallbackOrder : undefined
       };
     }
   }
 
+  const ordemInformada = Number(documento.ordemInsercao ?? documento.OrdemInsercao);
   return {
     dataDocumento: prepararDataParaPayload(documento.dataDocumento || documento.DataDocumento || documento.data || documento.Data),
     tipoDocumento: asText(documento.tipoDocumento || documento.TipoDocumento || documento.tipo || documento.Tipo),
     paginasDocumento: asText(documento.paginasDocumento || documento.PaginasDocumento || documento.paginaDocumento || documento.PaginaDocumento || documento.paginas || documento.Paginas || documento.pagina || documento.Pagina),
     eventosAssuntos: asText(documento.eventosAssuntos || documento.EventosAssuntos || documento.assunto || documento.Assunto || documento.descricao || documento.Descricao),
     numeroSei: asText(documento.numeroSei || documento.NumeroSei || documento.NumeroSEI || documento.nSEI || documento.NSEI),
-    numeroProcessoDocumento: asText(documento.numeroProcessoDocumento || documento.NumeroProcessoDocumento || documento.numeroProcesso || documento.NumeroProcesso || documento.processo || documento.Processo)
+    numeroProcessoDocumento: asText(documento.numeroProcessoDocumento || documento.NumeroProcessoDocumento || documento.numeroProcesso || documento.NumeroProcesso || documento.processo || documento.Processo),
+    ordemInsercao: Number.isInteger(ordemInformada) && ordemInformada >= 0
+      ? ordemInformada
+      : (Number.isInteger(fallbackOrder) ? fallbackOrder : undefined)
   };
+}
+
+function getDocumentoInsertionOrder(documento = {}) {
+  const ordemInformada = Number(documento?.ordemInsercao ?? documento?.OrdemInsercao);
+  if (Number.isInteger(ordemInformada) && ordemInformada >= 0) return ordemInformada;
+
+  const ordens = Array.from(documentosTableBody.querySelectorAll(".document-row"))
+    .map((row) => Number(row.dataset.ordemInsercao))
+    .filter(Number.isInteger);
+  return ordens.length ? Math.max(...ordens) + 1 : 0;
+}
+
+function sortDocumentos(documentos = []) {
+  return documentos
+    .map((documento, index) => ({ ...documento, ordemInsercao: Number.isInteger(documento.ordemInsercao) ? documento.ordemInsercao : index }))
+    .sort((a, b) => {
+      const dataA = prepararDataParaPayload(a.dataDocumento);
+      const dataB = prepararDataParaPayload(b.dataDocumento);
+      if (dataA && dataB && dataA !== dataB) return dataA.localeCompare(dataB);
+      if (dataA && !dataB) return -1;
+      if (!dataA && dataB) return 1;
+      return a.ordemInsercao - b.ordemInsercao;
+    });
+}
+
+function sortDocumentoRows() {
+  const rows = Array.from(documentosTableBody.querySelectorAll(".document-row"));
+  rows.sort((rowA, rowB) => {
+    const dataA = prepararDataParaPayload(rowA.querySelector("[name='dataDocumento']")?.value);
+    const dataB = prepararDataParaPayload(rowB.querySelector("[name='dataDocumento']")?.value);
+    if (dataA && dataB && dataA !== dataB) return dataA.localeCompare(dataB);
+    if (dataA && !dataB) return -1;
+    if (!dataA && dataB) return 1;
+    return Number(rowA.dataset.ordemInsercao) - Number(rowB.dataset.ordemInsercao);
+  });
+  rows.forEach((row) => documentosTableBody.append(row));
 }
 
 function handleCoordenadaTableClick(event) {
